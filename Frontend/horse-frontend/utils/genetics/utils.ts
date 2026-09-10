@@ -11,15 +11,61 @@ export const BLOODLINE_COLORS: Record<string, string> = {
 };
 
 export function mergeDna(sireDna: BloodlineMap, damDna: BloodlineMap): BloodlineMap {
+  const sire = normalizeDna(sireDna);
+  const dam = normalizeDna(damDna);
   const dna: BloodlineMap = {};
-  const allKeys = new Set([...Object.keys(sireDna), ...Object.keys(damDna)]);
+  const allKeys = new Set([...Object.keys(sire), ...Object.keys(dam)]);
 
   allKeys.forEach((key) => {
-    const val = ((sireDna[key] || 0) + (damDna[key] || 0)) / 2;
+    const val = ((sire[key] || 0) + (dam[key] || 0)) / 2;
     if (val > 0) dna[key] = val;
   });
 
-  return dna;
+  return normalizeDna(dna);
+}
+
+/** Tolerance for a DNA map's weights summing to 1.0 (float dust allowed). */
+export const DNA_SUM_TOLERANCE = 0.01;
+
+/**
+ * Throws if a DNA map is corrupt: negative or non-finite weights, or
+ * weights summing outside 1.0 ± DNA_SUM_TOLERANCE. Save-time gate —
+ * call before persisting DNA derived from stored (possibly hand-edited)
+ * maps so one bad map can't quietly distort every descendant.
+ */
+export function assertDnaSum(dna: BloodlineMap, label = "DNA"): void {
+  const entries = Object.entries(dna || {});
+  for (const [bloodline, weight] of entries) {
+    if (typeof weight !== "number" || !Number.isFinite(weight) || weight < 0) {
+      throw new Error(
+        `Invalid ${label}: bloodline "${bloodline}" has weight ${String(weight)}.`,
+      );
+    }
+  }
+  const sum = entries.reduce((total, [, weight]) => total + weight, 0);
+  if (Math.abs(sum - 1) > DNA_SUM_TOLERANCE) {
+    throw new Error(
+      `Invalid ${label}: weights sum to ${sum.toFixed(4)}, expected ~1.0.`,
+    );
+  }
+}
+
+/**
+ * Scales a DNA map's weights to sum to exactly 1.0 (ratios preserved),
+ * dropping non-positive/non-finite entries. Dust removal only — maps
+ * that are wildly off should be rejected via assertDnaSum, not laundered.
+ */
+export function normalizeDna(dna: BloodlineMap): BloodlineMap {
+  const clean = Object.entries(dna || {}).filter(
+    ([, weight]) => typeof weight === "number" && Number.isFinite(weight) && weight > 0,
+  );
+  const sum = clean.reduce((total, [, weight]) => total + weight, 0);
+  if (!(sum > 0)) return {};
+  const normalized: BloodlineMap = {};
+  for (const [bloodline, weight] of clean) {
+    normalized[bloodline] = weight / sum;
+  }
+  return normalized;
 }
 
 export function calculateColorFromDna(dna: BloodlineMap): string {  let r = 0, g = 0, b = 0;

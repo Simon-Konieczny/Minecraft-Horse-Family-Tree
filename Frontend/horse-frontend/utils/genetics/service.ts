@@ -1,5 +1,5 @@
 import { Horse } from "@/types/horse";
-import { BLOODLINE_COLORS, calculateColorFromDna, mergeDna } from "./utils";
+import { BLOODLINE_COLORS, assertDnaSum, calculateColorFromDna, mergeDna } from "./utils";
 
 export function processNewHorseGenetics(
   sire: Horse | undefined, 
@@ -17,6 +17,11 @@ export function processNewHorseGenetics(
       generation: 0
     };
   }
+
+  // Save-time gate: a stored (possibly hand-edited) parent map that
+  // doesn't sum to ~1.0 must block the write, not poison descendants.
+  if (sire) assertDnaSum(sire.dna, `sire "${sire.firstName}" DNA`);
+  if (dam) assertDnaSum(dam.dna, `dam "${dam.firstName}" DNA`);
 
   const dna = mergeDna(sire.dna, dam.dna);
   const hexColor = calculateColorFromDna(dna);
