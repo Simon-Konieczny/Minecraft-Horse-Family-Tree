@@ -34,6 +34,17 @@ export const bloodlineHeading = style({
   letterSpacing: "-0.01em",
 });
 
+export const tierBadge = style({
+  display: "inline-block",
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#ffffff",
+  padding: "4px 12px",
+  borderRadius: "999px",
+  marginBottom: "16px",
+  letterSpacing: "0.01em",
+});
+
 export const bloodlineList = style({
   display: "flex",
   flexDirection: "column",

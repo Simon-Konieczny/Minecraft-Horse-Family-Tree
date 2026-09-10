@@ -87,3 +87,52 @@ export function getSurnameFromDna(
 
   return parts.join("-");
 }
+
+export type PurityTierKey =
+  | "purebred"
+  | "highblood"
+  | "crossbred"
+  | "mixed"
+  | "unknown";
+
+export interface PurityTier {
+  key: PurityTierKey;
+  /** Display label, e.g. "of House Emberhoof", "Emberhoof-blooded". */
+  label: string;
+  /** Dominant bloodline name ("" when unknown). */
+  bloodline: string;
+  /** Dominant bloodline weight 0–1. */
+  share: number;
+}
+
+/** Float tolerance so near-pure lines (e.g. 0.9999999) count as 100%. */
+const PUREBRED_EPSILON = 1e-6;
+
+/**
+ * Classifies DNA into a purity tier by the dominant bloodline's share.
+ * Display-only companion to getSurnameFromDna — computed on the fly,
+ * never stored.
+ */
+export function getPurityTier(dna: BloodlineMap): PurityTier {
+  const entries = Object.entries(dna || {}).sort(([, a], [, b]) => b - a);
+  const [bloodline, share] = entries[0] ?? ["", 0];
+
+  if (!bloodline || bloodline === "Unknown" || !(share > 0)) {
+    return { key: "unknown", label: "Unknown blood", bloodline: "", share: 0 };
+  }
+  if (share >= 1 - PUREBRED_EPSILON) {
+    return { key: "purebred", label: `of House ${bloodline}`, bloodline, share };
+  }
+  if (share >= 0.75) {
+    return { key: "highblood", label: `${bloodline}-blooded`, bloodline, share };
+  }
+  if (share >= 0.5) {
+    return {
+      key: "crossbred",
+      label: `${bloodline} Crossbred · mixed`,
+      bloodline,
+      share,
+    };
+  }
+  return { key: "mixed", label: "Hybrid", bloodline, share };
+}

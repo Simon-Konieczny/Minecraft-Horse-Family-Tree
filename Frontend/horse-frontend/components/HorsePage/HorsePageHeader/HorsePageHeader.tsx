@@ -2,11 +2,13 @@ import { Horse } from "@/types/horse";
 import * as styles from "./HorsePageHeader.css";
 import { getHorseVariantImage, getVariantName } from "@/utils/variant";
 import { getHorseFullName } from "@/utils/horseNames";
+import { getPurityTier } from "@/utils/genetics/utils";
 import Image from "next/image";
 
 export default function HorsePageHeader({ horse, horseColor }: { horse: Horse; horseColor: string }) {
   const horseImage = getHorseVariantImage(horse.variant);
   const variantName = getVariantName(horse.variant);
+  const tier = getPurityTier(horse.dna);
   
   return (
     <header className={styles.header}>
@@ -28,7 +30,7 @@ export default function HorsePageHeader({ horse, horseColor }: { horse: Horse; h
         <h1 className={styles.heading} style={{ color: horseColor }}>
           {getHorseFullName(horse)}
         </h1>
-        <p className={styles.subHeading}>{variantName} Variant • Generation {horse.generation || 0}</p>
+        <p className={styles.subHeading}>{variantName} Variant • Generation {horse.generation || 0} • {tier.label}</p>
       </div>
     </header>
   );

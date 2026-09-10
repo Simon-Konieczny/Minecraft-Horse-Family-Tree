@@ -1,5 +1,5 @@
 import { horseDna } from "@/types/horse";
-import { BLOODLINE_COLORS } from "@/utils/genetics/utils";
+import { BLOODLINE_COLORS, getPurityTier } from "@/utils/genetics/utils";
 import * as styles from "./BloodlineDisplay.css";
 
 interface BloodlineDisplayProps {
@@ -11,10 +11,16 @@ export function BloodlineDisplay({ dna }: BloodlineDisplayProps) {
 
   // Sort by percentage descending
   const sorted = Object.entries(dna).sort(([, a], [, b]) => b - a);
+  const tier = getPurityTier(dna);
+  const badgeColor =
+    (tier.bloodline && BLOODLINE_COLORS[tier.bloodline]) || "#64748b";
 
   return (
     <div className={styles.bloodlineSection}>
       <h3 className={styles.bloodlineHeading}>Genetic Composition</h3>
+      <span className={styles.tierBadge} style={{ backgroundColor: badgeColor }}>
+        {tier.label}
+      </span>
       <div className={styles.bloodlineList}>
         {sorted.map(([name, percent]) => {
           const color = BLOODLINE_COLORS[name] || "#94a3b8";
