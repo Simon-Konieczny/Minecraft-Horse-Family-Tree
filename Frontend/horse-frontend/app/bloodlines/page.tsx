@@ -1,10 +1,17 @@
 import { getBloodlines } from "@/lib/bloodlines";
+import { getAllHorses } from "@/lib/horses";
+import { buildFamilyRecords } from "@/utils/studbook";
 import BloodlineManager from "@/components/Bloodlines/BloodlineManager";
+import FamilyRecords from "@/components/Bloodlines/FamilyRecords";
 
 export const dynamic = "force-dynamic";
 
 export default async function BloodlinesPage() {
-  const bloodlines = await getBloodlines();
+  const [bloodlines, horses] = await Promise.all([
+    getBloodlines(),
+    getAllHorses(),
+  ]);
+  const records = buildFamilyRecords(horses);
 
   return (
     <main style={{ padding: 24, maxWidth: 720 }}>
@@ -15,6 +22,7 @@ export default async function BloodlinesPage() {
         usable everywhere immediately.
       </p>
       <BloodlineManager initial={bloodlines} />
+      <FamilyRecords bloodlines={bloodlines} records={records} />
     </main>
   );
 }

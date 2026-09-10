@@ -33,6 +33,8 @@ export interface Horse {
   variant: number;
   generation: number;
   hexColor?: string;
+  /** ISO timestamp of creation (absent on older docs — see getFoundingDate). */
+  createdAt?: string;
 }
 
 export type BloodlineMap = {

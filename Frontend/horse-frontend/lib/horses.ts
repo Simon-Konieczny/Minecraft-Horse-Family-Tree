@@ -27,12 +27,19 @@ function toHorse(row: WithId<Document>): Horse {
     generation: toNumber(row.generation),
     hexColor: row.hexColor || "#000000",
     dna: row.dna || {},
+    createdAt: toISOString(row.createdAt),
   };
 }
 
 function toVariant(row: Document): number {
   // Writes use `variant`; older docs may carry `variantId`.
   return toNumber(row.variant ?? row.variantId);
+}
+
+function toISOString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const parsed = new Date(value as string | number | Date);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
 function isValidId(id: string | undefined | null): id is string {
@@ -95,7 +102,7 @@ export async function createHorse(
 
   let response;
   try {
-    response = await horses.insertOne(request);
+    response = await horses.insertOne({ ...request, createdAt: new Date() });
   } catch (error) {
     console.error("Error creating horse", error);
     throw new Error("Could not write horse to MongoDB. Is it running?");
