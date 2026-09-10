@@ -5,6 +5,10 @@ export interface HorseStats {
   variant: number;
 }
 
+// Contract: extract RAW numbers out of a pasted /summon command string
+// only. Stat translation (raw <-> display) lives in translateRawStats.ts
+// and color/pattern decoding lives in utils/variant.ts — do not
+// reimplement either of them here.
 export function parseHorseStats(raw: string): HorseStats | null {
   try {
     const get = (key: string) => {
