@@ -68,13 +68,17 @@ export function normalizeDna(dna: BloodlineMap): BloodlineMap {
   return normalized;
 }
 
-export function calculateColorFromDna(dna: BloodlineMap): string {  let r = 0, g = 0, b = 0;
+export function calculateColorFromDna(
+  dna: BloodlineMap,
+  colors: Record<string, string> = BLOODLINE_COLORS,
+): string {
+  let r = 0, g = 0, b = 0;
   const entries = Object.entries(dna);
-  
-  if (entries.length === 0) return BLOODLINE_COLORS["Unknown"];
+
+  if (entries.length === 0) return colors["Unknown"] || BLOODLINE_COLORS["Unknown"];
 
   entries.forEach(([bloodline, weight]) => {
-    const hex = (BLOODLINE_COLORS[bloodline] || BLOODLINE_COLORS["Unknown"]).replace('#', '');
+    const hex = (colors[bloodline] || colors["Unknown"] || BLOODLINE_COLORS["Unknown"]).replace('#', '');
     r += parseInt(hex.substring(0, 2), 16) * weight;
     g += parseInt(hex.substring(2, 4), 16) * weight;
     b += parseInt(hex.substring(4, 6), 16) * weight;

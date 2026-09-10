@@ -1,5 +1,7 @@
+"use client";
 import { horseDna } from "@/types/horse";
-import { BLOODLINE_COLORS, getPurityTier } from "@/utils/genetics/utils";
+import { getPurityTier } from "@/utils/genetics/utils";
+import { useBloodlineColors } from "@/components/Bloodlines/BloodlineProvider";
 import * as styles from "./BloodlineDisplay.css";
 
 interface BloodlineDisplayProps {
@@ -7,13 +9,14 @@ interface BloodlineDisplayProps {
 }
 
 export function BloodlineDisplay({ dna }: BloodlineDisplayProps) {
+  const bloodlineColors = useBloodlineColors();
   if (!dna || Object.keys(dna).length === 0) return null;
 
   // Sort by percentage descending
   const sorted = Object.entries(dna).sort(([, a], [, b]) => b - a);
   const tier = getPurityTier(dna);
   const badgeColor =
-    (tier.bloodline && BLOODLINE_COLORS[tier.bloodline]) || "#64748b";
+    (tier.bloodline && bloodlineColors[tier.bloodline]) || "#64748b";
 
   return (
     <div className={styles.bloodlineSection}>
@@ -23,7 +26,7 @@ export function BloodlineDisplay({ dna }: BloodlineDisplayProps) {
       </span>
       <div className={styles.bloodlineList}>
         {sorted.map(([name, percent]) => {
-          const color = BLOODLINE_COLORS[name] || "#94a3b8";
+          const color = bloodlineColors[name] || "#94a3b8";
           const percentageValue = (percent * 100).toFixed(1);
           const width = `${percentageValue}%`;
 

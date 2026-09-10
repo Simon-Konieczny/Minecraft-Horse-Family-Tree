@@ -47,6 +47,7 @@ export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreed
   const navItems = [
     { label: "Dashboard", href: "/", icon: "📊" },
     { label: "Lineage Tree", href: "/horses", icon: "🌳" },
+    { label: "Bloodlines", href: "/bloodlines", icon: "🧬" },
   ];
 
   const onBreedingToggle = async (blockCloseRelatives: boolean) => {

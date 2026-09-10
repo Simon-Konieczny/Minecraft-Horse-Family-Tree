@@ -7,6 +7,7 @@ import { getSurnameFromDna } from "@/utils/genetics/utils";
 import { getHorseFullName } from "@/utils/horseNames";
 import { validatePairing, validateParents } from "@/utils/lineage";
 import { getBreedingSettings } from "@/lib/breedingSettings";
+import { getBloodlineColors } from "@/lib/bloodlines";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 
@@ -38,6 +39,8 @@ export default async function createHorseAction(formData: createHorseData) {
   const { dna, hexColor, generation } = processNewHorseGenetics(
     parent1,
     parent2,
+    undefined,
+    await getBloodlineColors(),
   );
 
   // Family name is overwritable: a typed value wins, otherwise derive it

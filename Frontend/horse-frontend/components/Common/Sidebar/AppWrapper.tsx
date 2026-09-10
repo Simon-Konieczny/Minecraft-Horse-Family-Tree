@@ -1,6 +1,8 @@
 import { getRecentHorses } from "@/lib/horses";
 import { getBreedingSettings } from "@/lib/breedingSettings";
+import { getBloodlines } from "@/lib/bloodlines";
 import Sidebar from "./Sidebar";
+import { BloodlineProvider } from "@/components/Bloodlines/BloodlineProvider";
 import * as styles from "./Sidebar.css";
 
 export default async function AppWrapper({
@@ -8,9 +10,10 @@ export default async function AppWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  const [fallbackHorses, breedingSettings] = await Promise.all([
+  const [fallbackHorses, breedingSettings, bloodlines] = await Promise.all([
     getRecentHorses(5),
     getBreedingSettings(),
+    getBloodlines(),
   ]);
 
   return (
@@ -21,7 +24,11 @@ export default async function AppWrapper({
           breedingSettings.allowCloseRelativeBreeding
         }
       />
-      <main className={styles.contentArea}>{children}</main>
+      <main className={styles.contentArea}>
+        <BloodlineProvider bloodlines={bloodlines}>
+          {children}
+        </BloodlineProvider>
+      </main>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Horse, editHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
 import { getDescendantIds, validatePairing, validateParents } from "@/utils/lineage";
 import { getBreedingSettings } from "@/lib/breedingSettings";
+import { getBloodlineColors } from "@/lib/bloodlines";
 import { revalidatePath } from 'next/cache';
 
 export default async function editHorseAction(horse: Horse, formData: Horse) {
@@ -30,6 +31,8 @@ export default async function editHorseAction(horse: Horse, formData: Horse) {
     const { dna, hexColor, generation } = processNewHorseGenetics(
       parent1,
       parent2,
+      undefined,
+      await getBloodlineColors(),
     );
 
 

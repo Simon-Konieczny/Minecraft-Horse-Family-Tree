@@ -126,4 +126,11 @@ describe("calculateColorFromDna", () => {
   it("falls back gracefully for bloodlines missing from the registry", () => {
     expect(calculateColorFromDna({ NoSuchBloodline: 1.0 })).toBe("#444444");
   });
+
+  it("looks colors up in the injected registry map, not the built-in one", () => {
+    const registry = { Stormmane: "#123456", Unknown: "#444444" };
+    expect(calculateColorFromDna({ Stormmane: 1.0 }, registry)).toBe("#123456");
+    // Entries absent from the injected map fall back to its Unknown.
+    expect(calculateColorFromDna({ Emberhoof: 1.0 }, registry)).toBe("#444444");
+  });
 });
