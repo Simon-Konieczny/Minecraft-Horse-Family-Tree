@@ -3,6 +3,7 @@ import { getAllHorses } from '@/lib/horses';
 import HorseTreeView from '@/components/HorseTreeView/HorseTreeView';
 import { getBaseLayout } from "@/utils/layout";
 import { Horse } from '@/types/horse';
+import { getHorseFullName } from '@/utils/horseNames';
 import { HorseNode } from '@/components/HorseNode/HorseNode';
 import { Edge } from '@xyflow/react';
 
@@ -14,7 +15,7 @@ export default async function HomePage() {
   type: 'horseNode',
   data: { 
     horse: h,
-    label: h.name 
+    label: getHorseFullName(h) 
   },
   position: { x: 0, y: 0 },
 }));

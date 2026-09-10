@@ -1,4 +1,5 @@
 import { Horse } from "@/types/horse";
+import { getHorseFullName } from "@/utils/horseNames";
 
 export interface ParentIds {
   parentId1?: string | null;
@@ -84,7 +85,7 @@ export interface PairingOptions {
  * as parent) lives in `validateParents` and stays hard-blocked regardless.
  */
 export function validatePairing(
-  horses: (Pick<Horse, "id" | "name"> & ParentIds)[],
+  horses: (Pick<Horse, "id" | "firstName" | "familyName"> & ParentIds)[],
   parentId1?: string | null,
   parentId2?: string | null,
   options: PairingOptions = {},
@@ -98,7 +99,10 @@ export function validatePairing(
   if (!parentId1 || !parentId2) return; // single-parent / origin foal: nothing to check
 
   const byId = new Map(horses.map((h) => [h.id, h]));
-  const nameOf = (id: string) => byId.get(id)?.name || id;
+  const nameOf = (id: string) => {
+    const h = byId.get(id);
+    return h ? getHorseFullName(h) : id;
+  };
   const a = byId.get(parentId1);
   const b = byId.get(parentId2);
 
@@ -156,13 +160,16 @@ export function validatePairing(
  * (a new node has no id yet and cannot be its own ancestor).
  */
 export function validateParents(
-  horses: (Pick<Horse, "id" | "name"> & ParentIds)[],
+  horses: (Pick<Horse, "id" | "firstName" | "familyName"> & ParentIds)[],
   horseId: string | null,
   parentId1?: string | null,
   parentId2?: string | null,
 ): void {
   const byId = new Map(horses.map((h) => [h.id, h]));
-  const nameOf = (id: string) => byId.get(id)?.name || id;
+  const nameOf = (id: string) => {
+    const h = byId.get(id);
+    return h ? getHorseFullName(h) : id;
+  };
 
   for (const parentId of [parentId1, parentId2]) {
     if (!parentId) continue;

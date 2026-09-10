@@ -1,11 +1,33 @@
 import { Collection, Document, ObjectId, WithId } from "mongodb";
 import { getMongoClient } from "./mongodb";
 import { createHorseRequest, editHorseRequest, Horse } from "@/types/horse";
+import { getSurnameFromDna } from "@/utils/genetics/utils";
+import { splitLegacyName } from "@/utils/horseNames";
 import { unstable_noStore as noStore } from "next/cache";
 
 function toNumber(value: unknown): number {
   const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
   return Number.isFinite(n) ? (n as number) : 0;
+}
+
+function toHorse(row: WithId<Document>): Horse {
+  const legacy = splitLegacyName(row.name);
+  return {
+    id: String(row._id).trim(),
+    firstName: row.firstName || legacy.firstName,
+    familyName:
+      row.familyName || getSurnameFromDna(row.dna || {}),
+    parentId1: row.parentId1 || null,
+    parentId2: row.parentId2 || null,
+    status: row.status,
+    speed: toNumber(row.speed),
+    jump: toNumber(row.jump),
+    health: toNumber(row.health),
+    variant: toVariant(row),
+    generation: toNumber(row.generation),
+    hexColor: row.hexColor || "#000000",
+    dna: row.dna || {},
+  };
 }
 
 function toVariant(row: Document): number {
@@ -23,20 +45,7 @@ export async function getRecentHorses(limit: number = 10): Promise<Horse[]> {
     const horses = await getCollection();
     const data = await horses.find({}).sort({ _id: -1 }).limit(limit).toArray();
 
-    return data.map((row: WithId<Document>) => ({
-      id: String(row._id).trim(),
-      name: row.name || "Unknown",
-      parentId1: row.parentId1 || null,
-      parentId2: row.parentId2 || null,
-      status: row.status,
-      speed: toNumber(row.speed),
-      jump: toNumber(row.jump),
-      health: toNumber(row.health),
-      variant: toVariant(row),
-      generation: toNumber(row.generation),
-      hexColor: row.hexColor || "#000000",
-      dna: row.dna || {},
-    }));
+    return data.map(toHorse);
   } catch (error) {
     console.error("Error fetching recent horses:", error);
     return [];
@@ -50,20 +59,7 @@ export async function getAllHorses(): Promise<Horse[]> {
 
     const data = await horses.find({}).toArray();
 
-    const horseList: Horse[] = data.map((row: WithId<Document>) => ({
-      id: String(row._id).trim(),
-      name: row.name || "Unknown",
-      parentId1: row.parentId1 || null,
-      parentId2: row.parentId2 || null,
-      status: row.status,
-      speed: toNumber(row.speed),
-      jump: toNumber(row.jump),
-      health: toNumber(row.health),
-      variant: toVariant(row),
-      generation: toNumber(row.generation),
-      hexColor: row.hexColor || "#000000",
-      dna: row.dna || {},
-    }));
+    const horseList: Horse[] = data.map(toHorse);
 
     return horseList;
   } catch (error) {
@@ -84,22 +80,7 @@ export async function getHorseById(id: string): Promise<Horse | undefined> {
       return;
     }
 
-    const horse: Horse = {
-      id: String(response._id).trim(),
-      name: response.name || "Unknown",
-      parentId1: response.parentId1 || null,
-      parentId2: response.parentId2 || null,
-      status: response.status,
-      speed: toNumber(response.speed),
-      jump: toNumber(response.jump),
-      health: toNumber(response.health),
-      variant: toVariant(response),
-      generation: toNumber(response.generation),
-      dna: response.dna || {},
-      hexColor: response.hexColor || "#000000",
-    };
-
-    return horse;
+    return toHorse(response);
   } catch (error) {
     console.error("Error fetching horse by ID", error);
     return;
@@ -201,20 +182,12 @@ export async function getHorsesByIds(ids: string[]): Promise<Horse[]> {
     const data = await horses.find({ _id: { $in: objectIds } }).toArray();
     
     // Map back in the order requested
-    const horseMap = new Map<string, Horse>(data.map((row: WithId<Document>) => [row._id.toString(), {
-      id: row._id.toString(),
-      name: row.name || "Unknown",
-      parentId1: row.parentId1 || undefined,
-      parentId2: row.parentId2 || undefined,
-      status: row.status,
-      speed: toNumber(row.speed),
-      jump: toNumber(row.jump),
-      health: toNumber(row.health),
-      variant: toVariant(row),
-      generation: toNumber(row.generation),
-      hexColor: row.hexColor || "#000000",
-      dna: row.dna || {},
-    }]));
+    const horseMap = new Map<string, Horse>(
+      data.map((row: WithId<Document>) => {
+        const horse = toHorse(row);
+        return [horse.id, horse];
+      }),
+    );
 
     return validIds.map(id => horseMap.get(id)).filter((h): h is Horse => !!h);
   } catch (error) {
@@ -223,8 +196,7 @@ export async function getHorsesByIds(ids: string[]): Promise<Horse[]> {
   }
 }
 
-export async function bulkUpdateGenerations(
-  updates: { id: string; generation: number }[],
+export async function bulkUpdateGenerations(  updates: { id: string; generation: number }[],
 ): Promise<void> {
   noStore();
   const valid = updates.filter((u) => isValidId(u.id));
@@ -242,6 +214,21 @@ export async function bulkUpdateGenerations(
   } catch (error) {
     console.error("Error bulk updating generations", error);
     throw new Error("Could not update descendant generations in MongoDB.");
+  }
+}
+
+/** Distinct family names in the DB, for autocomplete (sorted A–Z). */
+export async function getDistinctFamilyNames(): Promise<string[]> {
+  noStore();
+  try {
+    const horses = await getCollection();
+    const names = await horses.distinct("familyName");
+    return names
+      .filter((n): n is string => typeof n === "string" && n.trim().length > 0)
+      .sort((a, b) => a.localeCompare(b));
+  } catch (error) {
+    console.error("Error fetching family names:", error);
+    return [];
   }
 }
 

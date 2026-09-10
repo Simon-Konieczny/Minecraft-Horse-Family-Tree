@@ -12,6 +12,7 @@ import StatsBox from "@/components/Common/StatsBox/StatsBox";
 import StatRow from "../StatRow/StatRow";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
 import { getDescendantIds } from "@/utils/lineage";
+import { getHorseFullName } from "@/utils/horseNames";
 
 import * as statRowStyles from "../StatRow/StatRow.css";
 
@@ -70,9 +71,19 @@ export default function HorseEditModal({
         .filter((h) => h.id !== horse.id && !blockedIds.has(h.id))
         .map((h) => ({
           value: h.id.toString(),
-          label: h.name,
+          label: getHorseFullName(h),
         })),
     [horses, horse.id, blockedIds],
+  );
+
+  const knownFamilies = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          horses.map((h) => (h.familyName || "").trim()).filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [horses],
   );
 
   if (!isOpen) return null;
@@ -111,13 +122,28 @@ export default function HorseEditModal({
         <h2>Edit Horse</h2>
         <div className={createFormStyles.container} style={{ margin: 0, padding: 0 }}>
           <div className={createFormStyles.nameRow}>
-            <label className={createFormStyles.label}>Name</label>
+            <label className={createFormStyles.label}>First Name</label>
             <input
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="Name"
+              value={formData.firstName}
+              onChange={(e) => handleChange("firstName", e.target.value)}
+              placeholder="First name"
               className={createFormStyles.nameField}
             />
+          </div>
+          <div className={createFormStyles.nameRow}>
+            <label className={createFormStyles.label}>Family Name</label>
+            <input
+              value={formData.familyName}
+              list="edit-family-name-options"
+              onChange={(e) => handleChange("familyName", e.target.value)}
+              placeholder="Family name"
+              className={createFormStyles.nameField}
+            />
+            <datalist id="edit-family-name-options">
+              {knownFamilies.map((family) => (
+                <option key={family} value={family} />
+              ))}
+            </datalist>
           </div>
 
           {rawStatsView && <StatsBox onStatsParsed={handleImportedStats} />}

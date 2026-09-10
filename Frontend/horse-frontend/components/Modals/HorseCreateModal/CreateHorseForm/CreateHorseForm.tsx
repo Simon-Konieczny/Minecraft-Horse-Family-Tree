@@ -1,7 +1,7 @@
 "use client";
 import { Horse } from "@/types/horse";
 import { HorseStats } from "@/utils/parseHorseStats";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Select from "react-select";
 import * as styles from "./CreateHorseForm.css";
 import StatsBox from "@/components/Common/StatsBox/StatsBox";
@@ -10,6 +10,8 @@ import { translateStat, untranslateStat } from "@/utils/translateRawStats";
 import StatRow from "../../StatRow/StatRow";
 import { createHorseData } from "../HorseCreateModal";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
+import { getHorseFullName } from "@/utils/horseNames";
+import { getSurnameFromDna, mergeDna } from "@/utils/genetics/utils";
 
 export interface CreateHorseFormProps {
   horses: Horse[];
@@ -75,26 +77,79 @@ export default function CreateHorseForm({
 
   const parentOptions = horses.map((horse) => ({
     value: horse.id.toString(),
-    label: horse.name,
+    label: getHorseFullName(horse),
   }));
   const statusOptions = [
     { value: 1, label: "Alive" },
     { value: 0, label: "Dead" },
   ];
 
+  // Known families for autocomplete (derived from DNA-derived names in the DB).
+  const knownFamilies = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          horses.map((h) => (h.familyName || "").trim()).filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [horses],
+  );
+
+  // Live DNA suggestion: once both parents are picked, suggest the foal's
+  // family name from the merged DNA. Overwritable — typing keeps your value.
+  const dnaSuggestion = useMemo(() => {
+    const sire = horses.find((h) => h.id.toString() === formData.parentId1);
+    const dam = horses.find((h) => h.id.toString() === formData.parentId2);
+    if (!sire || !dam) return "";
+    return getSurnameFromDna(mergeDna(sire.dna, dam.dna), {
+      sireDna: sire.dna,
+    });
+  }, [horses, formData.parentId1, formData.parentId2]);
+
+  const prevSuggestion = useRef("");
+  useEffect(() => {
+    if (
+      dnaSuggestion &&
+      (formData.familyName === "" || formData.familyName === prevSuggestion.current)
+    ) {
+      setFormData((prev) => ({ ...prev, familyName: dnaSuggestion }));
+    }
+    prevSuggestion.current = dnaSuggestion;
+  }, [dnaSuggestion, formData.familyName, setFormData]);
+
   return (
     <div className={styles.container}>
       <form>
         <div className={styles.fields}>
           <div className={styles.nameRow}>
-            <label className={styles.label}>Name</label>
+            <label className={styles.label}>First Name</label>
             <input
-              value={formData.name}
-              onChange={(e) => setFormData((prev: createHorseData) => ({...prev, name: e.target.value}))}
-              placeholder="Name"
+              value={formData.firstName}
+              onChange={(e) => setFormData((prev: createHorseData) => ({...prev, firstName: e.target.value}))}
+              placeholder="First name"
               className={styles.nameField}
             />
           </div>
+          <div className={styles.nameRow}>
+            <label className={styles.label}>Family Name</label>
+            <input
+              value={formData.familyName}
+              list="family-name-options"
+              onChange={(e) => setFormData((prev: createHorseData) => ({...prev, familyName: e.target.value}))}
+              placeholder={dnaSuggestion || "Family name"}
+              className={styles.nameField}
+            />
+            <datalist id="family-name-options">
+              {knownFamilies.map((family) => (
+                <option key={family} value={family} />
+              ))}
+            </datalist>
+          </div>
+          {dnaSuggestion && (
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              DNA suggestion: {dnaSuggestion} — you can overwrite it.
+            </div>
+          )}
 
           {statsView && <StatsBox onStatsParsed={handleImportedStats} />}
 

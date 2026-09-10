@@ -4,7 +4,7 @@ import { bulkUpdateGenerations, editHorse, getAllHorses, getHorseById } from "@/
 import { Horse, editHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
 import { getDescendantIds, validatePairing, validateParents } from "@/utils/lineage";
-import { breedingSettings } from "@/utils/breedingSettings";
+import { getBreedingSettings } from "@/lib/breedingSettings";
 import { revalidatePath } from 'next/cache';
 
 export default async function editHorseAction(horse: Horse, formData: Horse) {
@@ -13,8 +13,9 @@ export default async function editHorseAction(horse: Horse, formData: Horse) {
   // Block loops before writing: a horse can never be parented to itself
   // or to one of its own descendants.
   validateParents(allHorses, horse.id, formData.parentId1, formData.parentId2);
-  // No-op while close-relative breeding is allowed (the default).
-  validatePairing(allHorses, formData.parentId1, formData.parentId2, breedingSettings);
+  // No-op while close-relative breeding is allowed (the default —
+  // switchable in the sidebar under Breeding Rules).
+  validatePairing(allHorses, formData.parentId1, formData.parentId2, await getBreedingSettings());
 
   const parentId1 = formData.parentId1;
   const parentId2 = formData.parentId2;
@@ -33,7 +34,8 @@ export default async function editHorseAction(horse: Horse, formData: Horse) {
 
 
   const data: editHorseRequest = {
-    name: horse.name,
+    firstName: formData.firstName,
+    familyName: formData.familyName,
     parentId1: formData.parentId1,
     parentId2: formData.parentId2,
     status: formData.status,

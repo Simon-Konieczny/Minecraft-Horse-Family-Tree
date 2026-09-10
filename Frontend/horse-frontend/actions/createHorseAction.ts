@@ -3,15 +3,17 @@ import { createHorseData } from "@/components/Modals/HorseCreateModal/HorseCreat
 import { createHorse, getAllHorses, getHorseById } from "@/lib/horses";
 import { createHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
+import { getSurnameFromDna } from "@/utils/genetics/utils";
+import { getHorseFullName } from "@/utils/horseNames";
 import { validatePairing, validateParents } from "@/utils/lineage";
-import { breedingSettings } from "@/utils/breedingSettings";
+import { getBreedingSettings } from "@/lib/breedingSettings";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 
 export default async function createHorseAction(formData: createHorseData) {
-  const name = formData.name?.trim();
-  if (!name) {
-    throw new Error("Horse name is required.");
+  const firstName = formData.firstName?.trim();
+  if (!firstName) {
+    throw new Error("Horse first name is required.");
   }
 
   const parentId1 = formData.parentId1 || "";
@@ -22,8 +24,9 @@ export default async function createHorseAction(formData: createHorseData) {
   // anyway as defense-in-depth for future import paths.
   const allHorses = await getAllHorses();
   validateParents(allHorses, null, parentId1, parentId2);
-  // No-op while close-relative breeding is allowed (the default).
-  validatePairing(allHorses, parentId1, parentId2, breedingSettings);
+  // No-op while close-relative breeding is allowed (the default —
+  // switchable in the sidebar under Breeding Rules).
+  validatePairing(allHorses, parentId1, parentId2, await getBreedingSettings());
 
   // Empty strings mean "origin horse" — skip the lookup instead of
   // constructing an invalid ObjectId (which only produced log noise).
@@ -37,8 +40,15 @@ export default async function createHorseAction(formData: createHorseData) {
     parent2,
   );
 
+  // Family name is overwritable: a typed value wins, otherwise derive it
+  // from the foal's DNA (sire line breaks near-ties).
+  const familyName =
+    formData.familyName?.trim() ||
+    getSurnameFromDna(dna, { sireDna: parent1?.dna, damDna: parent2?.dna });
+
   const data: createHorseRequest = {
-    name,
+    firstName,
+    familyName,
     parentId1: formData.parentId1 as string,
     parentId2: formData.parentId2 as string,
     status: formData.status,
@@ -57,5 +67,5 @@ export default async function createHorseAction(formData: createHorseData) {
   revalidatePath("/horses");
   revalidatePath("/");
 
-  return { id: result, name: data.name };
+  return { id: result, name: getHorseFullName(data) };
 }

@@ -12,6 +12,7 @@ import HorseEditModal from "@/components/Modals/HorseEditModal/HorseEditModal";
 import editHorseAction from "@/actions/editHorseAction";
 import HorseDeleteModal from "@/components/Modals/HorseDeleteModal/HorseDeleteModal";
 import deleteHorseAction from "@/actions/deleteHorseAction";
+import { getHorseFullName } from "@/utils/horseNames";
 
 export default function HorsePage({
   horse,
@@ -62,12 +63,13 @@ export default function HorsePage({
     router.push("/horses");
   };
 
-  const parent1Name = horse.parentId1
-    ? horses.find((h) => h.id === horse.parentId1)?.name || "Unknown"
-    : "None";
-  const parent2Name = horse.parentId2
-    ? horses.find((h) => h.id === horse.parentId2)?.name || "Unknown"
-    : "None";
+  const parentNameOf = (id?: string) => {
+    if (!id) return "None";
+    const parent = horses.find((h) => h.id === id);
+    return parent ? getHorseFullName(parent) : "Unknown";
+  };
+  const parent1Name = parentNameOf(horse.parentId1);
+  const parent2Name = parentNameOf(horse.parentId2);
 
   useEffect(() => {
     if (typeof window !== "undefined") {

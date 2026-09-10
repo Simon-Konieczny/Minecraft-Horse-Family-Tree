@@ -2,6 +2,7 @@ import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { Horse } from '@/types/horse';
 import { translateStatsForDisplay } from '@/utils/translateRawStats';
 import { getHorseVariantImage } from '@/utils/variant';
+import { getHorseFullName } from '@/utils/horseNames';
 import * as styles from './HorseNode.css';
 import { CSSProperties } from 'react';
 import Image from 'next/image';
@@ -87,7 +88,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
         <Handle type="target" position={Position.Top} className={styles.handleStyle} />
         <div className={styles.contentWrapper} style={{ flexDirection: 'column', gap: '2px' }}>
           <div className={styles.horseName} style={{ color: textColor, fontSize: '13px' }}>
-            {horse.name}
+            {getHorseFullName(horse)}
           </div>
           <div className={styles.statText} style={{ color: textColor, opacity: 0.9 }}>
             {display.label}: {display.value}
@@ -110,7 +111,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
         <div className={styles.imageContainer} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
           <Image 
             src={horseImage} 
-            alt={horse.name} 
+            alt={getHorseFullName(horse)} 
             width={48} 
             height={48} 
             className={styles.horseImage}
@@ -118,7 +119,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
         </div>
         <div className={styles.textDetails}>
           <div className={styles.horseName} style={{ color: textColor }}>
-            {horse.name}
+            {getHorseFullName(horse)}
           </div>
           <div className={styles.statText} style={{ color: textColor, opacity: 0.8 }}>
             <span className={styles.statLabel} style={{ color: 'inherit' }}>{display.label}:</span>

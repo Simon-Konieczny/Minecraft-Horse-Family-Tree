@@ -1,7 +1,8 @@
 // main type representing a horse
 export interface Horse {
   id: string;
-  name: string;
+  firstName: string;
+  familyName: string;
   parentId1?: string;
   parentId2?: string;
   dna: BloodlineMap;
@@ -19,7 +20,8 @@ export type BloodlineMap = {
 };
 
 export interface createHorseRequest {
-  name: string;
+  firstName: string;
+  familyName: string;
   parentId1?: string;
   parentId2?: string;
   status: number;
@@ -37,7 +39,8 @@ export interface horseDna {
 }
 
 export interface editHorseRequest {
-  name?: string;
+  firstName?: string;
+  familyName?: string;
   parentId1?: string;
   parentId2?: string;
   status: number;

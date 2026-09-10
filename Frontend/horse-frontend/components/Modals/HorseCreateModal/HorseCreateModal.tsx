@@ -14,7 +14,8 @@ interface HorseCreateModalProps {
 }
 
 export interface createHorseData {
-  name: string;
+  firstName: string;
+  familyName: string;
   parentId1: string;
   parentId2: string;
   status: number;
@@ -31,7 +32,8 @@ export default function HorseCreateModal({
 
   const [horses, setHorses] = useState<Horse[]>([]);
   const [formData, setFormData] = useState<createHorseData>({
-    name: "Name",
+    firstName: "",
+    familyName: "",
     parentId1: "",
     parentId2: "",
     status: 1,
@@ -61,8 +63,8 @@ export default function HorseCreateModal({
 
   const onCreate = async () => {
     try {
-      if (!formData.name?.trim()) {
-        setErrorMessage("Name is required.");
+      if (!formData.firstName?.trim()) {
+        setErrorMessage("First name is required.");
         setError(true);
         return;
       }

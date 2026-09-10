@@ -9,15 +9,23 @@ import { Horse } from "@/types/horse";
 import Image from "next/image";
 import { getHorseVariantImage } from "@/utils/variant";
 import getHorsesByIdsAction from "@/actions/getHorsesByIdsAction";
+import { getHorseFullName } from "@/utils/horseNames";
+import updateBreedingSettingsAction from "@/actions/updateBreedingSettingsAction";
+import Switch from "@/components/Common/Switch/Switch";
 
 interface SidebarProps {
   fallbackHorses: Horse[];
+  initialAllowCloseRelativeBreeding: boolean;
 }
 
-export default function Sidebar({ fallbackHorses }: SidebarProps) {
+export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreeding }: SidebarProps) {
   const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recentViewed, setRecentViewed] = useState<Horse[]>([]);
+  const [allowCloseRelativeBreeding, setAllowCloseRelativeBreeding] = useState(
+    initialAllowCloseRelativeBreeding,
+  );
+  const [breedingError, setBreedingError] = useState<string | null>(null);
 
   useEffect(() => {
     const updateRecent = async () => {
@@ -40,6 +48,19 @@ export default function Sidebar({ fallbackHorses }: SidebarProps) {
     { label: "Dashboard", href: "/", icon: "📊" },
     { label: "Lineage Tree", href: "/horses", icon: "🌳" },
   ];
+
+  const onBreedingToggle = async (blockCloseRelatives: boolean) => {
+    const previous = allowCloseRelativeBreeding;
+    setAllowCloseRelativeBreeding(!blockCloseRelatives);
+    setBreedingError(null);
+    try {
+      await updateBreedingSettingsAction(!blockCloseRelatives);
+    } catch (err) {
+      setAllowCloseRelativeBreeding(previous);
+      setBreedingError("Could not save breeding rule.");
+      console.error(err);
+    }
+  };
 
   return (
     <>
@@ -77,12 +98,12 @@ export default function Sidebar({ fallbackHorses }: SidebarProps) {
                   <div className={styles.recentImageContainer}>
                     <Image 
                       src={getHorseVariantImage(horse.variant)} 
-                      alt={horse.name} 
+                      alt={getHorseFullName(horse)} 
                       width={24} 
                       height={24}
                     />
                   </div>
-                  <span className={styles.recentName}>{horse.name}</span>
+                  <span className={styles.recentName}>{getHorseFullName(horse)}</span>
                 </Link>
               ))}
               {recentViewed.length === 0 && (
@@ -91,6 +112,22 @@ export default function Sidebar({ fallbackHorses }: SidebarProps) {
                 </div>
               )}
             </div>
+          </div>
+
+          <div
+            className={styles.navSection}
+            title="When ON: blocks sibling, parent-child and shared-blood pairings within 3 generations."
+          >
+            <span className={styles.sectionLabel}>Breeding Rules</span>
+            <Switch
+              label="Block close-relative breeding"
+              checked={!allowCloseRelativeBreeding}
+              onChange={onBreedingToggle}
+              labelLeft={false}
+            />
+            {breedingError && (
+              <div style={{ opacity: 0.7, fontSize: 12 }}>{breedingError}</div>
+            )}
           </div>
         </nav>
 

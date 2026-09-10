@@ -2,6 +2,7 @@ import { getRecentHorses, getStablesStats } from "@/lib/horses";
 import * as styles from "./Dashboard.css";
 import { translateStat } from "@/utils/translateRawStats";
 import { getHorseVariantImage } from "@/utils/variant";
+import { getHorseFullName } from "@/utils/horseNames";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
                     <div className={styles.smallImageContainer}>
                       <Image 
                         src={getHorseVariantImage(horse.variant)} 
-                        alt={horse.name} 
+                        alt={getHorseFullName(horse)} 
                         width={32} 
                         height={32} 
                         className={styles.smallHorseImage}
@@ -75,7 +76,7 @@ export default async function DashboardPage() {
                   </td>
                   <td className={styles.td}>
                     <Link href={`/horses/${horse.id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}>
-                      {horse.name}
+                      {getHorseFullName(horse)}
                     </Link>
                   </td>
                   <td className={styles.td}>
