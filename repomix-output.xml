@@ -1,0 +1,5466 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+Backend/
+  main.py
+Frontend/
+  horse-frontend/
+    actions/
+      createHorseAction.ts
+      deleteHorseAction.ts
+      editHorseAction.ts
+      getAllHorsesAction.ts
+      getHorseByIdAction.ts
+      getHorsesByIdsAction.ts
+    app/
+      horses/
+        [id]/
+          page.tsx
+        page.tsx
+      Dashboard.css.ts
+      globals.css
+      layout.tsx
+      page.tsx
+    components/
+      Common/
+        Button/
+          Button.css.ts
+          Button.tsx
+        Sidebar/
+          AppWrapper.tsx
+          Sidebar.css.ts
+          Sidebar.tsx
+        StatsBox/
+          StatsBox.css.ts
+          StatsBox.tsx
+        Switch/
+          Switch.css.ts
+          Switch.tsx
+        VariantSelector/
+          VariantSelector.css.ts
+          VariantSelector.tsx
+      HorseNode/
+        HorseNode.css.ts
+        HorseNode.tsx
+      HorsePage/
+        DetailsCard/
+          BloodlineDisplay/
+            BloodlineDisplay.css.ts
+            BloodlineDisplay.tsx
+          DetailsCard.css.ts
+          DetailsCard.tsx
+        HorsePageHeader/
+          HorsePageHeader.css.ts
+          HorsePageHeader.tsx
+        StatsShapeGrid/
+          StatsShapeCard/
+            StatsShapeCard.css.ts
+            StatsShapeCard.tsx
+          StatsShapeGrid.css.ts
+          StatsShapeGrid.tsx
+        HorsePage.css.ts
+        HorsePage.tsx
+      HorseTreeView/
+        ViewMenu/
+          ViewMenu.css.ts
+          ViewMenu.tsx
+        HorseTreeView.css.ts
+        HorseTreeView.tsx
+      Modals/
+        HorseCreateModal/
+          CreateHorseForm/
+            CreateHorseForm.css.ts
+            CreateHorseForm.tsx
+          HorseCreateModal.css.ts
+          HorseCreateModal.tsx
+        HorseDeleteModal/
+          HorseDeleteModal.tsx
+        HorseEditModal/
+          HorseEditModal.css.ts
+          HorseEditModal.tsx
+        StatRow/
+          StatRow.css.ts
+          StatRow.tsx
+        Modals.css.ts
+    lib/
+      horses.ts
+      mongodb.ts
+    public/
+      shapes/
+        heart.svg
+        horse-jumping.svg
+        horse-running.svg
+        scroll.svg
+      file.svg
+      globe.svg
+      next.svg
+      vercel.svg
+      window.svg
+    styles/
+      theme.css.ts
+    types/
+      horse.ts
+    utils/
+      genetics/
+        service.ts
+        utils.ts
+      layout.ts
+      parseHorseStats.ts
+      tmp_migration.ts
+      translateRawStats.ts
+      variant.ts
+    .gitignore
+    Dockerfile
+    eslint.config.mjs
+    favicon.ico
+    next.config.ts
+    package.json
+    postcss.config.mjs
+    README.md
+    tsconfig.json
+.gitignore
+docker-compose.yml
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="Frontend/horse-frontend/Dockerfile">
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+</file>
+
+<file path="docker-compose.yml">
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: horse_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  app:
+    build:
+      context: ./Frontend/horse-frontend
+      dockerfile: Dockerfile
+    container_name: horse_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - DB_NAME=horse-database
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:
+</file>
+
+<file path="Frontend/horse-frontend/actions/getAllHorsesAction.ts">
+"use server";
+import { getAllHorses } from "@/lib/horses";
+import { Horse } from "@/types/horse";
+
+export default async function getAllHorsesAction(): Promise<Horse[]> {
+  return await getAllHorses();
+}
+</file>
+
+<file path="Frontend/horse-frontend/actions/getHorsesByIdsAction.ts">
+"use server";
+import { getHorsesByIds } from "@/lib/horses";
+import { Horse } from "@/types/horse";
+
+export default async function getHorsesByIdsAction(ids: string[]): Promise<Horse[]> {
+  return await getHorsesByIds(ids);
+}
+</file>
+
+<file path="Frontend/horse-frontend/app/globals.css">
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Button/Button.tsx">
+import * as styles from "./Button.css";
+
+interface ButtonProps {
+  onClick?: () => void;
+  text: string;
+  className?: string;
+  variant?: 'default' | 'danger';
+}
+
+export default function Button({ onClick, text, className, variant }: ButtonProps) {
+  return (
+    <button className={`${styles.Button} ${variant === 'danger' ? styles.danger : ''} ${className || ""}`} onClick={onClick}>
+      {text}
+    </button>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Switch/Switch.css.ts">
+import { style } from "@vanilla-extract/css";
+
+export const switchWrapper = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  margin: "10px 0",
+});
+
+export const reverse = style({
+  flexDirection: "row-reverse",
+  justifyContent: "flex-end",
+});
+
+export const label = style({
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontSize: "11px",
+  fontWeight: 800,
+  color: "#2d4a3e",
+});
+
+export const switchContainer = style({
+  position: "relative",
+  display: "inline-block",
+  width: "40px",
+  height: "20px",
+});
+
+// We style the input directly instead of targeting it from the container
+export const input = style({
+  opacity: 0,
+  width: 0,
+  height: 0,
+  position: "absolute", // ensure it doesn't take up space
+});
+
+export const slider = style({
+  position: "absolute",
+  cursor: "pointer",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "#ccc",
+  transition: ".4s",
+  borderRadius: "20px",
+  ":before": {
+    position: "absolute",
+    content: '""',
+    height: "16px",
+    width: "16px",
+    left: "2px",
+    bottom: "2px",
+    backgroundColor: "white",
+    transition: ".4s",
+    borderRadius: "50%",
+  },
+  selectors: {
+    // Look "up" to see if the sibling input is checked
+    [`${input}:checked + &`]: {
+      backgroundColor: "#2d4a3e",
+    },
+    [`${input}:checked + &:before`]: {
+      transform: "translateX(20px)",
+    },
+  },
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Switch/Switch.tsx">
+import React from 'react';
+import * as styles from './Switch.css';
+
+interface SwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label?: string;
+  labelLeft?: boolean;
+}
+
+export default function Switch({ checked, onChange, label, labelLeft = true }: SwitchProps) {
+  return (
+    <div className={`${styles.switchWrapper} ${!labelLeft ? styles.reverse : ""}`}>
+      {/* 1. The label text (e.g., "Toggle Theme") */}
+      {label && <span className={styles.label}>{label}</span>}
+      
+      {/* 2. The container for the actual toggle mechanism */}
+      <label className={styles.switchContainer}>
+        <input 
+          type="checkbox" 
+          className={styles.input} // Added this to match the new CSS class
+          checked={checked} 
+          onChange={(e) => onChange(e.target.checked)} 
+        />
+        {/* 3. The visual slider that slides back and forth */}
+        <span className={styles.slider}></span>
+      </label>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/VariantSelector/VariantSelector.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const container = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.sm,
+  marginTop: vars.spacing.md,
+});
+
+export const label = style({
+  fontSize: "12px",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  color: vars.color.textMuted,
+});
+
+export const grid = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(7, 1fr)",
+  gap: "4px",
+  backgroundColor: vars.color.secondary,
+  padding: "8px",
+  borderRadius: vars.borderRadius.md,
+  border: `1px solid ${vars.color.border}`,
+  maxHeight: "200px",
+  overflowY: "auto",
+});
+
+export const option = style({
+  aspectRatio: "1/1",
+  padding: "4px",
+  border: "1px solid transparent",
+  borderRadius: vars.borderRadius.sm,
+  backgroundColor: "transparent",
+  cursor: "pointer",
+  transition: "all 0.1s",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  ":hover": {
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderColor: vars.color.border,
+  },
+});
+
+export const optionActive = style([
+  option,
+  {
+    backgroundColor: vars.color.white,
+    borderColor: vars.color.primary,
+    boxShadow: vars.shadow.sm,
+  },
+]);
+
+export const imageContainer = style({
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+});
+
+export const selectedName = style({
+  fontSize: "12px",
+  fontWeight: 600,
+  color: vars.color.primary,
+  textAlign: "center",
+  fontStyle: "italic",
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/VariantSelector/VariantSelector.tsx">
+"use client";
+
+import { getHorseVariantImage, getVariantName } from "@/utils/variant";
+import Image from "next/image";
+import * as styles from "./VariantSelector.css";
+
+interface VariantSelectorProps {
+  selectedVariant: number;
+  onChange: (variant: number) => void;
+}
+
+export default function VariantSelector({
+  selectedVariant,
+  onChange,
+}: VariantSelectorProps) {
+  // Generate all 35 variants
+  const variants = [];
+  for (let color = 0; color < 7; color++) {
+    for (let pattern = 0; pattern < 5; pattern++) {
+      variants.push(color + pattern * 256);
+    }
+  }
+
+  return (
+    <div className={styles.container}>
+      <label className={styles.label}>Appearance Variant</label>
+      <div className={styles.grid}>
+        {variants.map((v) => (
+          <button
+            key={v}
+            type="button"
+            className={v === selectedVariant ? styles.optionActive : styles.option}
+            onClick={() => onChange(v)}
+            title={getVariantName(v)}
+          >
+            <div className={styles.imageContainer}>
+              <Image
+                src={getHorseVariantImage(v)}
+                alt={getVariantName(v)}
+                width={32}
+                height={32}
+              />
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className={styles.selectedName}>
+        {getVariantName(selectedVariant)}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/DetailsCard/BloodlineDisplay/BloodlineDisplay.css.ts">
+import { style } from "@vanilla-extract/css";
+
+export const heading = style({
+  margin: 10,
+  fontSize: 24,
+});
+
+export const container = style({
+  margin: 10,
+  font: "inherit",
+});
+
+export const backButton = style({
+  margin: 8,
+  paddingLeft: 16,
+  paddingRight: 16,
+  borderRadius: "8px",
+  border: "2px solid #3b82f6",
+  cursor: "pointer",
+  ":hover": {
+    backgroundColor: "#eff6ff"
+  }
+});
+
+export const bloodlineSection = style({
+  marginTop: "12px",
+});
+
+export const bloodlineHeading = style({
+  fontSize: "16px",
+  fontWeight: 600,
+  color: "#475569",
+  marginBottom: "16px",
+  letterSpacing: "-0.01em",
+});
+
+export const bloodlineList = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+});
+
+export const bloodlineRow = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
+});
+
+export const bloodlineInfo = style({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+});
+
+export const bloodlineName = style({
+  fontSize: "14px",
+  fontWeight: 600,
+  color: "#1e293b",
+});
+
+export const bloodlinePercent = style({
+  fontSize: "13px",
+  fontWeight: 500,
+  color: "#64748b",
+  fontVariantNumeric: "tabular-nums", // Keeps numbers from jumping around
+});
+
+export const progressTrack = style({
+  width: "100%",
+  height: "8px", 
+  backgroundColor: "#f1f5f9", // Lighter, cleaner track
+  borderRadius: "10px",
+  overflow: "hidden",
+});
+
+export const progressBar = style({
+  height: "100%",
+  borderRadius: "10px",
+  transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)", 
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/StatRow/StatRow.tsx">
+import * as styles from "./StatRow.css";
+
+interface StatRowProps {
+  text: string;
+  fieldName: "speed" | "health" | "jump";
+  displayStats: { speed: string; health: string; jump: string };
+  handleTextChange: (field: string, textValue: string) => void;
+}
+
+export default function StatRow({
+  text,
+  fieldName,
+  displayStats,
+  handleTextChange,
+}: StatRowProps) {
+  return (
+    <div className={styles.statRow}>
+      <label className={styles.label}>{text}</label>
+      <input
+        className={styles.statInput}
+        type="text"
+        value={displayStats[fieldName]}
+        onChange={(e) => handleTextChange(fieldName, e.target.value)}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/public/shapes/heart.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 10" shape-rendering="crispEdges">
+  <rect x="1" y="2" width="3" height="1" fill="black"/>
+  <rect x="5" y="2" width="3" height="1" fill="black"/>
+  
+  <rect x="0" y="3" width="9" height="1" fill="black"/>
+  <rect x="0" y="4" width="9" height="2" fill="black"/>
+  
+  <rect x="1" y="6" width="7" height="1" fill="black"/>
+  <rect x="2" y="7" width="5" height="1" fill="black"/>
+  <rect x="3" y="8" width="3" height="1" fill="black"/>
+  <rect x="4" y="9" width="1" height="1" fill="black"/>
+</svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/shapes/horse-jumping.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <rect x="3" y="5" width="10" height="11" fill="black"/>
+  
+  <rect x="3" y="4" width="10" height="1" fill="black"/>
+  <rect x="4" y="3" width="8" height="1" fill="black"/>
+  <rect x="5" y="2" width="6" height="1" fill="black"/>
+  <rect x="6" y="1" width="4" height="1" fill="black"/>
+  <rect x="7" y="0" width="2" height="1" fill="black"/>
+</svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/shapes/horse-running.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <rect x="0" y="5" width="11" height="6" fill="black"/>
+  
+  <rect x="11" y="3" width="1" height="10" fill="black"/>
+  <rect x="12" y="4" width="1" height="8" fill="black"/>
+  <rect x="13" y="5" width="1" height="6" fill="black"/>
+  <rect x="14" y="6" width="1" height="4" fill="black"/>
+  <rect x="15" y="7" width="1" height="2" fill="black"/>
+</svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/shapes/scroll.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect x="6" y="4" width="20" height="24" fill="black"/>
+  <rect x="6" y="4" width="2" height="2" fill="white" />
+  <rect x="24" y="4" width="2" height="2" fill="white" />
+  <rect x="6" y="26" width="2" height="2" fill="white" />
+  <rect x="24" y="26" width="2" height="2" fill="white" />
+</svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="Frontend/horse-frontend/public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="Frontend/horse-frontend/utils/genetics/service.ts">
+import { Horse } from "@/types/horse";
+import { BLOODLINE_COLORS, calculateColorFromDna, mergeDna } from "./utils";
+
+export function processNewHorseGenetics(
+  sire: Horse | undefined, 
+  dam: Horse | undefined, 
+  originBlood?: string
+) {
+  if (!sire || !dam) {
+    let blood = originBlood || "Unknown";
+    if (blood === "Void Born") blood = "Celestial Grass";
+
+    const dna = { [blood]: 1.0 };
+    return {
+      dna,
+      hexColor: BLOODLINE_COLORS[blood] || BLOODLINE_COLORS["Unknown"],
+      generation: 0
+    };
+  }
+
+  const dna = mergeDna(sire.dna, dam.dna);
+  const hexColor = calculateColorFromDna(dna);
+  const generation = Math.max(sire.generation, dam.generation) + 1;
+
+  return { dna, hexColor, generation };
+}
+</file>
+
+<file path="Frontend/horse-frontend/utils/genetics/utils.ts">
+import { BloodlineMap } from "@/types/horse";
+
+export const BLOODLINE_COLORS: Record<string, string> = {
+  "Star Strider": "#000066",
+  "Celestial Grass": "#00FF00", 
+  "Thunder Blood": "#ffa621",
+  "Frostmane": "#00FFFF", 
+  "Emberhoof": "#FF0000", 
+  "Slothsoul": "#708090",
+  "Unknown": "#444444"
+};
+
+export function mergeDna(sireDna: BloodlineMap, damDna: BloodlineMap): BloodlineMap {
+  const dna: BloodlineMap = {};
+  const allKeys = new Set([...Object.keys(sireDna), ...Object.keys(damDna)]);
+
+  allKeys.forEach((key) => {
+    const val = ((sireDna[key] || 0) + (damDna[key] || 0)) / 2;
+    if (val > 0) dna[key] = val;
+  });
+
+  return dna;
+}
+
+export function calculateColorFromDna(dna: BloodlineMap): string {
+  let r = 0, g = 0, b = 0;
+  const entries = Object.entries(dna);
+  
+  if (entries.length === 0) return BLOODLINE_COLORS["Unknown"];
+
+  entries.forEach(([bloodline, weight]) => {
+    const hex = (BLOODLINE_COLORS[bloodline] || BLOODLINE_COLORS["Unknown"]).replace('#', '');
+    r += parseInt(hex.substring(0, 2), 16) * weight;
+    g += parseInt(hex.substring(2, 4), 16) * weight;
+    b += parseInt(hex.substring(4, 6), 16) * weight;
+  });
+
+  const toHex = (c: number) => Math.round(c).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+</file>
+
+<file path="Frontend/horse-frontend/utils/variant.ts">
+export const colors: Record<number, string> = {
+  0: "White",
+  1: "Creamy",
+  2: "Chestnut",
+  3: "Brown",
+  4: "Black",
+  5: "Gray",
+  6: "Darkbrown",
+};
+
+export const patterns: Record<number, string> = {
+  0: "",
+  1: "with_White_Stockings",
+  2: "with_White_Field",
+  3: "with_White_Spots",
+  4: "with_Black_Dots",
+};
+
+export function getHorseVariantImage(variantId: number): string {
+  const colorId = variantId % 256;
+  const patternId = Math.floor(variantId / 256);
+
+  const color = colors[colorId] ?? "White";
+  const pattern = patterns[patternId] ?? "";
+
+  if (pattern === "") {
+    return `/images/horses/${color}_Horse.webp`;
+  }
+
+  return `/images/horses/${color}_Horse_${pattern}.webp`;
+}
+
+export function getVariantName(variantId: number): string {
+  const colorId = variantId % 256;
+  const patternId = Math.floor(variantId / 256);
+
+  const colorsDisplay: Record<number, string> = {
+    0: "White",
+    1: "Creamy",
+    2: "Chestnut",
+    3: "Brown",
+    4: "Black",
+    5: "Gray",
+    6: "Dark Brown",
+  };
+  
+  const patternsDisplay: Record<number, string> = {
+    0: "None",
+    1: "White Stockings",
+    2: "White Field",
+    3: "White Dots",
+    4: "Black Dots",
+  };
+
+  const color = colorsDisplay[colorId] ?? "Unknown";
+  const pattern = patternsDisplay[patternId] ?? "None";
+
+  if (pattern === "None") return color;
+  return `${color} w/ ${pattern}`;
+}
+</file>
+
+<file path="Frontend/horse-frontend/.gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="Frontend/horse-frontend/eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="Frontend/horse-frontend/postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="Frontend/horse-frontend/README.md">
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</file>
+
+<file path="Frontend/horse-frontend/tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+</file>
+
+<file path="Frontend/horse-frontend/actions/deleteHorseAction.ts">
+"use server";
+
+import { deleteHorse } from "@/lib/horses";
+import { revalidatePath } from 'next/cache';
+
+export default async function deleteHorseAction(id: string) {
+    await deleteHorse(id);
+    revalidatePath("/horses");
+}
+</file>
+
+<file path="Frontend/horse-frontend/actions/getHorseByIdAction.ts">
+"use server";
+
+import { getHorseById } from "@/lib/horses";
+import { revalidatePath } from 'next/cache';
+
+export default async function getHorseByIdAction(id: string) {
+    const horse = await getHorseById(id);
+    revalidatePath(`/horses/${id}`);
+    return horse;
+}
+</file>
+
+<file path="Frontend/horse-frontend/app/Dashboard.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const container = style({
+  padding: vars.spacing.xl,
+  maxWidth: "1200px",
+  margin: "0 auto",
+});
+
+export const header = style({
+  marginBottom: vars.spacing.xl,
+});
+
+export const title = style({
+  fontSize: vars.fontSize.xxl,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.primary,
+  marginBottom: vars.spacing.xs,
+});
+
+export const subtitle = style({
+  fontSize: vars.fontSize.md,
+  color: vars.color.textMuted,
+});
+
+export const statsGrid = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(4, 1fr)",
+  gap: vars.spacing.lg,
+  marginBottom: vars.spacing.xl,
+});
+
+export const statCard = style({
+  backgroundColor: vars.color.white,
+  padding: vars.spacing.lg,
+  borderRadius: vars.borderRadius.lg,
+  boxShadow: vars.shadow.md,
+  border: `1px solid ${vars.color.border}`,
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.xs,
+});
+
+export const statLabel = style({
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.textMuted,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+});
+
+export const statValue = style({
+  fontSize: vars.fontSize.xxl,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.primary,
+});
+
+export const section = style({
+  backgroundColor: vars.color.white,
+  borderRadius: vars.borderRadius.lg,
+  boxShadow: vars.shadow.md,
+  border: `1px solid ${vars.color.border}`,
+  overflow: "hidden",
+});
+
+export const sectionHeader = style({
+  padding: vars.spacing.lg,
+  borderBottom: `1px solid ${vars.color.border}`,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  backgroundColor: vars.color.secondary,
+});
+
+export const sectionTitle = style({
+  fontSize: vars.fontSize.lg,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.primary,
+  letterSpacing: "-0.01em",
+});
+
+export const tableWrapper = style({
+  overflowX: "auto",
+});
+
+export const table = style({
+  width: "100%",
+  borderCollapse: "collapse",
+  fontSize: vars.fontSize.sm,
+});
+
+export const th = style({
+  textAlign: "left",
+  padding: `${vars.spacing.md} ${vars.spacing.lg}`,
+  backgroundColor: vars.color.white,
+  color: vars.color.textMuted,
+  fontSize: vars.fontSize.xs,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  fontWeight: vars.fontWeight.bold,
+  borderBottom: `1px solid ${vars.color.border}`,
+});
+
+export const td = style({
+  padding: `${vars.spacing.md} ${vars.spacing.lg}`,
+  borderBottom: `1px solid ${vars.color.border}`,
+  color: vars.color.textMain,
+  verticalAlign: "middle",
+});
+
+export const imageCell = style({
+  width: "48px",
+  paddingRight: 0,
+});
+
+export const smallImageContainer = style({
+  width: "36px",
+  height: "36px",
+  borderRadius: vars.borderRadius.sm,
+  backgroundColor: vars.color.secondary,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+});
+
+export const smallHorseImage = style({
+  objectFit: "contain",
+});
+
+export const tr = style({
+  ":hover": {
+    backgroundColor: "rgba(0, 0, 0, 0.02)",
+  },
+  cursor: "pointer",
+});
+
+export const badge = style({
+  padding: "4px 12px",
+  borderRadius: vars.borderRadius.full,
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  textTransform: "uppercase",
+});
+
+export const badgeAlive = style([
+  badge,
+  {
+    backgroundColor: "#dcfce7",
+    color: "#166534",
+  },
+]);
+
+export const badgeDead = style([
+  badge,
+  {
+    backgroundColor: "#fee2e2",
+    color: "#991b1b",
+  },
+]);
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Button/Button.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const Button = style({
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontSize: "11px",
+  fontWeight: 800,
+  color: vars.color.primary,
+  border: `2px solid ${vars.color.primary}`,
+  background: "transparent",
+  padding: "10px 24px",
+  marginTop: "10px",
+  cursor: "pointer",
+  borderRadius: vars.borderRadius.sm,
+  transition: "all 0.2s ease",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  ":hover": {
+    background: vars.color.primary,
+    color: "white",
+  },
+  ":active": {
+    transform: "translateY(1px)",
+  }
+});
+
+export const danger = style({
+  color: vars.color.danger,
+  borderColor: vars.color.danger,
+  ":hover": {
+    background: vars.color.danger,
+    borderColor: vars.color.danger,
+    color: "white",
+  },
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Sidebar/AppWrapper.tsx">
+import { getRecentHorses } from "@/lib/horses";
+import Sidebar from "./Sidebar";
+import * as styles from "./Sidebar.css";
+
+export default async function AppWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const fallbackHorses = await getRecentHorses(5);
+
+  return (
+    <div style={{ display: "flex" }}>
+      <Sidebar fallbackHorses={fallbackHorses} />
+      <main className={styles.contentArea}>{children}</main>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Sidebar/Sidebar.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const sidebar = style({
+  width: "280px",
+  height: "100vh",
+  backgroundColor: vars.color.primary,
+  color: vars.color.secondary,
+  display: "flex",
+  flexDirection: "column",
+  padding: vars.spacing.lg,
+  position: "fixed",
+  left: 0,
+  top: 0,
+  zIndex: 1000,
+  borderRight: `1px solid ${vars.color.primaryHover}`,
+  boxShadow: vars.shadow.lg,
+});
+
+export const logo = style({
+  fontSize: vars.fontSize.xl,
+  fontWeight: vars.fontWeight.extrabold,
+  marginBottom: vars.spacing.xl,
+  display: "flex",
+  alignItems: "center",
+  gap: vars.spacing.sm,
+  color: vars.color.secondary,
+  textDecoration: "none",
+  letterSpacing: "-0.04em",
+});
+
+export const logoEmoji = style({
+  fontSize: vars.fontSize.xxl,
+});
+
+export const logoText = style({
+  background: `linear-gradient(to right, ${vars.color.secondary}, ${vars.color.accent})`,
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+});
+
+export const nav = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.xl,
+  flex: 1,
+});
+
+export const navSection = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.xs,
+});
+
+export const sectionLabel = style({
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  color: "rgba(255, 255, 255, 0.4)",
+  paddingLeft: vars.spacing.md,
+  marginBottom: vars.spacing.xs,
+});
+
+export const navLink = style({
+  display: "flex",
+  alignItems: "center",
+  gap: vars.spacing.md,
+  padding: `${vars.spacing.sm} ${vars.spacing.md}`,
+  borderRadius: vars.borderRadius.md,
+  color: vars.color.secondary,
+  textDecoration: "none",
+  fontSize: vars.fontSize.sm,
+  fontWeight: vars.fontWeight.semibold,
+  transition: "all 0.2s",
+  opacity: 0.8,
+  ":hover": {
+    opacity: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    transform: "translateX(4px)",
+  },
+});
+
+export const navIcon = style({
+  fontSize: vars.fontSize.lg,
+});
+
+export const navLinkActive = style([
+  navLink,
+  {
+    opacity: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderLeft: `4px solid ${vars.color.accent}`,
+    color: vars.color.white,
+  },
+]);
+
+export const recentList = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+});
+
+export const recentItem = style({
+  display: "flex",
+  alignItems: "center",
+  gap: vars.spacing.sm,
+  padding: `${vars.spacing.xs} ${vars.spacing.md}`,
+  borderRadius: vars.borderRadius.sm,
+  color: "rgba(255, 255, 255, 0.7)",
+  textDecoration: "none",
+  fontSize: vars.fontSize.sm,
+  transition: "all 0.15s",
+  ":hover": {
+    color: vars.color.white,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+});
+
+export const recentImageContainer = style({
+  width: "24px",
+  height: "24px",
+  borderRadius: vars.borderRadius.sm,
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+});
+
+export const recentName = style({
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+export const footer = style({
+  marginTop: "auto",
+  paddingTop: vars.spacing.lg,
+  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+});
+
+export const createButton = style({
+  width: "100%",
+  backgroundColor: vars.color.accent,
+  color: vars.color.primary,
+  border: "none",
+  padding: `${vars.spacing.md} ${vars.spacing.lg}`,
+  borderRadius: vars.borderRadius.md,
+  fontSize: "12px",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  cursor: "pointer",
+  transition: "all 0.2s",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: vars.spacing.sm,
+  ":hover": {
+    backgroundColor: "#e5b484",
+    transform: "translateY(-1px)",
+    boxShadow: vars.shadow.md,
+  },
+});
+
+export const contentArea = style({
+  marginLeft: "280px",
+  width: "calc(100% - 280px)",
+  minHeight: "100vh",
+  backgroundColor: vars.color.background,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/StatsBox/StatsBox.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const container = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.sm,
+  marginTop: vars.spacing.md,
+});
+
+export const label = style({
+  fontSize: "12px",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  color: vars.color.textMuted,
+});
+
+export const textArea = style({
+  width: "100%",
+  padding: vars.spacing.md,
+  borderRadius: vars.borderRadius.md,
+  border: `2px solid ${vars.color.border}`,
+  backgroundColor: vars.color.secondary,
+  fontSize: "13px",
+  fontFamily: vars.font.mono,
+  color: vars.color.textMain,
+  resize: "vertical",
+  transition: "all 0.2s",
+  ":focus": {
+    outline: "none",
+    borderColor: vars.color.primary,
+    backgroundColor: vars.color.white,
+    boxShadow: vars.shadow.sm,
+  },
+});
+
+export const errorText = style({
+  fontSize: "12px",
+  color: vars.color.danger,
+  fontWeight: 600,
+  marginTop: "4px",
+});
+
+export const parsedStats = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: "8px",
+  marginTop: "8px",
+  padding: vars.spacing.md,
+  backgroundColor: "#f0fdf4",
+  borderRadius: vars.borderRadius.md,
+  border: "1px solid #bbf7d0",
+});
+
+export const statItem = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+});
+
+export const statLabel = style({
+  fontSize: "10px",
+  fontWeight: 700,
+  color: "#166534",
+  textTransform: "uppercase",
+});
+
+export const statValue = style({
+  fontSize: "14px",
+  fontWeight: 800,
+  color: "#14532d",
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/StatsBox/StatsBox.tsx">
+import { HorseStats, parseHorseStats } from "@/utils/parseHorseStats";
+import { useState } from "react";
+import * as styles from "./StatsBox.css"
+
+interface StatsBoxProps {
+    onStatsParsed: (stats: HorseStats) => void;
+}
+
+export default function StatsBox({ onStatsParsed }: StatsBoxProps){
+    const [localStats, setLocalStats] = useState<HorseStats | null>(null);
+    const [error, setError] = useState(false);
+    
+    const handleStatsPaste = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        if (!val) {
+          setLocalStats(null);
+          setError(false);
+          return;
+        }
+
+        const parsed = parseHorseStats(val);
+
+        if (parsed) {
+            setLocalStats(parsed);
+            onStatsParsed(parsed);
+            setError(false);
+        } else {
+            setError(true);
+            setLocalStats(null);
+        }
+    };
+      
+    return(
+        <div className={styles.container}>
+            <label className={styles.label}>Paste /summon command</label>
+            <textarea
+              placeholder="Paste horse NBT or /summon command..."
+              onChange={handleStatsPaste}
+              rows={4}
+              className={styles.textArea}
+            />
+            
+            {error && (
+              <p className={styles.errorText}>
+                ⚠️ Could not parse stats. Make sure it's a valid Minecraft command.
+              </p>
+            )}
+
+            {localStats && (
+              <div className={styles.parsedStats}>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>Speed</span>
+                  <span className={styles.statValue}>{localStats.speed.toFixed(6)}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>Health</span>
+                  <span className={styles.statValue}>{localStats.health.toFixed(1)}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>Jump</span>
+                  <span className={styles.statValue}>{localStats.jump.toFixed(6)}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>Variant ID</span>
+                  <span className={styles.statValue}>{localStats.variant}</span>
+                </div>
+              </div>
+            )}
+        </div>
+    )
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/DetailsCard/DetailsCard.css.ts">
+import { style, globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const detailsSection = style({
+  backgroundColor: vars.color.white,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.borderRadius.md,
+  padding: vars.spacing.xl,
+  boxShadow: vars.shadow.sm,
+});
+
+export const lineageSection = style({
+  marginTop: vars.spacing.xl,
+});
+
+export const parentGrid = style({
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: vars.spacing.md,
+  marginTop: vars.spacing.sm,
+});
+
+export const parentBox = style({
+  padding: vars.spacing.md,
+  backgroundColor: vars.color.secondary,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.borderRadius.md,
+  transition: "border-color 0.2s ease",
+  selectors: {
+    '&[data-gender="sire"]': { borderLeft: `6px solid #3b82f6` },
+    '&[data-gender="dam"]': { borderLeft: `6px solid #ec4899` },
+  },
+});
+
+export const parentLabel = style({
+  display: "block",
+  fontSize: vars.fontSize.xs,
+  textTransform: "uppercase",
+  color: vars.color.textMuted,
+  fontWeight: vars.fontWeight.extrabold,
+  marginBottom: vars.spacing.xs,
+  letterSpacing: "0.05em",
+});
+
+export const parentName = style({
+  fontSize: vars.fontSize.lg,
+  fontWeight: vars.fontWeight.semibold,
+  color: vars.color.textMain,
+  margin: 0,
+});
+
+export const divider = style({
+  border: 0,
+  borderTop: `2px dashed ${vars.color.border}`,
+  margin: `${vars.spacing.xl} 0`,
+});
+
+export const bloodlineWrapper = style({
+  marginTop: vars.spacing.sm,
+});
+
+export const sectionTitle = style({
+  fontSize: vars.fontSize.sm,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.textMuted,
+  marginBottom: vars.spacing.md,
+});
+
+export const detailRow = style({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: `${vars.spacing.md} 0`,
+  fontSize: vars.fontSize.md,
+  borderBottom: `1px solid ${vars.color.secondary}`,
+});
+
+// Target the 'strong' tag inside 'detailRow'
+globalStyle(`${detailRow} strong`, {
+  color: vars.color.textMain,
+  fontWeight: vars.fontWeight.bold,
+});
+
+// Target the 'span' tag inside 'detailRow'
+globalStyle(`${detailRow} span`, {
+  color: vars.color.textMain,
+  fontWeight: vars.fontWeight.medium,
+  backgroundColor: vars.color.secondary,
+  padding: "4px 12px",
+  borderRadius: vars.borderRadius.sm,
+  border: `1px solid ${vars.color.border}`,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/HorsePageHeader/HorsePageHeader.tsx">
+import { Horse } from "@/types/horse";
+import * as styles from "./HorsePageHeader.css";
+import { getHorseVariantImage, getVariantName } from "@/utils/variant";
+import Image from "next/image";
+
+export default function HorsePageHeader({ horse, horseColor }: { horse: Horse; horseColor: string }) {
+  const horseImage = getHorseVariantImage(horse.variant);
+  const variantName = getVariantName(horse.variant);
+  
+  return (
+    <header className={styles.header}>
+      <div className={styles.imageContainer}>
+        <Image 
+          src={horseImage} 
+          alt={horse.name} 
+          width={100} 
+          height={100} 
+          className={styles.variantImage}
+        />
+      </div>
+      <div className={styles.titles}>
+        <span
+          className={horse.status === 0 ? styles.statusDead : styles.statusAlive}
+        >
+          {horse.status === 0 ? "Deceased" : "Living"}
+        </span>
+        <h1 className={styles.heading} style={{ color: horseColor }}>
+          {horse.name}
+        </h1>
+        <p className={styles.subHeading}>{variantName} Variant • Generation {horse.generation || 0}</p>
+      </div>
+    </header>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/StatsShapeGrid/StatsShapeCard/StatsShapeCard.css.ts">
+import { style, globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const shapeCard = style({
+  position: "relative",
+  width: "100%",
+  aspectRatio: "1 / 1",
+  paddingTop: "100%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  transition: "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+  ":hover": {
+    transform: "scale(1.08) rotate(2deg)",
+  },
+  ":before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "var(--shape-color)",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+    imageRendering: "pixelated",
+  },
+});
+
+export const shapeTextContainer = style({
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  color: vars.color.white,
+  zIndex: 10,
+  textAlign: "center",
+  textShadow: "0px 1px 4px rgba(0,0,0,0.4)",
+  padding: "15%",
+});
+
+export const shapeLabel = style({
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  opacity: 0.9,
+});
+
+export const shapeValue = style({
+  fontSize: vars.fontSize.xxl,
+  fontWeight: vars.fontWeight.black,
+  margin: "0",
+  zIndex: 20,
+  display: "flex",
+  alignItems: "baseline",
+  gap: "4px",
+});
+
+export const shapeUnit = style({
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.medium,
+  opacity: 0.8,
+});
+
+export const shapeSubtext = style({
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  textTransform: "uppercase",
+  opacity: 0.8,
+  marginTop: "4px",
+});
+
+globalStyle(`${shapeCard}[data-shape="speed"]::before`, {
+  WebkitMaskImage: 'url("/shapes/horse-running.svg")',
+  maskImage: 'url("/shapes/horse-running.svg")',
+});
+
+globalStyle(`${shapeCard}[data-shape="jump"]::before`, {
+  WebkitMaskImage: 'url("/shapes/horse-jumping.svg")',
+  maskImage: 'url("/shapes/horse-jumping.svg")',
+});
+
+globalStyle(`${shapeCard}[data-shape="health"]::before`, {
+  WebkitMaskImage: 'url("/shapes/heart.svg")',
+  maskImage: 'url("/shapes/heart.svg")',
+});
+
+globalStyle(`${shapeCard}[data-shape="generation"]::before`, {
+  WebkitMaskImage: 'url("/shapes/scroll.svg")',
+  maskImage: 'url("/shapes/scroll.svg")',
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/StatsShapeGrid/StatsShapeCard/StatsShapeCard.tsx">
+import * as styles from "./StatsShapeCard.css";
+
+export default function StatShapeCard({
+  label,
+  value,
+  unit,
+  subtext,
+  shapeId,
+  horseColor,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  subtext?: string;
+  shapeId: string;
+  horseColor: string;
+}) {
+  return (
+    <div
+      className={styles.shapeCard}
+      data-shape={shapeId}
+      style={{ "--shape-color": horseColor } as React.CSSProperties}
+    >
+      <div className={styles.shapeTextContainer}>
+        <div className={styles.shapeLabel}>{label}</div>
+        <div className={styles.shapeValue}>
+          {value ?? "N/A"}
+          <small className={styles.shapeUnit}> {unit}</small>
+        </div>
+        {subtext && <div className={styles.shapeSubtext}>{subtext}</div>}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/StatsShapeGrid/StatsShapeGrid.css.ts">
+import { style } from "@vanilla-extract/css";
+
+export const statsShapeGrid = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "24px",
+  marginBottom: "40px",
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/StatsShapeGrid/StatsShapeGrid.tsx">
+import { Horse } from "@/types/horse";
+import StatShapeCard from "./StatsShapeCard/StatsShapeCard";
+import * as styles from "./StatsShapeGrid.css";
+import { ProcessedStats } from "@/utils/translateRawStats";
+
+export default function StatsShapeGrid({
+  horse,
+  processedStats,
+  horseColor,
+}: {
+  horse: Horse;
+  processedStats: ProcessedStats;
+  horseColor: string;
+}) {
+  return (
+    <div className={styles.statsShapeGrid}>
+      <StatShapeCard
+        label="Speed"
+        value={processedStats.speed?.toFixed(2)}
+        unit="bps"
+        shapeId="speed"
+        horseColor={horseColor}
+      />
+      <StatShapeCard
+        label="Jump"
+        value={processedStats.jump?.toFixed(2)}
+        unit="blocks"
+        shapeId="jump"
+        horseColor={horseColor}
+      />
+      <StatShapeCard
+        label="Health"
+        value={processedStats.health?.toFixed(2)}
+        unit="hearts"
+        shapeId="health"
+        horseColor={horseColor}
+      />
+      <StatShapeCard
+        label="Generation"
+        value={horse.generation.toString()}
+        subtext="LINEAGE DEPTH"
+        shapeId="generation"
+        horseColor={horseColor}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseCreateModal/HorseCreateModal.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const buttonRow = style({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: vars.spacing.md,
+  marginTop: vars.spacing.md,
+  paddingTop: vars.spacing.md,
+  borderTop: `1px solid ${vars.color.border}`,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseDeleteModal/HorseDeleteModal.tsx">
+import Button from "@/components/Common/Button/Button";
+import * as modalStyles from "../Modals.css";
+
+interface HorseDeleteModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+}
+
+export default function HorseDeleteModal({ isOpen, onClose, onConfirm }: HorseDeleteModalProps) {
+    if (!isOpen) return null;
+
+    return(
+        <div className={modalStyles.overlay}>
+            <div className={modalStyles.modal}>
+                <h2>Are you sure you want to delete this horse?</h2>
+                <p>This action cannot be undone.</p>
+                <div style={{display: "flex", justifyContent: "flex-end", gap: "10px"}}>
+                    <Button onClick={onClose} text="Cancel" />
+                    <Button onClick={onConfirm} text="Delete" variant="danger" />
+                </div>
+            </div>
+        </div>
+    )
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseEditModal/HorseEditModal.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const modal = style({
+  backgroundColor: vars.color.white,
+  color: vars.color.textMain,
+  padding: vars.spacing.xl,
+  borderRadius: vars.borderRadius.lg,
+  width: "440px",
+  maxWidth: "95%",
+  boxShadow: vars.shadow.lg,
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.lg,
+  maxHeight: "90vh",
+  overflowY: "auto",
+});
+
+export const statRow = style({
+  display: "flex",
+  width: "100%",
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: vars.spacing.md,
+});
+
+export const buttonRow = style({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: vars.spacing.md,
+  marginTop: vars.spacing.md,
+  paddingTop: vars.spacing.md,
+  borderTop: `1px solid ${vars.color.border}`,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/StatRow/StatRow.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const statRow = style({
+  display: "flex",
+  width: "100%",
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  margin: `${vars.spacing.sm} 0`,
+});
+
+export const statInput = style({
+  width: "120px",
+  padding: vars.spacing.sm,
+  borderRadius: vars.borderRadius.sm,
+  border: `1px solid ${vars.color.border}`,
+  fontSize: vars.fontSize.sm,
+  fontFamily: vars.font.mono,
+  ":focus": {
+    outline: "none",
+    borderColor: vars.color.primary,
+  },
+});
+
+export const label = style({
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.primary,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/Modals.css.ts">
+import { style, globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const overlay = style({
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+    backdropFilter: "blur(4px)",
+})
+
+export const modal = style({
+    backgroundColor: vars.color.white,
+    color: vars.color.textMain,
+    padding: vars.spacing.xl,
+    borderRadius: vars.borderRadius.lg,
+    width: "440px",
+    maxWidth: "95%",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    boxShadow: vars.shadow.lg,
+    display: "flex",
+    flexDirection: "column",
+    gap: vars.spacing.lg,
+})
+
+globalStyle(`${modal} h2`, {
+    margin: 0,
+    fontSize: vars.fontSize.xl,
+    fontWeight: vars.fontWeight.extrabold,
+    color: vars.color.primary,
+    letterSpacing: "-0.02em",
+    borderBottom: `2px solid ${vars.color.secondary}`,
+    paddingBottom: vars.spacing.sm,
+    marginBottom: vars.spacing.sm,
+});
+</file>
+
+<file path="Frontend/horse-frontend/utils/parseHorseStats.ts">
+export interface HorseStats {
+  speed: number;
+  health: number;
+  jump: number;
+  variant: number;
+}
+
+export function parseHorseStats(raw: string): HorseStats | null {
+  try {
+    const get = (key: string) => {
+      const match = raw.match(new RegExp(`${key}:\\s*([\\d.]+)`));
+      return match ? parseFloat(match[1]) : null;
+    };
+
+    const getAttr = (id: string) => {
+      const match = raw.match(new RegExp(`"${id}",\\s*base:\\s*([\\d.]+)`));
+      return match ? parseFloat(match[1]) : null;
+    };
+
+    const speed = getAttr("minecraft:generic.movement_speed");
+    const health = get("Health");
+    const jump = getAttr("minecraft:generic.jump_strength");
+    const variant = get("Variant");
+
+    if (speed == null || health == null || jump == null || variant == null) {
+      return null;
+    }
+
+    return {
+      speed,
+      health,
+      jump,
+      variant
+    };
+  } catch {
+    return null;
+  }
+}
+</file>
+
+<file path="Frontend/horse-frontend/utils/tmp_migration.ts">
+// import { MongoClient } from 'mongodb';
+// import { mergeDna, calculateColorFromDna, BLOODLINE_COLORS } from "./genetics/utils"
+// import { BloodlineMap } from '@/types/horse';
+
+// // Your existing logic refactored for the migration
+// const cache = new Map<string, any>();
+
+// export async function runMigration() {
+//   const client = await MongoClient.connect(process.env.MONGODB_URI!);
+//   const db = client.db(process.env.DB_NAME);
+//   const horsesCollection = db.collection('horse-collection');
+
+//   // 1. Pull all horses into memory for fast lookup
+//   const allHorses = await horsesCollection.find({}).toArray();
+//   const horseMap = new Map(allHorses.map(h => [h._id.toString(), h]));
+
+//   console.log(`Starting migration for ${allHorses.length} horses...`);
+
+//   const bulkOps: any[] = [];
+
+//   interface spec {
+//     dna: BloodlineMap;
+//     hexColor: string;
+//     generation: number;
+//   }
+
+//   // 2. The Recursive Function
+//   function getGenetics(horseId: string) : spec | null {
+//     if (cache.has(horseId)) return cache.get(horseId);
+
+//     const horse = horseMap.get(horseId);
+//     if (!horse) return null;
+
+//     let result;
+
+//     // Founder Case: No parents
+//     if (!horse.parentId1 && !horse.parentId2) {
+//       let blood = horse.originBlood || "Unknown";
+//       if (blood === "Void Born") blood = "Celestial Grass";
+      
+//       const dna = { [blood]: 1.0 };
+//       result = {
+//         dna,
+//         hexColor: BLOODLINE_COLORS[blood] || "#444444",
+//         generation: 0
+//       };
+//     } 
+//     // Descendant Case
+//     else {
+//       const sireStats = horse.parentId1 ? getGenetics(horse.parentId1) : null;
+//       const damStats = horse.parentId2 ? getGenetics(horse.parentId2) : null;
+
+//       // Use the helpers we wrote earlier
+//       const dna = mergeDna(
+//         sireStats?.dna || { "Unknown": 1.0 }, 
+//         damStats?.dna || { "Unknown": 1.0 }
+//       );
+      
+//       result = {
+//         dna,
+//         hexColor: calculateColorFromDna(dna),
+//         generation: Math.max(sireStats?.generation || 0, damStats?.generation || 0) + 1
+//       };
+//     }
+
+//     cache.set(horseId, result);
+//     return result;
+//   }
+
+//   // 3. Process every horse
+//   allHorses.forEach(horse => {
+//     const calculated = getGenetics(horse._id.toString());
+    
+//     bulkOps.push({
+//       updateOne: {
+//         filter: { _id: horse._id },
+//         update: { 
+//           $set: { 
+//             dna: calculated?.dna,
+//             hexColor: calculated?.hexColor,
+//             generation: calculated?.generation 
+//           } 
+//         }
+//       }
+//     });
+//   });
+
+//   // 4. Execute Bulk Update
+//   if (bulkOps.length > 0) {
+//     const result = await horsesCollection.bulkWrite(bulkOps);
+//     console.log(`Updated ${result.modifiedCount} horses.`);
+//   }
+
+//   await client.close();
+//   console.log("Migration complete!");
+// }
+
+// runMigration().catch(console.error);
+</file>
+
+<file path=".gitignore">
+*.webp
+*/.next/
+.env.local
+./node_modules
+</file>
+
+<file path="README.md">
+# Check out the app!
+[click here!](https://minecraft-horse-family-tree.vercel.app/horses)
+
+## Sample `/sample` command
+```
+/summon minecraft:horse 353.04 65.00 20.45 {Brain: {memories: {}}, HurtByTimestamp: 0, Tame: 1b, Owner: [I; -2040289864, 893862429, -1177463808, -374089761], Invulnerable: 0b, FallFlying: 0b, ForcedAge: 0, PortalCooldown: 0, AbsorptionAmount: 0.0f, Bred: 0b, FallDistance: 0.0f, InLove: 0, EatingHaystack: 0b, DeathTime: 0s, HandDropChances: [0.085f, 0.085f], PersistenceRequired: 0b, Age: 0, Motion: [0.0d, -0.0784000015258789d, 0.0d], Health: 25.033106f, LeftHanded: 0b, Air: 300s, OnGround: 1b, Rotation: [265.66467f, 0.0f], HandItems: [{}, {}], Variant: 516, ArmorDropChances: [0.085f, 0.085f, 0.085f, 0.085f], Fire: -1s, ArmorItems: [{}, {}, {}, {}], Temper: 50, CanPickUpLoot: 0b, attributes: [{id: "minecraft:generic.jump_strength", base: 0.7d}, {id: "minecraft:generic.max_health", base: 25.03310503285247d}, {id: "minecraft:generic.movement_speed", base: 0.2966470171110437d}, {id: "minecraft:generic.oxygen_bonus", base: 0.0d}], HurtTime: 0s}.
+```
+</file>
+
+<file path="Backend/main.py">
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from datetime import datetime
+import os
+import json
+
+# =====================================================
+# 1. DATA LOADING & LOGIC ENGINE
+# =====================================================
+csv_filename = "horse_data.csv"
+if not os.path.exists(csv_filename):
+    print(f"CRITICAL ERROR: '{csv_filename}' not found.")
+    exit()
+
+# Load data
+df = pd.read_csv(csv_filename)
+
+# Define text columns and handle strings safely
+text_cols = ['Name', 'Parent1', 'Parent2', 'Status', 'OriginBlood', 'Appearance']
+for col in text_cols:
+    if col in df.columns:
+        df[col] = df[col].astype(str).str.strip().replace(["nan", "None", ""], np.nan)
+
+df['OriginBlood'] = df['OriginBlood'].replace("Void Born", "Celestial Grass")
+
+# SAFE NUMERIC CONVERSION
+df['Speed'] = pd.to_numeric(df['Speed'], errors='coerce').fillna(0)
+df['Jump'] = pd.to_numeric(df['Jump'], errors='coerce').fillna(0)
+df['Health'] = pd.to_numeric(df['Health'], errors='coerce').fillna(0)
+df['Generation'] = pd.to_numeric(df['Generation'], errors='coerce')
+
+horse_db = df.fillna("").set_index("Name").to_dict('index')
+
+origin_colors = {
+    "Star Strider": "#FFD700", 
+    "Celestial Grass": "#00FF7F", 
+    "Thunder Blood": "#FF004F",
+    "Frostmane": "#00D4FF", 
+    "Emberhoof": "#FF8C00", 
+    "Slothsoul": "#708090",      
+    "Unknown": "#444444"
+}
+
+def mix_rgb_colors(dna_weights):
+    if not dna_weights:
+        return "#444444"
+    r, g, b = 0, 0, 0
+    valid_weight_sum = sum(dna_weights.values())
+    if valid_weight_sum == 0: return "#444444"
+    
+    for bloodline, percentage in dna_weights.items():
+        hex_c = origin_colors.get(bloodline, "#444444").lstrip('#')
+        rgb = tuple(int(hex_c[i:i+2], 16) for i in (0, 2, 4))
+        r += (rgb[0] / 255) * (percentage / valid_weight_sum)
+        g += (rgb[1] / 255) * (percentage / valid_weight_sum)
+        b += (rgb[2] / 255) * (percentage / valid_weight_sum)
+    return f'rgb({int(r*255)},{int(g*255)},{int(b*255)})'
+
+data_registry = {}
+ancestor_map = {}
+
+def get_ancestor_list(name):
+    if not name or name not in horse_db:
+        return []
+    p1 = horse_db[name].get("Parent1")
+    p2 = horse_db[name].get("Parent2")
+    ancestors = [name]
+    if p1 and p1 in horse_db:
+        ancestors.extend(get_ancestor_list(p1))
+    if p2 and p2 in horse_db:
+        ancestors.extend(get_ancestor_list(p2))
+    return list(set(ancestors))
+
+def process_horse(name, depth=0):
+    if depth > 25 or name == "" or name not in horse_db:
+        return {"dna": {"Unknown": 1.0}, "color": "#444444", "level": 0, "mutation": 0}
+
+    if name in data_registry:
+        return data_registry[name]
+
+    row = horse_db[name]
+    p1 = row.get("Parent1", "")
+    p2 = row.get("Parent2", "")
+    current_speed = float(row.get("Speed", 0))
+
+    if p1 == "" or p2 == "":
+        blood = row.get("OriginBlood")
+        if not blood or blood == "": blood = "Unknown"
+        dna = {blood: 1.0}
+        color = origin_colors.get(blood, "#444444")
+        level = 0
+        mutation = 0.0
+    else:
+        res1 = process_horse(p1, depth + 1)
+        res2 = process_horse(p2, depth + 1)
+        
+        all_keys = set(res1["dna"].keys()) | set(res2["dna"].keys())
+        dna = {k: (res1["dna"].get(k, 0) + res2["dna"].get(k, 0)) / 2 for k in all_keys}
+        color = mix_rgb_colors(dna)
+        level = max(res1["level"], res2["level"]) + 1
+        
+        p1_spd = float(horse_db.get(p1, {}).get("Speed", 0))
+        p2_spd = float(horse_db.get(p2, {}).get("Speed", 0))
+        mutation = (3 * current_speed) - p1_spd - p2_spd
+
+    data_registry[name] = {
+        "dna": dna, "color": color, "level": level, "mutation": mutation
+    }
+    ancestor_map[name] = get_ancestor_list(name)
+    return data_registry[name]
+
+for name in horse_db:
+    process_horse(name)
+
+descendant_rel_map = {name: [] for name in horse_db}
+for child, row in horse_db.items():
+    for p in [row.get("Parent1"), row.get("Parent2")]:
+        if p and p in descendant_rel_map:
+            descendant_rel_map[p].append(child)
+
+full_descendant_map = {}
+def get_all_descendants(name):
+    if name in full_descendant_map:
+        return full_descendant_map[name]
+    direct = descendant_rel_map.get(name, [])
+    all_desc = list(direct)
+    for child in direct:
+        all_desc.extend(get_all_descendants(child))
+    full_descendant_map[name] = list(set(all_desc))
+    return full_descendant_map[name]
+
+final_desc_map = {name: get_all_descendants(name) + [name] for name in horse_db}
+
+# =====================================================
+# 2. POSITIONING & TOP 3 COMPUTATIONS
+# =====================================================
+generation_groups = {}
+for name, data in data_registry.items():
+    generation_groups.setdefault(data["level"], []).append(name)
+
+pos = {}
+for level, names in generation_groups.items():
+    names.sort(key=lambda x: horse_db[x].get("Speed", 0), reverse=True)
+    width = len(names) * 20.0
+    for idx, name in enumerate(names):
+        pos[name] = ((idx * 20.0) - (width / 2), -level * 15.0)
+
+top_3_speed = df.nlargest(3, 'Speed')['Name'].tolist()
+top_3_jump = df.nlargest(3, 'Jump')['Name'].tolist()
+top_3_health = df.nlargest(3, 'Health')['Name'].tolist()
+
+# =====================================================
+# 3. PLOTLY TREE BUILDER
+# =====================================================
+fig = go.Figure()
+
+for name, row in horse_db.items():
+    p1_n, p2_n = row["Parent1"], row["Parent2"]
+    if p1_n in pos and p2_n in pos:
+        p1, p2 = pos[p1_n], pos[p2_n]
+        fig.add_trace(go.Scatter(
+            x=[p1[0], p2[0]], y=[p1[1], p2[1]],
+            mode='lines', line=dict(color="rgb(180,180,180)", width=1.5),
+            opacity=0.30, hoverinfo='skip', showlegend=False,
+            customdata=[{"child": name, "parents": [p1_n, p2_n]}] * 2,
+            name="line_parent"
+        ))
+
+for name, row in horse_db.items():
+    if name not in pos: continue
+    p1_n, p2_n = row["Parent1"], row["Parent2"]
+    if p1_n in pos and p2_n in pos:
+        p1, p2, child = pos[p1_n], pos[p2_n], pos[name]
+        mid_x, mid_y = (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
+        t = np.linspace(0, 1, 15)
+        curve_x = (1-t)**3 * mid_x + 3*(1-t)**2*t * mid_x + 3*(1-t)*t**2 * child[0] + t**3 * child[0]
+        curve_y = (1-t)**3 * mid_y + 3*(1-t)**2*t * (mid_y - 4) + 3*(1-t)*t**2 * (child[1] + 4) + t**3 * child[1]
+        fig.add_trace(go.Scatter(
+            x=curve_x, y=curve_y,
+            mode='lines', line=dict(color=data_registry[name]["color"], width=2.5),
+            opacity=0.45, hoverinfo='skip', showlegend=False,
+            customdata=[{"child": name, "parents": [p1_n, p2_n]}] * 15,
+            name="line_child"
+        ))
+
+rank_colors = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
+rank_shapes = {0: "star", 1: "diamond", 2: "triangle-up"}
+
+for name, (x, y) in pos.items():
+    h_data = data_registry[name]
+    row = horse_db[name]
+    
+    # Generate hidden/visible glow traces for all 3 stats dynamically
+    for stat_name, top_list in [("speed", top_3_speed), ("jump", top_3_jump), ("health", top_3_health)]:
+        if name in top_list:
+            rank = top_list.index(name)
+            if rank <= 2:
+                fig.add_trace(go.Scatter(
+                    x=[x], y=[y], mode='markers',
+                    marker=dict(size=55 if rank == 0 else 45, color=rank_colors[rank], opacity=0.25),
+                    hoverinfo='skip', showlegend=False, name=f"glow_{stat_name}", customdata=[name],
+                    visible=(stat_name == "speed") # Only speed glows visible on load
+                ))
+
+    # Initial node render defaults to Speed
+    rank = top_3_speed.index(name) if name in top_3_speed else None
+    is_god, is_dead = (rank == 0), row.get("Status") == "Dead"
+    node_fill = "#050505" if is_dead else h_data["color"]
+    line_width = 4 if rank is not None else 1.5
+    display_name = f"★ GOD HORSE: {name.upper()} ★" if is_god else name.upper()
+
+    dna_sorted = sorted(h_data["dna"].items(), key=lambda x: x[1], reverse=True)
+    dna_str = "<br>".join([f"  • {k}: {v*100:.1f}%" for k, v in dna_sorted if v > 0])
+    p1, p2 = row.get("Parent1"), row.get("Parent2")
+    parent_info = f"Parents: {p1} & {p2}<br>Roll Luck: {h_data['mutation']:.2f}" if p1 and p2 else f"Origin: {row.get('OriginBlood', 'Unknown')}"
+
+    gen_val = int(row['Generation']) if (row.get('Generation') != "" and not isinstance(row.get('Generation'), str)) else h_data['level']
+    appearance_val = row.get("Appearance") if row.get("Appearance") else "Standard"
+    hp = float(row.get('Health', 0))
+    hearts = round(hp / 2, 1)
+
+    hover_label = (
+        f"<b>{name.upper()}</b> "
+        f"({'DEAD' if is_dead else 'ALIVE'})<br>"
+        f"Gen: {gen_val}<br>"
+        f"Appearance: {appearance_val}<br>"
+        f"Speed: {row['Speed']:.2f} bps<br>"
+        f"Jump: {row.get('Jump', 0):.2f} blocks<br>"
+        f"Health: {hp:.2f} ({hearts} ❤)<br>"
+        f"-------------------------<br>"
+        f"{parent_info}<br>"
+        f"<b>DNA Breakdown:</b><br>{dna_str}"
+    )
+
+    fig.add_trace(go.Scatter(
+        x=[x], y=[y], mode='markers+text', text=[display_name], textposition="bottom center",
+        marker=dict(size=26 if rank is not None else 14, color=node_fill, symbol=rank_shapes.get(rank, "circle"),
+                    line=dict(width=line_width, color=rank_colors.get(rank, h_data["color"]))),
+        hovertext=hover_label, hoverinfo="text", customdata=[name], name="node"
+    ))
+
+fig.update_layout(
+    template="plotly_dark", paper_bgcolor='#050505', plot_bgcolor='#050505',
+    xaxis=dict(visible=False), yaxis=dict(visible=False), clickmode='event+select',
+    showlegend=False, margin=dict(t=120, b=50, l=50, r=50),
+    hoverlabel=dict(bgcolor="#111", font_size=12, font_family="monospace")
+)
+
+# =====================================================
+# 4. BINDER UI DATA & JSON DUMPS
+# =====================================================
+alive_df = df[df['Status'].astype(str).str.strip().str.lower() != 'dead']
+
+top_16_speed_alive = alive_df.nlargest(16, 'Speed')[['Name', 'Speed']].to_dict('records')
+top_16_jump_alive = alive_df.nlargest(16, 'Jump')[['Name', 'Jump']].to_dict('records')
+top_16_health_alive = alive_df.nlargest(16, 'Health')[['Name', 'Health']].to_dict('records')
+
+gen_speeds = {}
+for name, data in data_registry.items():
+    if horse_db[name].get("OriginBlood") == "Slothsoul": continue
+    lvl, spd = data['level'], float(horse_db[name].get('Speed', 0))
+    gen_speeds.setdefault(lvl, []).append(spd)
+
+avg_speed_gen = {lvl: round(sum(spds)/len(spds), 2) for lvl, spds in sorted(gen_speeds.items())}
+
+def calculate_global_genetics(include_dead=True):
+    totals = {}
+    for name, data in data_registry.items():
+        if not include_dead and horse_db[name].get("Status") == "Dead": continue
+        for bloodline, percent in data["dna"].items():
+            if bloodline not in ["Unknown", "Slothsoul", ""]:
+                totals[bloodline] = totals.get(bloodline, 0) + percent
+    total_sum = sum(totals.values())
+    return {k: round((v / total_sum) * 100, 1) for k, v in totals.items()} if total_sum > 0 else {}
+
+stats_json = json.dumps({
+    "top_16_speed": top_16_speed_alive,
+    "top_16_jump": top_16_jump_alive,
+    "top_16_health": top_16_health_alive,
+    "avg_speed": avg_speed_gen,
+    "blood_all": calculate_global_genetics(include_dead=True),
+    "blood_alive": calculate_global_genetics(include_dead=False)
+})
+
+top3_json = json.dumps({"speed": top_3_speed, "jump": top_3_jump, "health": top_3_health})
+base_colors_json = json.dumps({name: d["color"] for name, d in data_registry.items()})
+
+anc_json, desc_json, js_color_map = json.dumps(ancestor_map), json.dumps(final_desc_map), json.dumps(origin_colors)
+
+html_content = fig.to_html(include_plotlyjs='cdn', config={'scrollZoom': True, 'doubleClick': False})
+
+ui_html = f"""
+<style>
+    #binder-container {{
+        position: fixed; top: 5%; right: -380px; width: 380px; height: 90vh;
+        transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+    }}
+    #binder-container.active {{ right: 0 !important; }}
+
+    .tab-stack {{
+        position: absolute; left: -60px; top: 40px;
+        display: flex; flex-direction: column; gap: 10px;
+    }}
+    .binder-tab {{
+        width: 60px; height: 75px; background: #1a1a1a; border: 1px solid #444;
+        border-right: none; color: #00F5FF; display: flex; align-items: center;
+        justify-content: center; cursor: pointer; border-radius: 12px 0 0 12px;
+        font-size: 24px; transition: 0.3s; box-shadow: -5px 5px 15px rgba(0,0,0,0.5);
+    }}
+    .binder-tab:hover {{ background: #222; width: 65px; left: -5px; }}
+    .binder-tab.active-tab {{ background: #121212; color: #FFD700; width: 70px; left: -10px; border-left: 4px solid #FFD700; z-index: 10001; }}
+
+    .binder-page {{
+        width: 100%; height: 100%; background: #121212; border: 1px solid #444;
+        border-radius: 0 0 0 20px; box-shadow: -15px 15px 40px rgba(0,0,0,0.8);
+        padding: 25px; display: none; overflow-y: auto; overflow-x: hidden; color: #ffffff;
+        box-sizing: border-box;
+    }}
+    .binder-page.active-page {{ display: block; }}
+    
+    .page-header {{ border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 20px; font-weight: bold; font-size: 18px; color: #FFD700; }}
+    
+    .graph-scroll-container {{
+        width: 100%; overflow-x: auto; overflow-y: hidden;
+        background: #1a1a1a; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;
+    }}
+    #gen-performance-chart {{ height: 400px; }}
+
+    table {{ width: 100%; border-collapse: collapse; }}
+    th {{ text-align: left; color: #888; font-size: 11px; padding-bottom: 10px; }}
+    td {{ padding: 12px 8px; border-bottom: 1px solid #222; font-size: 13px; font-family: monospace; color: #fff; cursor: pointer; }}
+    tr:hover td {{ background: rgba(0, 245, 255, 0.1); color: #00F5FF; }}
+
+    .minimize-btn {{
+        margin-top: 30px; text-align: center; color: #666; font-size: 11px; 
+        cursor: pointer; padding: 10px; border-top: 1px solid #222; transition: 0.2s;
+        font-family: monospace;
+    }}
+    .minimize-btn:hover {{ color: #FF4500; background: rgba(255, 69, 0, 0.05); }}
+    
+    #mode-ui {{
+        position:fixed; top:20px; left:20px; z-index:9999; background:rgba(20,20,20,0.95); 
+        padding:15px; border:1px solid #444; color:white; font-family:monospace; 
+        border-radius:8px; cursor:pointer; user-select:none; width: 150px; text-align: center;
+    }}
+    #stat-ui {{
+        position:fixed; top:90px; left:20px; z-index:9999; background:rgba(20,20,20,0.95); 
+        padding:15px; border:1px solid #444; color:white; font-family:monospace; 
+        border-radius:8px; cursor:pointer; user-select:none; width: 150px; text-align: center;
+    }}
+
+    .pie-container {{ height: 350px; width: 100%; margin-bottom: 40px; }}
+</style>
+
+<div id="binder-container">
+    <div class="tab-stack">
+        <div class="binder-tab active-tab" onclick="openTab(0)" title="Leaderboard">🏆</div>
+        <div class="binder-tab" onclick="openTab(1)" title="Gen Stats">📈</div>
+        <div class="binder-tab" onclick="openTab(2)" title="Genetic Breakdown">🧬</div>
+    </div>
+
+    <div id="page-0" class="binder-page active-page">
+        <div class="page-header">TOP 16 (ALIVE ONLY)</div>
+        <div style="display:flex; justify-content:space-around; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:10px; font-size:12px; font-weight:bold;">
+            <span style="cursor:pointer; color:#FFD700;" onclick="switchTable('speed')" id="tab-speed">SPEED</span>
+            <span style="cursor:pointer; color:#666;" onclick="switchTable('jump')" id="tab-jump">JUMP</span>
+            <span style="cursor:pointer; color:#666;" onclick="switchTable('health')" id="tab-health">HEALTH</span>
+        </div>
+        <table id="table-speed">
+            <thead><tr><th>#</th><th>NAME</th><th>SPEED</th></tr></thead>
+            <tbody id="top-16-speed-body"></tbody>
+        </table>
+        <table id="table-jump" style="display:none;">
+            <thead><tr><th>#</th><th>NAME</th><th>JUMP</th></tr></thead>
+            <tbody id="top-16-jump-body"></tbody>
+        </table>
+        <table id="table-health" style="display:none;">
+            <thead><tr><th>#</th><th>NAME</th><th>HEALTH</th></tr></thead>
+            <tbody id="top-16-health-body"></tbody>
+        </table>
+        <div class="minimize-btn" onclick="toggleBinder()">[ MINIMIZE BINDER ]</div>
+    </div>
+
+    <div id="page-1" class="binder-page">
+        <div class="page-header">PERFORMANCE BY GEN</div>
+        <div class="graph-scroll-container">
+            <div id="gen-performance-chart"></div>
+        </div>
+        <div style="font-size: 10px; color: #666; font-family: monospace; text-align: center;">
+            ← SLIDE TO VIEW LINEAGE PROGRESSION →
+        </div>
+        <div class="minimize-btn" onclick="toggleBinder()">[ MINIMIZE BINDER ]</div>
+    </div>
+
+    <div id="page-2" class="binder-page">
+        <div class="page-header">GENETIC SPLIT (ALIVE)</div>
+        <div id="pie-alive" class="pie-container"></div>
+        <div class="page-header" style="margin-top:30px;">GENETIC SPLIT (ALL)</div>
+        <div id="pie-all" class="pie-container"></div>
+        <div class="minimize-btn" onclick="toggleBinder()">[ MINIMIZE BINDER ]</div>
+    </div>
+</div>
+
+<div id="mode-ui" onclick="toggleMode()">
+    <div id="mode-text" style="color:#00F5FF; font-weight:bold; font-size:14px;">ANCESTORS</div>
+    <div style="margin-top:5px; font-size:9px; color:#666;">CLICK TO TOGGLE | PRESS 'M'</div>
+</div>
+
+<div id="stat-ui" onclick="toggleStatMode()">
+    <div id="stat-text" style="color:#FFD700; font-weight:bold; font-size:14px;">STAT: SPEED</div>
+    <div style="margin-top:5px; font-size:9px; color:#666;">CLICK TO TOGGLE | PRESS 'S'</div>
+</div>
+"""
+
+js_script = f"""
+{ui_html}
+<script>
+var ancestorMap = {anc_json};
+var descendantMap = {desc_json};
+var stats = {stats_json};
+var bloodColors = {js_color_map};
+var top3Ranks = {top3_json};
+var baseColors = {base_colors_json};
+
+var currentMode = 'ancestors'; 
+var currentStatMode = 'speed';
+var currentHighlighted = null;
+
+function toggleBinder() {{
+    document.getElementById('binder-container').classList.toggle('active');
+}}
+
+function openTab(index) {{
+    document.getElementById('binder-container').classList.add('active');
+    document.querySelectorAll('.binder-page').forEach(p => p.classList.remove('active-page'));
+    document.querySelectorAll('.binder-tab').forEach(t => t.classList.remove('active-tab'));
+    document.getElementById('page-' + index).classList.add('active-page');
+    document.querySelectorAll('.binder-tab')[index].classList.add('active-tab');
+    
+    setTimeout(() => {{
+        window.dispatchEvent(new Event('resize'));
+        if (index === 1) Plotly.Plots.resize('gen-performance-chart');
+        if (index === 2) {{
+            Plotly.Plots.resize('pie-alive');
+            Plotly.Plots.resize('pie-all');
+        }}
+    }}, 50);
+}}
+
+const renderGenChart = () => {{
+    const gens = Object.keys(stats.avg_speed);
+    const speeds = Object.values(stats.avg_speed);
+    
+    const chartDiv = document.getElementById('gen-performance-chart');
+    const dynamicWidth = Math.max(350, gens.length * 65); 
+    if(chartDiv) chartDiv.style.width = dynamicWidth + "px";
+
+    const data = [{{
+        x: gens, y: speeds, mode: 'lines+markers', type: 'scatter',
+        marker: {{ size: 10, color: '#00F5FF', line: {{ color: '#FFD700', width: 2 }} }},
+        line: {{ color: '#00F5FF', width: 3, shape: 'spline' }},
+        hovertemplate: '<b>Gen %{{x}}</b><br>Avg Speed: %{{y}}<extra></extra>',
+    }}];
+
+    const layout = {{
+        margin: {{ l: 40, r: 40, t: 40, b: 60 }},
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        xaxis: {{ title: "Generation", gridcolor: '#333', font: {{ color: '#888' }}, dtick: 1, fixedrange: true }},
+        yaxis: {{ title: "Avg Speed", gridcolor: '#222', font: {{ color: '#888' }}, zeroline: false }},
+        hoverlabel: {{ bgcolor: '#111', font: {{ family: 'monospace', color: '#fff' }} }}
+    }};
+
+    Plotly.newPlot('gen-performance-chart', data, layout, {{displayModeBar: false}});
+
+    chartDiv.on('plotly_click', function(data) {{
+        if (!data || !data.points) return;
+        const selectedGen = data.points[0].x;
+        const mainGraph = document.getElementsByClassName('plotly-graph-div')[0];
+        const newOpacities = []; const newWidths = [];
+
+        for(var i=0; i < mainGraph.data.length; i++) {{
+            var trace = mainGraph.data[i];
+            var isThisGen = trace.hovertext && trace.hovertext.includes("Gen: " + selectedGen);
+            newOpacities.push(isThisGen ? 1.0 : 0.05);
+            newWidths.push(isThisGen && trace.name.includes("line") ? 5.0 : (trace.name.includes("line") ? 0.1 : null));
+        }}
+        Plotly.restyle(mainGraph, {{ 'opacity': newOpacities, 'line.width': newWidths }});
+    }});
+}};
+
+window.addEventListener('load', function() {{
+    var graphDiv = document.getElementsByClassName('plotly-graph-div')[0];
+
+    // Populate the 3 Leaderboards
+    ['speed', 'jump', 'health'].forEach(stat => {{
+        const tbody = document.getElementById(`top-16-${{stat}}-body`);
+        const statKey = stat.charAt(0).toUpperCase() + stat.slice(1);
+        stats[`top_16_${{stat}}`].forEach((h, i) => {{
+            let row = document.createElement('tr');
+            row.innerHTML = `<td>${{i+1}}</td><td>${{h.Name}}</td><td style="color:#FFD700; font-weight:bold;">${{h[statKey]}}</td>`;
+            row.onclick = () => {{ currentHighlighted = h.Name; highlightLogic(h.Name); }};
+            tbody.appendChild(row);
+        }});
+    }});
+
+    window.switchTable = function(stat) {{
+        ['speed', 'jump', 'health'].forEach(s => {{
+            document.getElementById(`table-${{s}}`).style.display = (s === stat) ? 'table' : 'none';
+            document.getElementById(`tab-${{s}}`).style.color = (s === stat) ? '#FFD700' : '#666';
+        }});
+    }};
+
+    renderGenChart();
+
+    const renderPie = (targetId, dataDict) => {{
+        const labels = Object.keys(dataDict);
+        const values = Object.values(dataDict);
+        const colors = labels.map(l => bloodColors[l] || "#444444");
+        const data = [{{
+            values: values, labels: labels, type: 'pie', hole: 0.4,
+            marker: {{ colors: colors, line: {{ color: '#121212', width: 2 }} }},
+            textinfo: 'percent', hoverinfo: 'label+percent', textfont: {{ family: 'monospace', color: '#fff' }}
+        }}];
+        const layout = {{
+            showlegend: true, legend: {{ orientation: 'h', font: {{ size: 10, color: '#888' }}, y: -0.2 }},
+            margin: {{ t: 10, b: 10, l: 10, r: 10 }}, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)'
+        }};
+        Plotly.newPlot(targetId, data, layout, {{displayModeBar: false}});
+    }};
+
+    renderPie('pie-alive', stats.blood_alive);
+    renderPie('pie-all', stats.blood_all);
+
+    // Core Highlight Filter
+    window.highlightLogic = function(selectedHorse) {{
+        var targetMap = (currentMode === 'ancestors') ? ancestorMap : descendantMap;
+        var relatedSet = targetMap[selectedHorse] || [selectedHorse];
+        var newOpacities = []; var newWidths = [];
+
+        for(var i=0; i < graphDiv.data.length; i++){{
+            var trace = graphDiv.data[i];
+            var rawData = Array.isArray(trace.customdata) ? trace.customdata[0] : trace.customdata;
+            var traceHorseName = (rawData && typeof rawData === 'object') ? rawData.child : rawData;
+            var isRelated = false;
+            
+            if (trace.name === "node" || trace.name.startsWith("glow")) {{
+                isRelated = relatedSet.includes(traceHorseName);
+            }} else if (trace.name.includes("line")) {{
+                isRelated = relatedSet.includes(traceHorseName) && (traceHorseName !== selectedHorse || currentMode === 'ancestors');
+            }}
+            newOpacities.push(isRelated ? 1.0 : 0.05);
+            newWidths.push(isRelated && trace.name.includes("line") ? 5.0 : (trace.name.includes("line") ? 0.1 : null));
+        }}
+        Plotly.restyle(graphDiv, {{ 'opacity': newOpacities, 'line.width': newWidths }});
+    }};
+
+    window.toggleMode = function() {{
+        currentMode = (currentMode === 'ancestors') ? 'descendants' : 'ancestors';
+        var txt = document.getElementById('mode-text');
+        txt.innerText = currentMode.toUpperCase();
+        txt.style.color = (currentMode === 'ancestors') ? '#00F5FF' : '#FF4500';
+        if (currentHighlighted) highlightLogic(currentHighlighted);
+    }};
+
+    window.toggleStatMode = function() {{
+        if (currentStatMode === 'speed') currentStatMode = 'jump';
+        else if (currentStatMode === 'jump') currentStatMode = 'health';
+        else currentStatMode = 'speed';
+
+        var txt = document.getElementById('stat-text');
+        txt.innerText = "STAT: " + currentStatMode.toUpperCase();
+
+        var statColors = {{ 'speed': '#FFD700', 'jump': '#00FF7F', 'health': '#FF004F' }};
+        txt.style.color = statColors[currentStatMode];
+
+        applyStatView();
+    }};
+
+    function applyStatView() {{
+        var topList = top3Ranks[currentStatMode];
+
+        var nodeIndices = []; var textUpdates = []; var symbolUpdates = [];
+        var sizeUpdates = []; var lineWidthUpdates = []; var lineColorUpdates = [];
+        var visibleUpdates = []; var glowIndices = [];
+
+        for (var i = 0; i < graphDiv.data.length; i++) {{
+            var trace = graphDiv.data[i];
+            var tName = trace.name;
+
+            if (tName && tName.startsWith("glow_")) {{
+                glowIndices.push(i);
+                visibleUpdates.push(tName === "glow_" + currentStatMode);
+            }}
+            else if (tName === "node") {{
+                var rawData = Array.isArray(trace.customdata) ? trace.customdata[0] : trace.customdata;
+                var hName = (rawData && typeof rawData === 'object') ? rawData.child : rawData;
+                
+                var rank = topList.indexOf(hName);
+                var isGod = (rank === 0);
+                
+                var symbol = "circle";
+                if (rank === 0) symbol = "star";
+                else if (rank === 1) symbol = "diamond";
+                else if (rank === 2) symbol = "triangle-up";
+
+                var dName = isGod ? ("★ GOD HORSE: " + hName.toUpperCase() + " ★") : hName.toUpperCase();
+                var size = (rank !== -1) ? 26 : 14;
+                var lWidth = (rank !== -1) ? 4 : 1.5;
+                var lColor = (rank !== -1) ? (rank === 0 ? "#FFD700" : (rank === 1 ? "#C0C0C0" : "#CD7F32")) : baseColors[hName];
+
+                nodeIndices.push(i);
+                textUpdates.push([dName]);
+                symbolUpdates.push(symbol);
+                sizeUpdates.push(size);
+                lineWidthUpdates.push(lWidth);
+                lineColorUpdates.push(lColor);
+            }}
+        }}
+
+        if (glowIndices.length > 0) {{
+            Plotly.restyle(graphDiv, {{ 'visible': visibleUpdates }}, glowIndices);
+        }}
+        if (nodeIndices.length > 0) {{
+            Plotly.restyle(graphDiv, {{
+                'text': textUpdates, 'marker.symbol': symbolUpdates, 'marker.size': sizeUpdates,
+                'marker.line.width': lineWidthUpdates, 'marker.line.color': lineColorUpdates
+            }}, nodeIndices);
+        }}
+    }}
+
+    function resetToDefault() {{
+        var ops = graphDiv.data.map(t => t.name === "line_parent" ? 0.3 : (t.name === "line_child" ? 0.45 : (t.name.startsWith("glow") ? 0.2 : 1.0)));
+        var wds = graphDiv.data.map(t => t.name === "line_child" ? 2.5 : (t.name === "line_parent" ? 1.5 : null));
+        Plotly.restyle(graphDiv, {{ 'opacity': ops, 'line.width': wds }});
+        currentHighlighted = null;
+    }}
+
+    document.addEventListener('keydown', (e) => {{ 
+        if(e.key.toLowerCase() === 'm') toggleMode(); 
+        if(e.key.toLowerCase() === 's') toggleStatMode();
+    }});
+
+    graphDiv.on('plotly_click', function(data){{
+        if (!data || !data.points) return;
+        var pt = data.points[0]; var raw = pt.customdata;
+        var name = (raw && typeof raw === 'object') ? (raw.child || raw[0]) : (Array.isArray(raw) ? raw[0] : raw);
+        if (!name) return;
+        if (currentHighlighted === name) resetToDefault();
+        else {{ currentHighlighted = name; highlightLogic(name); }}
+    }});
+    graphDiv.addEventListener('mousedown', (e) => {{ if(e.target.classList.contains('nsewdrag')) resetToDefault(); }});
+}});
+</script>
+"""
+
+final_output = html_content.replace('</body>', js_script + '</body>')
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(final_output)
+
+print("Process complete. 'index.html' updated with Stat Toggles and Alive Leaderboards.")
+</file>
+
+<file path="Frontend/horse-frontend/components/Common/Sidebar/Sidebar.tsx">
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import * as styles from "./Sidebar.css";
+import { useState, useEffect } from "react";
+import HorseCreateModal from "@/components/Modals/HorseCreateModal/HorseCreateModal";
+import { Horse } from "@/types/horse";
+import Image from "next/image";
+import { getHorseVariantImage } from "@/utils/variant";
+import getHorsesByIdsAction from "@/actions/getHorsesByIdsAction";
+
+interface SidebarProps {
+  fallbackHorses: Horse[];
+}
+
+export default function Sidebar({ fallbackHorses }: SidebarProps) {
+  const pathname = usePathname();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [recentViewed, setRecentViewed] = useState<Horse[]>([]);
+
+  useEffect(() => {
+    const updateRecent = async () => {
+      const stored = localStorage.getItem("recently-viewed-horses");
+      if (stored) {
+        const ids: string[] = JSON.parse(stored);
+        const viewedHorses = await getHorsesByIdsAction(ids);
+        setRecentViewed(viewedHorses.slice(0, 5));
+      } else {
+        setRecentViewed(fallbackHorses);
+      }
+    };
+
+    updateRecent();
+    window.addEventListener("storage", updateRecent);
+    return () => window.removeEventListener("storage", updateRecent);
+  }, [fallbackHorses]);
+
+  const navItems = [
+    { label: "Dashboard", href: "/", icon: "📊" },
+    { label: "Lineage Tree", href: "/horses", icon: "🌳" },
+  ];
+
+  return (
+    <>
+      <aside className={styles.sidebar}>
+        <Link href="/" className={styles.logo}>
+          <span className={styles.logoEmoji}>🐴</span> 
+          <span className={styles.logoText}>HorseTree</span>
+        </Link>
+
+        <nav className={styles.nav}>
+          <div className={styles.navSection}>
+            <span className={styles.sectionLabel}>Navigation</span>
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={
+                  pathname === item.href ? styles.navLinkActive : styles.navLink
+                }
+              >
+                <span className={styles.navIcon}>{item.icon}</span> {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className={styles.navSection}>
+            <span className={styles.sectionLabel}>Recent Activity</span>
+            <div className={styles.recentList}>
+              {recentViewed.map((horse) => (
+                <Link 
+                  key={horse.id} 
+                  href={`/horses/${horse.id}`} 
+                  className={styles.recentItem}
+                >
+                  <div className={styles.recentImageContainer}>
+                    <Image 
+                      src={getHorseVariantImage(horse.variant)} 
+                      alt={horse.name} 
+                      width={24} 
+                      height={24}
+                    />
+                  </div>
+                  <span className={styles.recentName}>{horse.name}</span>
+                </Link>
+              ))}
+              {recentViewed.length === 0 && (
+                <div className={styles.recentItem} style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                  No recent activity
+                </div>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        <div className={styles.footer}>
+          <button
+            className={styles.createButton}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <span>+</span> New Horse
+          </button>
+        </div>
+      </aside>
+
+      <HorseCreateModal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+      />
+    </>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorseNode/HorseNode.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const nodeContainer = style({
+  padding: `${vars.spacing.sm} ${vars.spacing.md}`,
+  boxShadow: vars.shadow.md,
+  borderRadius: vars.borderRadius.md,
+  backgroundColor: vars.color.white,
+  border: `1px solid ${vars.color.border}`,
+  minWidth: "180px",
+  transition: "all 0.2s ease-in-out",
+  ":hover": {
+    transform: "translateY(-4px)",
+    boxShadow: vars.shadow.lg,
+  },
+});
+
+export const contentWrapper = style({
+  display: "flex",
+  alignItems: "center",
+  gap: vars.spacing.md,
+});
+
+export const imageContainer = style({
+  width: "48px",
+  height: "48px",
+  borderRadius: vars.borderRadius.sm,
+  backgroundColor: vars.color.secondary,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+  flexShrink: 0,
+});
+
+export const horseImage = style({
+  objectFit: "contain",
+});
+
+export const textDetails = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+});
+
+export const horseName = style({
+  fontSize: vars.fontSize.md,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.textMain,
+  whiteSpace: "nowrap",
+});
+
+export const statText = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "4px",
+  fontSize: vars.fontSize.xs,
+});
+
+export const statLabel = style({
+  fontSize: "10px",
+  color: vars.color.textMuted,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+});
+
+export const statValue = style({
+  fontSize: "11px",
+  color: vars.color.primary,
+  fontWeight: 800,
+});
+
+// Target the React Flow handles specifically
+export const handleStyle = style({
+  width: "8px !important",
+  height: "8px !important",
+  backgroundColor: `${vars.color.primary} !important`,
+  border: `2px solid ${vars.color.white} !important`,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/DetailsCard/BloodlineDisplay/BloodlineDisplay.tsx">
+import { horseDna } from "@/types/horse";
+import { BLOODLINE_COLORS } from "@/utils/genetics/utils";
+import * as styles from "./BloodlineDisplay.css";
+
+interface BloodlineDisplayProps {
+  dna: horseDna;
+}
+
+export function BloodlineDisplay({ dna }: BloodlineDisplayProps) {
+  if (!dna || Object.keys(dna).length === 0) return null;
+
+  // Sort by percentage descending
+  const sorted = Object.entries(dna).sort(([, a], [, b]) => b - a);
+
+  return (
+    <div className={styles.bloodlineSection}>
+      <h3 className={styles.bloodlineHeading}>Genetic Composition</h3>
+      <div className={styles.bloodlineList}>
+        {sorted.map(([name, percent]) => {
+          const color = BLOODLINE_COLORS[name] || "#94a3b8";
+          const percentageValue = (percent * 100).toFixed(1);
+          const width = `${percentageValue}%`;
+
+          return (
+            <div key={name} className={styles.bloodlineRow}>
+              <div className={styles.bloodlineInfo}>
+                <span className={styles.bloodlineName}>{name}</span>
+                <span className={styles.bloodlinePercent}>
+                  {percentageValue}%
+                </span>
+              </div>
+              <div className={styles.progressTrack}>
+                <div
+                  className={styles.progressBar}
+                  style={{
+                    width,
+                    backgroundColor: color,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/DetailsCard/DetailsCard.tsx">
+import { Horse } from "@/types/horse";
+import * as styles from "./DetailsCard.css";
+import { ProcessedStats } from "@/utils/translateRawStats";
+import { BloodlineDisplay } from "@/components/HorsePage/DetailsCard/BloodlineDisplay/BloodlineDisplay";
+
+interface DetailsCardProps {
+  horse: Horse;
+  processedStats: ProcessedStats;
+  parent1Name: string;
+  parent2Name: string;
+}
+
+export default function DetailsCard({
+  horse,
+  processedStats,
+  parent1Name,
+  parent2Name,
+}: DetailsCardProps) {
+  return (
+    <section className={styles.detailsSection}>
+      <div className={styles.detailRow}>
+        <strong>Appearance Variant</strong>
+        <span>{processedStats.variant || "Standard"}</span>
+      </div>
+
+      <div className={styles.lineageSection}>
+        <h3 className={styles.sectionTitle}>Parentage</h3>
+        <div className={styles.parentGrid}>
+          <div className={styles.parentBox}>
+            <small className={styles.parentLabel}>Parent 1</small>
+            <p className={styles.parentName}> {parent1Name}</p>
+          </div>
+          <div className={styles.parentBox}>
+            <small className={styles.parentLabel}>Parent 2</small>
+            <p className={styles.parentName}> {parent2Name}</p>
+          </div>
+        </div>
+      </div>
+
+      <hr className={styles.divider} />
+
+      <div className={styles.bloodlineWrapper}>
+        <h3 className={styles.sectionTitle}>Genetic Composition</h3>
+        <BloodlineDisplay dna={horse.dna} />
+      </div>
+    </section>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseCreateModal/CreateHorseForm/CreateHorseForm.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const container = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.md,
+});
+
+export const field = style({
+  width: "100%",
+});
+
+export const fields = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.md,
+});
+
+export const nameField = style({
+  width: "120px",
+  padding: vars.spacing.sm,
+  borderRadius: vars.borderRadius.sm,
+  border: `1px solid ${vars.color.border}`,
+  fontSize: vars.fontSize.sm,
+  fontFamily: vars.font.main,
+  ":focus": {
+    outline: "none",
+    borderColor: vars.color.primary,
+  },
+});
+
+export const nameRow = style({
+  display: "flex",
+  width: "100%",
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  margin: `${vars.spacing.xs} 0`,
+});
+
+export const label = style({
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.primary,
+});
+</file>
+
+<file path="Frontend/horse-frontend/lib/mongodb.ts">
+import { MongoClient } from "mongodb";
+
+if (!process.env.MONGODB_URI) {
+  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+}
+
+const uri = process.env.MONGODB_URI;
+const options = {};
+
+let client: MongoClient;
+let clientPromise: Promise<MongoClient>;
+
+if (process.env.NODE_ENV === "development") {
+  const globalWithMongo = global as typeof globalThis & {
+    _mongoClientPromise?: Promise<MongoClient>;
+  };
+
+  if (!globalWithMongo._mongoClientPromise) {
+    client = new MongoClient(uri, options);
+    globalWithMongo._mongoClientPromise = client.connect();
+  }
+  clientPromise = globalWithMongo._mongoClientPromise;
+} else {
+  client = new MongoClient(uri, options);
+  clientPromise = client.connect();
+}
+
+export default clientPromise;
+</file>
+
+<file path="Frontend/horse-frontend/styles/theme.css.ts">
+import { createGlobalTheme } from "@vanilla-extract/css";
+
+export const vars = createGlobalTheme(":root", {
+  color: {
+    primary: "#2d4a3e",       // Forest Green
+    primaryHover: "#1e3229",
+    secondary: "#fdfbf7",     // Off-white/Cream
+    danger: "#800505",
+    dangerBg: "#fee2e2",
+    textMain: "#1f2937",
+    textMuted: "#6b7280",
+    border: "#e5e7eb",
+    background: "#fdfbf7",
+    backgroundDark: "#1a2c25", // Dark Forest Green
+    white: "#ffffff",
+    accent: "#d4a373",        // Sandy/Wood accent
+  },
+  spacing: {
+    xs: "4px",
+    sm: "8px",
+    md: "16px",
+    lg: "24px",
+    xl: "32px",
+  },
+  shadow: {
+    sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    md: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    lg: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+  },
+  borderRadius: {
+    sm: "4px",
+    md: "8px",
+    lg: "12px",
+    full: "9999px",
+  },
+  font: {
+    main: "var(--font-geist-sans), sans-serif",
+    mono: "var(--font-geist-mono), monospace",
+  },
+  fontSize: {
+    xs: "11px",
+    sm: "13px",
+    md: "15px",
+    lg: "18px",
+    xl: "24px",
+    xxl: "32px",
+    display: "48px",
+  },
+  fontWeight: {
+    normal: "400",
+    medium: "500",
+    semibold: "600",
+    bold: "700",
+    extrabold: "800",
+    black: "900",
+  }
+});
+</file>
+
+<file path="Frontend/horse-frontend/utils/layout.ts">
+import dagre from 'dagre';
+import { Edge } from '@xyflow/react';
+import { HorseNode } from '@/components/HorseNode/HorseNode';
+
+const VERTICAL_SPACING = 200;
+
+export const getBaseLayout = (nodes: HorseNode[], edges: Edge[], compactView: boolean = false) => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  
+  const horizontalGap = compactView ? 20 : 40;
+  const nodeWidth = compactView ? 160 : 220;
+  const nodeHeight = 80;
+
+  dagreGraph.setGraph({ 
+    rankdir: 'TB', 
+    nodesep: horizontalGap, 
+    ranksep: VERTICAL_SPACING,
+    ranker: 'network-simplex', 
+  });
+  
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  const genMap = new Map(nodes.map(n => [n.id, n.data.horse.generation || 0]));
+
+  edges.forEach((edge) => {
+    if (dagreGraph.hasNode(edge.source) && dagreGraph.hasNode(edge.target)) {
+      const sourceGen = genMap.get(edge.source) || 0;
+      const targetGen = genMap.get(edge.target) || 0;
+      const generationDiff = Math.max(1, targetGen - sourceGen);
+      dagreGraph.setEdge(edge.source, edge.target, { minlen: generationDiff });
+    }
+  });
+
+  dagre.layout(dagreGraph);
+
+  return nodes.map((node) => {
+    const dagreNode = dagreGraph.node(node.id);
+    const gen = node.data.horse.generation || 0;
+    
+    return {
+      ...node,
+      data: { ...node.data, activeView: 'base' as const },
+      position: {
+        x: dagreNode.x - (nodeWidth / 2),
+        y: gen * VERTICAL_SPACING, 
+      },
+    };
+  });
+};
+
+export const getSortLayout = (nodes: HorseNode[], sortBy: 'speed' | 'jump' | 'health', compactView: boolean = false) => {
+  const horizontalGap = compactView ? 30 : 50;
+  const nodeWidth = compactView ? 140 : 200;
+
+  const generations: Record<number, HorseNode[]> = {};
+  
+  nodes.forEach((node) => {
+    const gen = node.data.horse.generation ?? 0;
+    if (!generations[gen]) generations[gen] = [];
+    generations[gen].push(node);
+  });
+
+  Object.keys(generations).forEach((key) => {
+    generations[Number(key)].sort((a, b) => {
+      const valA = a.data.horse[sortBy] || 0;
+      const valB = b.data.horse[sortBy] || 0;
+      return valB - valA; 
+    });
+  });
+
+  return nodes.map((node) => {
+    const gen = node.data.horse.generation ?? 0;
+    const row = generations[gen];
+    const indexInRow = row.findIndex((n) => n.id === node.id);
+    const rowWidth = (row.length * (nodeWidth + horizontalGap));
+    const centeringOffset = -rowWidth / 2;
+
+    return {
+      ...node,
+      position: {
+        x: centeringOffset + (indexInRow * (nodeWidth + horizontalGap)),
+        y: gen * VERTICAL_SPACING,
+      },
+      data: { ...node.data, activeView: sortBy }
+    };
+  });
+};
+</file>
+
+<file path="Frontend/horse-frontend/next.config.ts">
+import type { NextConfig } from "next";
+import { createVanillaExtractPlugin } from '@vanilla-extract/next-plugin';
+const withVanillaExtract = createVanillaExtractPlugin();
+
+const nextConfig: NextConfig = {
+  devIndicators: false,
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/horses',
+        permanent: true,
+      }
+    ];
+  },
+};
+
+export default withVanillaExtract(nextConfig);
+</file>
+
+<file path="Frontend/horse-frontend/actions/editHorseAction.ts">
+"use server";
+
+import { editHorse, getHorseById } from "@/lib/horses";
+import { Horse, editHorseRequest } from "@/types/horse";
+import { processNewHorseGenetics } from "@/utils/genetics/service";
+import { revalidatePath } from 'next/cache';
+
+export default async function editHorseAction(horse: Horse, formData: Horse) {
+  const parentId1 = formData.parentId1;
+  const parentId2 = formData.parentId2;
+  let parent1, parent2;
+
+  if (parentId1 && parentId2) {
+    [parent1, parent2] = await Promise.all([
+      getHorseById(parentId1),
+      getHorseById(parentId2),
+    ]);}
+
+    const { dna, hexColor, generation } = processNewHorseGenetics(
+      parent1,
+      parent2,
+    );
+  
+
+  const data: editHorseRequest = {
+    name: horse.name,
+    parentId1: formData.parentId1,
+    parentId2: formData.parentId2,
+    status: formData.status,
+    speed: formData.speed,
+    health: formData.health,
+    jump: formData.jump,
+    variant: formData.variant,
+    dna: dna,
+    hexColor: hexColor,
+    generation: generation,
+  };
+  await editHorse(horse.id, data);
+
+  revalidatePath(`/horses/${horse.id}`);
+}
+</file>
+
+<file path="Frontend/horse-frontend/app/layout.tsx">
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import AppWrapper from "@/components/Common/Sidebar/AppWrapper";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Minecraft Horse Tree",
+  description: "The best way to visualize horse genealogy!",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
+      >
+        <AppWrapper>
+          {children}
+        </AppWrapper>
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/app/page.tsx">
+import { getRecentHorses, getStablesStats } from "@/lib/horses";
+import * as styles from "./Dashboard.css";
+import { translateStat } from "@/utils/translateRawStats";
+import { getHorseVariantImage } from "@/utils/variant";
+import Link from "next/link";
+import Image from "next/image";
+
+export default async function DashboardPage() {
+  const [horses, stats] = await Promise.all([
+    getRecentHorses(10),
+    getStablesStats(),
+  ]);
+
+  const { total, alive, avgSpeed, avgJump } = stats;
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>Stables Dashboard</h1>
+        <p className={styles.subtitle}>Overview of your horse breeding program</p>
+      </header>
+
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Total Horses</span>
+          <span className={styles.statValue}>{total}</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Alive</span>
+          <span className={styles.statValue}>{alive}</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Avg. Speed</span>
+          <span className={styles.statValue}>{translateStat("speed", avgSpeed).toFixed(2)} m/s</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Avg. Jump</span>
+          <span className={styles.statValue}>{translateStat("jump", avgJump).toFixed(2)} blocks</span>
+        </div>
+      </div>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Recent Horses</h2>
+          <Link href="/horses" style={{ fontSize: '12px', color: '#2d4a3e', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
+            View Tree →
+          </Link>
+        </div>
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.th}></th>
+                <th className={styles.th}>Name</th>
+                <th className={styles.th}>Status</th>
+                <th className={styles.th}>Speed</th>
+                <th className={styles.th}>Jump</th>
+                <th className={styles.th}>Health</th>
+                <th className={styles.th}>Gen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {horses.slice(0, 10).map((horse) => (
+                <tr key={horse.id} className={styles.tr}>
+                  <td className={styles.td} style={{ width: '48px', paddingRight: 0 }}>
+                    <div className={styles.smallImageContainer}>
+                      <Image 
+                        src={getHorseVariantImage(horse.variant)} 
+                        alt={horse.name} 
+                        width={32} 
+                        height={32} 
+                        className={styles.smallHorseImage}
+                      />
+                    </div>
+                  </td>
+                  <td className={styles.td}>
+                    <Link href={`/horses/${horse.id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}>
+                      {horse.name}
+                    </Link>
+                  </td>
+                  <td className={styles.td}>
+                    <span className={horse.status !== 0 ? styles.badgeAlive : styles.badgeDead}>
+                      {horse.status !== 0 ? "Alive" : "Dead"}
+                    </span>
+                  </td>
+                  <td className={styles.td}>{translateStat("speed", horse.speed).toFixed(2)}</td>
+                  <td className={styles.td}>{translateStat("jump", horse.jump).toFixed(2)}</td>
+                  <td className={styles.td}>{translateStat("health", horse.health).toFixed(1)}</td>
+                  <td className={styles.td}>{horse.generation || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/app/horses/[id]/page.tsx">
+export const dynamic = "force-dynamic";
+import HorsePage from "@/components/HorsePage/HorsePage";
+import { getAllHorses, getHorseById } from "@/lib/horses";
+import { notFound } from "next/navigation";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function getHorsePage({ params }: PageProps) {
+  const { id } = await params;
+
+  const [horse, horses] = await Promise.all([getHorseById(id), getAllHorses()]);
+
+  if (!horse || !horses) {
+    notFound();
+  }
+
+  return <HorsePage horse={horse} horses={horses} />;
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorseTreeView/ViewMenu/ViewMenu.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const menuWrapper = style({
+  position: "absolute",
+  top: "16px",
+  right: "16px",
+  zIndex: 100,
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  backgroundColor: vars.color.white,
+  padding: vars.spacing.md,
+  borderRadius: vars.borderRadius.lg,
+  boxShadow: vars.shadow.lg,
+  border: `1px solid ${vars.color.border}`,
+  transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease",
+  width: "240px",
+});
+
+export const menuClosed = style({
+  transform: "translateX(calc(100% + 20px))",
+  opacity: 0,
+  pointerEvents: "none",
+});
+
+export const toggleButton = style({
+  position: "absolute",
+  top: "16px",
+  right: "16px",
+  zIndex: 90,
+  backgroundColor: vars.color.white,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.borderRadius.md,
+  padding: "8px 16px",
+  cursor: "pointer",
+  boxShadow: vars.shadow.md,
+  fontSize: "12px",
+  fontWeight: 700,
+  color: vars.color.primary,
+  transition: "all 0.2s",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  ":hover": {
+    backgroundColor: vars.color.secondary,
+    transform: "translateY(-1px)",
+  },
+});
+
+export const closeButton = style({
+  alignSelf: "flex-end",
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "18px",
+  color: vars.color.textMuted,
+  padding: "4px",
+  lineHeight: 1,
+  ":hover": {
+    color: vars.color.textMain,
+  },
+});
+
+export const menuHeader = style({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: vars.spacing.sm,
+  borderBottom: `1px solid ${vars.color.border}`,
+  paddingBottom: vars.spacing.sm,
+});
+
+export const menuLabel = style({
+  fontSize: "10px",
+  fontWeight: 800,
+  color: vars.color.primary,
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  marginBottom: vars.spacing.xs,
+});
+
+const buttonBase = style({
+  width: "100%",
+  padding: "10px",
+  borderRadius: vars.borderRadius.md,
+  fontSize: "12px",
+  fontWeight: 700,
+  transition: "all 0.15s ease",
+  cursor: "pointer",
+  border: `1px solid ${vars.color.border}`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  backgroundColor: vars.color.white,
+  color: vars.color.textMain,
+  ":hover": {
+    backgroundColor: vars.color.secondary,
+    borderColor: vars.color.primary,
+  }
+});
+
+export const statButtonActive = style([
+  buttonBase,
+  {
+    backgroundColor: vars.color.primary,
+    color: vars.color.white,
+    borderColor: vars.color.primary,
+  },
+]);
+
+export const statButtonInactive = style([
+  buttonBase,
+]);
+
+export const resetButton = style([
+  buttonBase,
+  {
+    marginTop: vars.spacing.md,
+    backgroundColor: vars.color.textMain,
+    color: vars.color.white,
+    borderColor: vars.color.textMain,
+    ":hover": { backgroundColor: "#000000" },
+  },
+]);
+
+export const baseButtonActive = style([
+  buttonBase,
+  {
+    backgroundColor: vars.color.primary,
+    color: vars.color.white,
+    borderColor: vars.color.primary,
+    marginBottom: vars.spacing.xs,
+  },
+]);
+
+export const baseButtonInactive = style([
+  buttonBase,
+  {
+    marginBottom: vars.spacing.xs,
+  },
+]);
+
+export const statGrid = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(1, 1fr)",
+  gap: "6px",
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/HorseTreeView/ViewMenu/ViewMenu.tsx">
+import { Dispatch, SetStateAction, useState } from "react";
+import { ViewMode } from "../HorseTreeView";
+import * as styles from "./ViewMenu.css";
+import { setCookie } from "cookies-next";
+import { useReactFlow } from "@xyflow/react";
+import Button from "@/components/Common/Button/Button";
+import Switch from "@/components/Common/Switch/Switch";
+
+interface ViewMenuProps {
+  setView: Dispatch<SetStateAction<ViewMode>>;
+  view: ViewMode;
+  statusView: boolean;
+  setStatusView: Dispatch<SetStateAction<boolean>>;
+  compactView: boolean;
+  setCompactView: Dispatch<SetStateAction<boolean>>;
+}
+
+export default function ViewMenu({ 
+  setView, 
+  view, 
+  statusView, 
+  setStatusView,
+  compactView,
+  setCompactView
+}: ViewMenuProps) {
+  const { fitView } = useReactFlow();
+  const [isOpen, setIsOpen] = useState(true);
+
+  const toggleView = (mode: ViewMode) => {
+    setView(mode);
+    setCookie("horse-tree-view", mode, { maxAge: 60 * 60 * 24 * 30 }); // Save for 30 days
+
+    setTimeout(() => fitView({ duration: 800 }), 50);
+  };
+
+  const handleStatusToggle = (checked: boolean) => {
+    setStatusView(checked);
+    setCookie("horse-status-view", checked ? "true" : "false", { maxAge: 60 * 60 * 24 * 30 });
+  };
+
+  const handleCompactToggle = (checked: boolean) => {
+    setCompactView(checked);
+    setCookie("horse-compact-view", checked ? "true" : "false", { maxAge: 60 * 60 * 24 * 30 });
+  };
+
+  return (
+    <>
+      <button 
+        className={styles.toggleButton} 
+        onClick={() => setIsOpen(true)}
+        style={{ display: isOpen ? 'none' : 'flex' }}
+      >
+        <span>⚙️</span> View Options
+      </button>
+
+      <div className={`${styles.menuWrapper} ${!isOpen ? styles.menuClosed : ''}`}>
+        <div className={styles.menuHeader}>
+          <p className={styles.menuLabel} style={{ marginBottom: 0 }}>Layout & View</p>
+          <button className={styles.closeButton} onClick={() => setIsOpen(false)}>×</button>
+        </div>
+
+        <p className={styles.menuLabel} style={{ marginTop: "8px" }}>Layout Mode</p>
+
+      <Button
+        onClick={() => toggleView("base")}
+        className={
+          view === "base"
+            ? styles.baseButtonActive
+            : styles.baseButtonInactive
+        }
+        text="Traditional Lineage Tree"
+      />
+
+      <p className={styles.menuLabel} style={{ marginTop: "16px" }}>
+        View Filters
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <Switch 
+          label="Classic Node Style" 
+          checked={compactView} 
+          onChange={handleCompactToggle} 
+        />
+        <Switch 
+          label="Dead/Alive Highlight" 
+          checked={statusView} 
+          onChange={handleStatusToggle} 
+        />
+      </div>
+
+      <p className={styles.menuLabel} style={{ marginTop: "8px" }}>
+        Rank by Stat (Left to Right)
+      </p>
+      <div className={styles.statGrid}>
+        {(["speed", "jump", "health"] as const).map((stat) => (
+          <Button
+            key={stat}
+            onClick={() => toggleView(stat)}
+            className={
+              view === stat
+                ? styles.statButtonActive
+                : styles.statButtonInactive
+            }
+            text={stat}
+          />
+        ))}
+      </div>
+
+      <Button
+        onClick={() => fitView({ duration: 800, padding: 0.2 })}
+        className={styles.resetButton}
+        text="🔍 Reset Zoom"
+      />
+    </div>
+    </>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorseTreeView/HorseTreeView.css.ts">
+import { style, globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const container = style({
+  width: "100%",
+  height: "100%",
+  backgroundColor: vars.color.backgroundDark,
+  position: "relative",
+});
+
+export const loadingFallback = style({
+  height: "100%",
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: vars.color.backgroundDark,
+  color: vars.color.secondary,
+  fontWeight: 500,
+});
+
+globalStyle(".react-flow__background path", {
+  stroke: "rgba(255, 255, 255, 0.08) !important",
+});
+
+globalStyle(".react-flow__controls button", {
+  backgroundColor: vars.color.white,
+  borderBottom: `1px solid ${vars.color.border}`,
+});
+
+globalStyle(".react-flow__controls button:hover", {
+  backgroundColor: vars.color.secondary,
+});
+
+globalStyle(".react-flow__controls button svg", {
+  fill: vars.color.primary,
+});
+
+export const addHorseButton = style({
+  zIndex: 1000,
+  position: "absolute",
+  left: "10px"
+})
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseCreateModal/CreateHorseForm/CreateHorseForm.tsx">
+"use client";
+import { Horse } from "@/types/horse";
+import { HorseStats } from "@/utils/parseHorseStats";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import Select from "react-select";
+import * as styles from "./CreateHorseForm.css";
+import StatsBox from "@/components/Common/StatsBox/StatsBox";
+import Switch from "@/components/Common/Switch/Switch";
+import { translateStat, untranslateStat } from "@/utils/translateRawStats";
+import StatRow from "../../StatRow/StatRow";
+import { createHorseData } from "../HorseCreateModal";
+import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
+
+export interface CreateHorseFormProps {
+  horses: Horse[];
+  setError: (val: boolean) => void;
+  formData: createHorseData;
+  setFormData: Dispatch<SetStateAction<createHorseData>>;
+}
+
+export default function CreateHorseForm({
+  horses,
+  formData,
+  setFormData,
+}: CreateHorseFormProps) {
+  const [statsView, setStatsView] = useState(false);
+  const [displayStats, setDisplayStats] = useState({
+    speed: translateStat("speed", formData.speed).toString(),
+    health: translateStat("health", formData.health).toString(),
+    jump: translateStat("jump", formData.jump).toString(),
+  });
+
+  const handleSelectChange = (
+    field: keyof createHorseData,
+    value: string | number | undefined,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value ?? "",
+    }));
+  };
+
+  const handleImportedStats = (newStats: HorseStats) => {
+    setFormData((prev) => ({
+      ...prev,
+      speed: newStats.speed,
+      health: newStats.health,
+      jump: newStats.jump,
+      variant: newStats.variant,
+    }));
+  };
+
+  useEffect(() => {
+    setDisplayStats({
+      speed: (statsView ? formData.speed : translateStat("speed", formData.speed)).toString(),
+      health: (statsView ? formData.health : translateStat("health", formData.health)).toString(),
+      jump: (statsView ? formData.jump : translateStat("jump", formData.jump)).toString(),
+    });
+  }, [formData.speed, formData.health, formData.jump, statsView]);
+
+  const handleTextChange = (
+    field: string,
+    textValue: string,
+  ) => {
+    setDisplayStats((prev) => ({ ...prev, [field]: textValue }));
+
+    const numericValue = parseFloat(textValue);
+    if (!isNaN(numericValue)) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: statsView ? numericValue : untranslateStat(field, numericValue),
+      }));
+    }
+  };
+
+  const parentOptions = horses.map((horse) => ({
+    value: horse.id.toString(),
+    label: horse.name,
+  }));
+  const statusOptions = [
+    { value: 1, label: "Alive" },
+    { value: 0, label: "Dead" },
+  ];
+
+  return (
+    <div className={styles.container}>
+      <form>
+        <div className={styles.fields}>
+          <div className={styles.nameRow}>
+            <label className={styles.label}>Name</label>
+            <input
+              value={formData.name}
+              onChange={(e) => setFormData((prev: createHorseData) => ({...prev, name: e.target.value}))}
+              placeholder="Name"
+              className={styles.nameField}
+            />
+          </div>
+
+          {statsView && <StatsBox onStatsParsed={handleImportedStats} />}
+
+          {parentOptions.length > 1 && (
+            <>
+              <Select
+                options={parentOptions}
+                placeholder="Parent 1"
+                value={parentOptions.find(o => o.value === formData.parentId1)}
+                onChange={(val) => handleSelectChange("parentId1", val?.value)}
+                className={styles.field}
+                menuPortalTarget={null}
+              />
+              <Select
+                options={parentOptions}
+                placeholder="Parent 2"
+                value={parentOptions.find(o => o.value === formData.parentId2)}
+                onChange={(val) => handleSelectChange("parentId2", val?.value)}
+                className={styles.field}
+                menuPortalTarget={null}
+              />
+            </>
+          )}
+
+          <Select
+            options={statusOptions}
+            placeholder="Status"
+            value={statusOptions.find(o => o.value === formData.status)}
+            onChange={(val) => handleSelectChange("status", val?.value)}
+            className={styles.field}
+            menuPortalTarget={null}
+          />
+
+          <VariantSelector 
+            selectedVariant={formData.variant} 
+            onChange={(v) => handleSelectChange("variant", v)} 
+          />
+
+          <div style={{ marginTop: '16px' }}>
+            <Switch
+              label={statsView ? "Raw Stats" : "Processed Stats"}
+              checked={!statsView}
+              onChange={(checked) => setStatsView(!checked)}
+              labelLeft={false}
+            />
+          </div>
+
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <StatRow
+              text="Speed"
+              fieldName="speed"
+              displayStats={displayStats}
+              handleTextChange={handleTextChange}
+            />
+            <StatRow
+              text="Health"
+              fieldName="health"
+              displayStats={displayStats}
+              handleTextChange={handleTextChange}
+            />
+            <StatRow
+              text="Jump"
+              fieldName="jump"
+              displayStats={displayStats}
+              handleTextChange={handleTextChange}
+            />
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseCreateModal/HorseCreateModal.tsx">
+import Button from "@/components/Common/Button/Button";
+import * as modalStyles from "../Modals.css";
+import * as styles from "./HorseCreateModal.css";
+import CreateHorseForm from "./CreateHorseForm/CreateHorseForm";
+import { Horse } from "@/types/horse";
+import { useState, useEffect } from "react";
+import createHorseAction from "@/actions/createHorseAction";
+import getAllHorsesAction from "@/actions/getAllHorsesAction";
+import { useRouter } from "next/navigation";
+
+interface HorseCreateModalProps {
+  isOpen: boolean;
+  setIsOpen: (val: boolean) => void;
+}
+
+export interface createHorseData {
+  name: string;
+  parentId1: string;
+  parentId2: string;
+  status: number;
+  speed: number;
+  health: number;
+  jump: number;
+  variant: number;
+}
+export default function HorseCreateModal({
+  isOpen,
+  setIsOpen,
+}: HorseCreateModalProps) {
+  const router = useRouter();
+
+  const [horses, setHorses] = useState<Horse[]>([]);
+  const [formData, setFormData] = useState<createHorseData>({
+    name: "Name",
+    parentId1: "",
+    parentId2: "",
+    status: 1,
+    speed: 0,
+    health: 0,
+    jump: 0,
+    variant: 1,
+  });
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchHorses = async () => {
+        const data = await getAllHorsesAction();
+        setHorses(data);
+      };
+      fetchHorses();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const onClose = () => {
+    setIsOpen(false);
+  };
+
+  const onCreate = async () => {
+    try {
+      if (!formData.name) {
+        setError(true);
+        return;
+      }
+
+      const newHorse = await createHorseAction(formData);
+      
+      // Update local storage for recent activity
+      if (newHorse && typeof window !== "undefined") {
+        const stored = localStorage.getItem("recently-viewed-horses");
+        let viewed: string[] = stored ? JSON.parse(stored) : [];
+        viewed = viewed.filter(id => id !== newHorse.id);
+        viewed.unshift(newHorse.id);
+        localStorage.setItem("recently-viewed-horses", JSON.stringify(viewed.slice(0, 10)));
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      setIsOpen(false);
+      router.refresh();
+      router.push("/horses");
+    } catch (err) {
+      setError(true);
+      console.error(err);
+    }
+  };
+
+  return (
+    <div className={modalStyles.overlay}>
+      <div className={modalStyles.modal}>
+        <h2>Create New Horse</h2>
+        <CreateHorseForm
+          horses={horses}
+          setError={setError}
+          formData={formData}
+          setFormData={setFormData}
+        />
+        <div className={styles.buttonRow}>
+          <Button text="Close" onClick={onClose} />
+          <Button text="Create" onClick={onCreate} />
+        </div>
+        {error && <div>An Error Occured</div>}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/HorsePageHeader/HorsePageHeader.css.ts">
+import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
+
+export const header = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "32px",
+  marginTop: "40px",
+  marginBottom: "48px",
+  backgroundColor: vars.color.white,
+  padding: vars.spacing.xl,
+  borderRadius: vars.borderRadius.lg,
+  boxShadow: vars.shadow.md,
+  border: `1px solid ${vars.color.border}`,
+});
+
+export const imageContainer = style({
+  width: "120px",
+  height: "120px",
+  borderRadius: vars.borderRadius.md,
+  backgroundColor: vars.color.secondary,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+  flexShrink: 0,
+  border: `1px solid ${vars.color.border}`,
+});
+
+export const variantImage = style({
+  objectFit: "contain",
+});
+
+export const titles = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.spacing.xs,
+});
+
+export const statusAlive = style({
+  padding: "4px 12px",
+  borderRadius: vars.borderRadius.full,
+  backgroundColor: "#dcfce7",
+  color: "#166534",
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  textTransform: "uppercase",
+  alignSelf: "flex-start",
+});
+
+export const statusDead = style({
+  padding: "4px 12px",
+  borderRadius: vars.borderRadius.full,
+  backgroundColor: "#fee2e2",
+  color: "#991b1b",
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  textTransform: "uppercase",
+  alignSelf: "flex-start",
+});
+
+export const heading = style({
+  fontSize: vars.fontSize.display,
+  fontWeight: vars.fontWeight.black,
+  margin: 0,
+  letterSpacing: "-0.05em",
+  color: vars.color.primary,
+  lineHeight: 1,
+});
+
+export const subHeading = style({
+  fontSize: vars.fontSize.md,
+  color: vars.color.textMuted,
+  fontWeight: vars.fontWeight.medium,
+  margin: 0,
+});
+</file>
+
+<file path="Frontend/horse-frontend/components/Modals/HorseEditModal/HorseEditModal.tsx">
+import { Horse } from "@/types/horse";
+import { useEffect, useState } from "react";
+import Select from "react-select";
+import * as modalStyles from "../Modals.css";
+import * as styles from "./HorseEditModal.css";
+import * as createFormStyles from "../HorseCreateModal/CreateHorseForm/CreateHorseForm.css";
+import Button from "@/components/Common/Button/Button";
+import Switch from "@/components/Common/Switch/Switch";
+import { translateStat, untranslateStat } from "@/utils/translateRawStats";
+import { HorseStats } from "@/utils/parseHorseStats";
+import StatsBox from "@/components/Common/StatsBox/StatsBox";
+import StatRow from "../StatRow/StatRow";
+import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
+
+import * as statRowStyles from "../StatRow/StatRow.css";
+
+interface HorseEditModalProps {
+  horse: Horse;
+  horses: Horse[];
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updatedHorse: Horse) => void;
+}
+
+export default function HorseEditModal({
+  horse,
+  horses,
+  isOpen,
+  onClose,
+  onSave,
+}: HorseEditModalProps) {
+  const [formData, setFormData] = useState({ ...horse });
+  const [rawStatsView, setRawStatsView] = useState(false);
+  const [displayStats, setDisplayStats] = useState({
+    speed: translateStat("speed", horse.speed).toString(),
+    health: translateStat("health", horse.health).toString(),
+    jump: translateStat("jump", horse.jump).toString(),
+  });
+
+  useEffect(() => {
+    setDisplayStats({
+      speed: (rawStatsView ? formData.speed : translateStat("speed", formData.speed)).toString(),
+      health: (rawStatsView ? formData.health : translateStat("health", formData.health)).toString(),
+      jump: (rawStatsView ? formData.jump : translateStat("jump", formData.jump)).toString(),
+    });
+  }, [formData.speed, formData.health, formData.jump, rawStatsView]);
+
+  const handleTextChange = (field: string, textValue: string) => {
+    setDisplayStats((prev) => ({ ...prev, [field]: textValue }));
+
+    const numericValue = parseFloat(textValue);
+    if (!isNaN(numericValue)) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: rawStatsView ? numericValue : untranslateStat(field, numericValue),
+      }));
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const parentOptions = horses.map((horse) => ({
+    value: horse.id.toString(),
+    label: horse.name,
+  }));
+
+  const onCancel = () => {
+    setFormData({ ...horse });
+    onClose();
+  };
+
+  const statusOptions = [
+    { value: 1, label: "Alive" },
+    { value: 0, label: "Dead" },
+  ];
+
+  const handleImportedStats = (newStats: HorseStats) => {
+    setFormData((prev) => ({
+      ...prev,
+      speed: newStats.speed,
+      health: newStats.health,
+      jump: newStats.jump,
+      variant: newStats.variant,
+    }));
+  };
+
+  const handleChange = (field: string, value: string | number) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleViewChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRawStatsView(!event.target.checked);
+  };
+
+  return (
+    <div className={modalStyles.overlay}>
+      <div className={modalStyles.modal}>
+        <h2>Edit Horse</h2>
+        <div className={createFormStyles.container} style={{ margin: 0, padding: 0 }}>
+          <div className={createFormStyles.nameRow}>
+            <label className={createFormStyles.label}>Name</label>
+            <input
+              value={formData.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              placeholder="Name"
+              className={createFormStyles.nameField}
+            />
+          </div>
+
+          {rawStatsView && <StatsBox onStatsParsed={handleImportedStats} />}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {parentOptions.length > 1 && (
+              <>
+                <label className={statRowStyles.label}>Parent 1</label>
+                <Select
+                  options={parentOptions}
+                  isClearable={false}
+                  defaultValue={parentOptions.find(
+                    (opt) => opt.value === horse.parentId1,
+                  )}
+                  onChange={(selected) => {
+                    if (selected) {
+                      handleChange("parentId1", selected.value);
+                    }
+                  }}
+                  menuPortalTarget={null}
+                />
+                <label className={statRowStyles.label}>Parent 2</label>
+                <Select
+                  options={parentOptions}
+                  defaultValue={parentOptions.find(
+                    (opt) => opt.value === horse.parentId2,
+                  )}
+                  onChange={(selected) => {
+                    if (selected) {
+                      handleChange("parentId2", selected.value);
+                    }
+                  }}
+                  menuPortalTarget={null}
+                />
+              </>
+            )}
+            <label className={statRowStyles.label}>Status</label>
+            <Select
+              options={statusOptions}
+              defaultValue={statusOptions.find(
+                (opt) => opt.label === (horse.status === 0 ? "Dead" : "Alive"),
+              )}
+              onChange={(selected) => {
+                if (selected) {
+                  handleChange("status", selected.value);
+                }
+              }}
+              menuPortalTarget={null}
+            />
+          </div>
+
+          <div style={{ marginTop: '16px' }}>
+            <Switch
+              label={rawStatsView ? "Raw Stats" : "Processed Stats"}
+              checked={!rawStatsView}
+              onChange={(checked) => setRawStatsView(!checked)}
+              labelLeft={false}
+            />
+          </div>
+
+          <VariantSelector 
+            selectedVariant={formData.variant} 
+            onChange={(v) => handleChange("variant", v)} 
+          />
+
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <StatRow
+              text="Speed"
+              fieldName="speed"
+              displayStats={displayStats}
+              handleTextChange={handleTextChange}
+            />
+            <StatRow
+              text="Health"
+              fieldName="health"
+              displayStats={displayStats}
+              handleTextChange={handleTextChange}
+            />
+            <StatRow
+              text="Jump"
+              fieldName="jump"
+              displayStats={displayStats}
+              handleTextChange={handleTextChange}
+            />
+          </div>
+        </div>
+        <div className={styles.buttonRow}>
+          <Button onClick={onCancel} text="Cancel" />
+          <Button onClick={() => onSave(formData)} text="Save Changes" />
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/utils/translateRawStats.ts">
+export interface RawStats {
+    speed: number;
+    jump: number;
+    health: number;
+    variant: number;
+}
+
+export interface ProcessedStats {
+    speed: number;
+    jump: number;
+    health: number;
+    variant: string;
+}
+
+function decodeVariant(variantId: number): string {
+  const colors: Record<number, string> = {
+    0: "White",
+    1: "Creamy",
+    2: "Chestnut",
+    3: "Brown",
+    4: "Black",
+    5: "Gray",
+    6: "Dark Brown",
+  };
+  const patterns: Record<number, string> = {
+    0: "None",
+    1: "White Stockings",
+    2: "White Field",
+    3: "White Dots",
+    4: "Black Dots",
+  };
+  const color = colors[variantId % 256] ?? "Unknown";
+  const pattern = patterns[Math.floor(variantId / 256)] ?? "None";
+  return `${color} w/ ${pattern}`;
+}
+
+export function translateStatsForDisplay(stats: RawStats): ProcessedStats {
+
+    const speed = Number((stats.speed * 42.157).toFixed(4));
+    const jump = Number(((7.56889 * Math.E ** (0.602676 * stats.jump)) - 8.59434).toFixed(4));
+    const health = Number((stats.health / 2).toFixed(4));
+    const variant = decodeVariant(stats.variant);
+
+    return { speed, jump, variant, health };
+}
+
+export function translateStat(field: string, value: number): number {
+    switch (field) {
+        case "speed":
+            return Number((value * 42.157).toFixed(4));
+        case "jump":
+            return Number(((7.56889 * Math.E ** (0.602676 * value)) - 8.59434).toFixed(4));
+        case "health":
+            return Number((value / 2).toFixed(4));
+        default:
+            return value;
+    }
+}
+
+
+export function untranslateStat(field: string, value: number): number {
+    switch (field) {
+        case "speed":
+            return Number((value / 42.157));
+        case "jump":
+            return Number((Math.log((value + 8.59434) / 7.56889) / 0.602676));
+        case "health":
+            return Number((value * 2));
+        default:
+            return value;
+    }
+}
+</file>
+
+<file path="Frontend/horse-frontend/package.json">
+{
+  "name": "horse-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start --webpack",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.9",
+    "@types/dagre": "^0.7.54",
+    "@vanilla-extract/css": "^1.19.0",
+    "@xyflow/react": "^12.10.1",
+    "child_process": "^1.0.2",
+    "cookies-next": "^6.1.1",
+    "dagre": "^0.8.5",
+    "mongodb": "^7.1.0",
+    "net": "^1.0.2",
+    "next": "16.1.6",
+    "papaparse": "^5.5.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-select": "^5.10.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vanilla-extract/next-plugin": "^2.5.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="Frontend/horse-frontend/actions/createHorseAction.ts">
+"use server";
+import { createHorseData } from "@/components/Modals/HorseCreateModal/HorseCreateModal";
+import { createHorse, getHorseById } from "@/lib/horses";
+import { createHorseRequest } from "@/types/horse";
+import { processNewHorseGenetics } from "@/utils/genetics/service";
+import { revalidatePath } from "next/cache";
+
+export default async function createHorseAction(formData: createHorseData) {
+  const parentId1 = formData.parentId1;
+  const parentId2 = formData.parentId2;
+  //chnage this to allow for selection of bloodline for origin horses
+
+  const [parent1, parent2] = await Promise.all([
+    getHorseById(parentId1),
+    getHorseById(parentId2),
+  ]);
+
+  const { dna, hexColor, generation } = processNewHorseGenetics(
+    parent1,
+    parent2,
+  );
+
+  const data: createHorseRequest = {
+    name: formData.name as string,
+    parentId1: formData.parentId1 as string,
+    parentId2: formData.parentId2 as string,
+    status: formData.status,
+    speed: formData.speed,
+    health: formData.health,
+    jump: formData.jump,
+    variant: formData.variant,
+    dna: dna,
+    hexColor: hexColor,
+    generation: generation,
+  };
+  const result = await createHorse(data);
+
+  revalidatePath("/horses");
+
+  if (result) {
+    return { id: result, name: data.name };
+  }
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/HorsePage.css.ts">
+import { style } from "@vanilla-extract/css";
+
+export const pageWrapper = style({
+  padding: "40px 20px",
+  margin: "0 auto",
+  backgroundColor: "#fdfbf7",
+  minHeight: "100vh",
+  borderLeft: "8px solid #2d4a3e",
+  fontFamily: "Inter, system-ui, sans-serif",
+});
+
+export const buttonRow = style({
+  display: "flex",
+  flexDirection: "row",
+  justifyContent: "space-between",
+})
+
+export const deleteButton = style({
+  marginLeft: "15px"
+})
+</file>
+
+<file path="Frontend/horse-frontend/components/HorseNode/HorseNode.tsx">
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { Horse } from '@/types/horse';
+import { translateStatsForDisplay } from '@/utils/translateRawStats';
+import { getHorseVariantImage } from '@/utils/variant';
+import * as styles from './HorseNode.css';
+import { CSSProperties } from 'react';
+import Image from 'next/image';
+
+export type HorseNodeData = {
+  horse: Horse;
+  label?: string;
+  activeView?: 'speed' | 'jump' | 'health' | 'base';
+  statusView?: boolean;
+  compactView?: boolean;
+};
+
+// 2. Define the specialized Node type for this component
+export type HorseNode = Node<HorseNodeData, 'horseNode'>;
+
+function getContrastColor(hex: string): string {
+  if (!hex || hex.length < 7) return '#ffffff';
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return (yiq >= 128) ? '#000000' : '#ffffff';
+}
+
+function darkenColor(hex: string, amount: number): string {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('');
+  }
+  
+  const r = Math.max(0, Math.floor(parseInt(hex.substring(0, 2), 16) * (1 - amount)));
+  const g = Math.max(0, Math.floor(parseInt(hex.substring(2, 4), 16) * (1 - amount)));
+  const b = Math.max(0, Math.floor(parseInt(hex.substring(4, 6), 16) * (1 - amount)));
+  
+  const toHex = (c: number) => c.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
+  const { horse, activeView, statusView, compactView } = data;
+  const {jump, health, speed, variant} = horse;
+  const processedStats = translateStatsForDisplay({jump, health, speed, variant})
+  const dnaColor = horse.hexColor || '#444444';
+
+  const isDead = horse.status === 0;
+  const useShade = statusView && isDead;
+
+  // Calculate a darker version of the dnaColor for the background when dead
+  // Restore the "color things" by using dnaColor as background even in modern view
+  const backgroundColor = useShade ? darkenColor(dnaColor, 0.7) : dnaColor;
+  const borderColor = useShade ? dnaColor : darkenColor(dnaColor, 0.2);
+  const textColor = getContrastColor(backgroundColor);
+
+  const containerStyle: CSSProperties = {
+    backgroundColor: backgroundColor,
+    borderColor: borderColor,
+    borderStyle: 'solid',
+    borderTopWidth: '2px',
+    borderRightWidth: '2px',
+    borderBottomWidth: '2px',
+    borderLeftWidth: compactView ? '2px' : '6px',
+  };
+
+  const getDisplayStat = () => {
+    switch (activeView) {
+      case 'jump':
+        return { label: 'Jump', value: `${processedStats.jump?.toFixed(2)}` };
+      case 'health':
+        return { label: 'HP', value: `${processedStats.health?.toFixed(2)}` };
+      case 'speed':
+      case 'base':
+      default:
+        return { label: 'Speed', value: `${processedStats.speed?.toFixed(2)}` };
+    }
+  };
+
+  const display = getDisplayStat();
+  const horseImage = getHorseVariantImage(horse.variant);
+
+  if (compactView) {
+    return (
+      <div className={styles.nodeContainer} style={{ ...containerStyle, minWidth: '140px' }}>
+        <Handle type="target" position={Position.Top} className={styles.handleStyle} />
+        <div className={styles.contentWrapper} style={{ flexDirection: 'column', gap: '2px' }}>
+          <div className={styles.horseName} style={{ color: textColor, fontSize: '13px' }}>
+            {horse.name}
+          </div>
+          <div className={styles.statText} style={{ color: textColor, opacity: 0.9 }}>
+            {display.label}: {display.value}
+          </div>
+        </div>
+        <Handle type="source" position={Position.Bottom} className={styles.handleStyle} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.nodeContainer} style={containerStyle}>
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className={styles.handleStyle} 
+      />
+
+      <div className={styles.contentWrapper}>
+        <div className={styles.imageContainer} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+          <Image 
+            src={horseImage} 
+            alt={horse.name} 
+            width={48} 
+            height={48} 
+            className={styles.horseImage}
+          />
+        </div>
+        <div className={styles.textDetails}>
+          <div className={styles.horseName} style={{ color: textColor }}>
+            {horse.name}
+          </div>
+          <div className={styles.statText} style={{ color: textColor, opacity: 0.8 }}>
+            <span className={styles.statLabel} style={{ color: 'inherit' }}>{display.label}:</span>
+            <span className={styles.statValue} style={{ color: 'inherit' }}>{display.value}</span>
+          </div>
+        </div>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className={styles.handleStyle} 
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/app/horses/page.tsx">
+export const dynamic = 'force-dynamic';
+import { getAllHorses } from '@/lib/horses';
+import HorseTreeView from '@/components/HorseTreeView/HorseTreeView';
+import { getBaseLayout } from "@/utils/layout";
+import { Horse } from '@/types/horse';
+import { HorseNode } from '@/components/HorseNode/HorseNode';
+import { Edge } from '@xyflow/react';
+
+export default async function HomePage() {
+  const horses: Horse[] = await getAllHorses();
+  
+  const initialNodes: HorseNode[] = horses.map((h) => ({
+  id: h.id.toString(),
+  type: 'horseNode',
+  data: { 
+    horse: h,
+    label: h.name 
+  },
+  position: { x: 0, y: 0 },
+}));
+
+  const initialEdges: Edge[] = horses.flatMap((h) => {
+  const connections: Edge[] = [];
+  
+  if (h.parentId1) {
+    connections.push({
+      id: `e-${h.parentId1}-${h.id}`,
+      source: h.parentId1,
+      target: h.id?.toString(),
+      animated: true,
+    });
+  }
+  
+  if (h.parentId2) {
+    connections.push({
+      id: `e-${h.parentId2}-${h.id}`,
+      source: h.parentId2,
+      target: h.id?.toString(),
+    });
+  }
+  
+  return connections;
+});
+
+  const nodes = getBaseLayout(initialNodes, initialEdges);
+  const edges = initialEdges;
+
+  const dataKey = `tree-${horses.length}`;
+
+  return (
+    <main className="h-screen w-full" suppressHydrationWarning>
+      <HorseTreeView initialNodes={nodes} initialEdges={edges} key={dataKey} horses={horses}/>
+    </main>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/types/horse.ts">
+// main type representing a horse
+export interface Horse {
+  id: string;
+  name: string;
+  parentId1?: string;
+  parentId2?: string;
+  dna: BloodlineMap;
+  status: number;
+  speed: number;
+  jump: number;
+  health: number;
+  variant: number;
+  generation: number;
+  hexColor?: string;
+}
+
+export type BloodlineMap = {
+  [key: string]: number;
+};
+
+export interface createHorseRequest {
+  name: string;
+  parentId1?: string;
+  parentId2?: string;
+  status: number;
+  speed: number;
+  jump: number;
+  health: number;
+  variant: number;
+  hexColor: string;
+  generation: number;
+  dna: horseDna;
+}
+
+export interface horseDna {
+    [key: string]: number;
+}
+
+export interface editHorseRequest {
+  name?: string;
+  parentId1?: string;
+  parentId2?: string;
+  status: number;
+  speed: number;
+  jump: number;
+  health: number;
+  variant: number;
+  hexColor: string;
+  generation: number;
+  dna: horseDna;
+}
+
+// type used in the home page nodes
+export interface HorseNodeData {
+  labels: string;
+  horse: Horse;
+}
+</file>
+
+<file path="Frontend/horse-frontend/lib/horses.ts">
+import { Collection, Document, ObjectId, WithId } from "mongodb";
+import clientPromise from "./mongodb";
+import { createHorseRequest, editHorseRequest, Horse } from "@/types/horse";
+import { unstable_noStore as noStore } from "next/cache";
+
+export async function getRecentHorses(limit: number = 10): Promise<Horse[]> {
+  noStore();
+  try {
+    const horses = await getCollection();
+    const data = await horses.find({}).sort({ _id: -1 }).limit(limit).toArray();
+
+    return data.map((row: WithId<Document>) => ({
+      id: String(row._id).trim(),
+      name: row.name || "Unknown",
+      parentId1: row.parentId1 || null,
+      parentId2: row.parentId2 || null,
+      status: row.status,
+      speed: parseFloat(row.speed) || 0,
+      jump: parseFloat(row.jump) || 0,
+      health: parseFloat(row.health) || 0,
+      variant: parseFloat(row.variantId) || 0,
+      generation: parseFloat(row.generation) || 0,
+      hexColor: row.hexColor || "#000000",
+      dna: row.dna || {},
+    }));
+  } catch (error) {
+    console.error("Error fetching recent horses:", error);
+    return [];
+  }
+}
+
+export async function getAllHorses(): Promise<Horse[]> {
+  noStore();
+  try {
+    const horses = await getCollection();
+
+    const data = await horses.find({}).toArray();
+
+    const horseList: Horse[] = data.map((row: WithId<Document>) => ({
+      id: String(row._id).trim(),
+      name: row.name || "Unknown",
+      parentId1: row.parentId1 || null,
+      parentId2: row.parentId2 || null,
+      status: row.status,
+      speed: parseFloat(row.speed) || 0,
+      jump: parseFloat(row.jump) || 0,
+      health: parseFloat(row.health) || 0,
+      variant: parseFloat(row.variantId) || 0,
+      generation: parseFloat(row.generation) || 0,
+      hexColor: row.hexColor || "#000000",
+      dna: row.dna || {},
+    }));
+
+    return horseList;
+  } catch (error) {
+    console.error("Database error:", error);
+    return [];
+  }
+}
+
+export async function getHorseById(id: string): Promise<Horse | undefined> {
+  noStore();
+  try {
+    const horses = await getCollection();
+
+    const response = await horses.findOne({ _id: new ObjectId(id) });
+    if (!response) {
+      console.error("Horse not found with ID:", id);
+      return;
+    }
+
+    const horse: Horse = {
+      id: String(response._id).trim(),
+      name: response.name || "Unknown",
+      parentId1: response.parentId1 || null,
+      parentId2: response.parentId2 || null,
+      status: response.status,
+      speed: parseFloat(response.speed) || 0,
+      jump: parseFloat(response.jump) || 0,
+      health: parseFloat(response.health) || 0,
+      variant: parseFloat(response.variantId) || 0,
+      generation: parseFloat(response.generation) || 0,
+      dna: response.dna || {},
+      hexColor: response.hexColor || "#000000",
+    };
+
+    return horse;
+  } catch (error) {
+    console.error("Error fetching horse by ID", error);
+    return;
+  }
+}
+
+export async function createHorse(
+  request: createHorseRequest,
+): Promise<string | undefined> {
+  noStore();
+  try {
+    const horses = await getCollection();
+
+    const response = await horses.insertOne(request);
+    if (!response.acknowledged) {
+      console.error("Error writing to db");
+      return;
+    }
+    return response.insertedId.toString();
+  } catch (error) {
+    console.error("Error creating horse", error);
+    return;
+  }
+}
+
+export async function editHorse(
+  id: string,
+  request: editHorseRequest,
+): Promise<string | undefined> {
+  noStore();
+  try {
+    const horses = await getCollection();
+
+    const filter = { _id: new ObjectId(id) };
+    const update = { $set: request };
+
+    const result = await horses.updateOne(filter, update, { upsert: false });
+    return result.modifiedCount > 0 ? id : undefined;
+  } catch (error) {
+    console.error("Error editing horse", error);
+    return;
+  }
+}
+
+export async function deleteHorse(id: string): Promise<boolean> {
+  noStore();
+  try {
+    const horses = await getCollection();
+
+    const result = await horses.deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount > 0;
+  } catch (error) {
+    console.error("Error deleting horse", error);
+    return false;
+  }
+}
+
+export async function getStablesStats() {
+  noStore();
+  try {
+    const horses = await getCollection();
+    const stats = await horses.aggregate([
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          alive: [{ $match: { status: { $ne: 0 } } }, { $count: "count" }],
+          averages: [
+            {
+              $group: {
+                _id: null,
+                avgSpeed: { $avg: "$speed" },
+                avgJump: { $avg: "$jump" },
+              },
+            },
+          ],
+        },
+      },
+    ]).toArray();
+
+    const result = stats[0];
+    return {
+      total: result.total[0]?.count || 0,
+      alive: result.alive[0]?.count || 0,
+      avgSpeed: result.averages[0]?.avgSpeed || 0,
+      avgJump: result.averages[0]?.avgJump || 0,
+    };
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    return { total: 0, alive: 0, avgSpeed: 0, avgJump: 0 };
+  }
+}
+
+export async function getHorsesByIds(ids: string[]): Promise<Horse[]> {
+  noStore();
+  if (!ids.length) return [];
+  try {
+    const horses = await getCollection();
+    const objectIds = ids.map(id => new ObjectId(id));
+    const data = await horses.find({ _id: { $in: objectIds } }).toArray();
+    
+    // Map back in the order requested
+    const horseMap = new Map<string, Horse>(data.map((row: WithId<Document>) => [row._id.toString(), {
+      id: row._id.toString(),
+      name: row.name || "Unknown",
+      parentId1: row.parentId1 || undefined,
+      parentId2: row.parentId2 || undefined,
+      status: row.status,
+      speed: parseFloat(row.speed) || 0,
+      jump: parseFloat(row.jump) || 0,
+      health: parseFloat(row.health) || 0,
+      variant: parseFloat(row.variantId) || 0,
+      generation: parseFloat(row.generation) || 0,
+      hexColor: row.hexColor || "#000000",
+      dna: row.dna || {},
+    }]));
+
+    return ids.map(id => horseMap.get(id)).filter((h): h is Horse => !!h);
+  } catch (error) {
+    console.error("Error fetching horses by ids:", error);
+    return [];
+  }
+}
+
+async function getCollection(): Promise<Collection<Document>> {
+  const db_name = process.env.DB_NAME;
+  const collection_name = process.env.COLLECTION_NAME;
+  if (!db_name || !collection_name)
+    throw new Error("Database or Collection not set");
+
+  const client = await clientPromise;
+  const db = client.db(db_name);
+  const horses = db.collection(collection_name);
+  if (!horses) throw new Error("Collection not found");
+  return horses;
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorseTreeView/HorseTreeView.tsx">
+"use client";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  applyNodeChanges,
+  applyEdgeChanges,
+  Edge,
+  OnNodesChange,
+  OnEdgesChange,
+  MiniMap,
+  Controls,
+  Background,
+  BackgroundVariant,
+} from "@xyflow/react";
+import { useState, useCallback, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { getCookie } from "cookies-next";
+import { getBaseLayout, getSortLayout } from "@/utils/layout";
+import "@xyflow/react/dist/style.css";
+import CustomHorseNode, { HorseNode } from "../HorseNode/HorseNode";
+import * as styles from "./HorseTreeView.css";
+import { Horse } from "@/types/horse";
+import ViewMenu from "./ViewMenu/ViewMenu";
+
+const nodeTypes = { horseNode: CustomHorseNode };
+export type ViewMode = "base" | "speed" | "jump" | "health";
+
+interface HorseTreeViewProps {
+  initialNodes: HorseNode[];
+  initialEdges: Edge[];
+  horses: Horse[];
+}
+
+function TreeContent({
+  initialNodes,
+  initialEdges,
+  horses,
+}: HorseTreeViewProps) {
+  const router = useRouter();
+
+  const [view, setView] = useState<ViewMode>("base");
+  const [statusView, setStatusView] = useState<boolean>(false);
+  const [compactView, setCompactView] = useState<boolean>(false);
+
+  const [nodes, setNodes] = useState<HorseNode[]>([]);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+
+  // Initial cookie sync
+  useEffect(() => {
+    const savedView = getCookie("horse-tree-view") as ViewMode;
+    if (savedView) setView(savedView);
+
+    const savedStatus = getCookie("horse-status-view");
+    if (savedStatus !== undefined) setStatusView(savedStatus === "true");
+
+    const savedCompact = getCookie("horse-compact-view");
+    if (savedCompact !== undefined) setCompactView(savedCompact === "true");
+  }, []);
+
+  useEffect(() => {
+    const layoutNodes =
+      view === "base"
+        ? getBaseLayout(initialNodes, initialEdges, compactView)
+        : getSortLayout(initialNodes, view, compactView);
+
+    // Update nodes with statusView and compactView data
+    const newNodes = layoutNodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        activeView: view,
+        statusView: statusView,
+        compactView: compactView
+      }
+    }));
+
+    setNodes(newNodes);
+    setEdges(initialEdges);
+  }, [view, statusView, compactView, initialNodes, initialEdges]);
+
+  const onNodesChange: OnNodesChange = useCallback(
+    (changes) =>
+      setNodes((nds) => applyNodeChanges(changes, nds) as HorseNode[]),
+    [],
+  );
+
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [],
+  );
+
+  return (
+    <div className={styles.container}>
+      <ViewMenu 
+        setView={setView} 
+        view={view} 
+        statusView={statusView} 
+        setStatusView={setStatusView} 
+        compactView={compactView}
+        setCompactView={setCompactView}
+      />
+
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        onNodeClick={(_event, node) => router.push(`/horses/${node.id}`)}
+        fitView
+        minZoom={0.05}
+        maxZoom={2.0}
+      >
+        <Background key="background" variant={BackgroundVariant.Dots} gap={20} size={1} />
+        <Controls key="controls" showInteractive={false} />
+        <MiniMap 
+          key="minimap"
+          nodeStrokeWidth={3} 
+          zoomable 
+          pannable 
+          maskColor="rgba(0, 0, 0, 0.1)"
+          style={{ height: 120, width: 200 }}
+        />
+      </ReactFlow>
+    </div>
+  );
+}
+
+export default function HorseTreeView(props: HorseTreeViewProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className={styles.loadingFallback}>Loading lineage...</div>
+      }
+    >
+      <ReactFlowProvider>
+        <TreeContent {...props} />
+      </ReactFlowProvider>
+    </Suspense>
+  );
+}
+</file>
+
+<file path="Frontend/horse-frontend/components/HorsePage/HorsePage.tsx">
+"use client";
+import { Horse } from "@/types/horse";
+import { useRouter } from "next/navigation";
+import * as styles from "./HorsePage.css";
+import { translateStatsForDisplay } from "@/utils/translateRawStats";
+import Button from "../Common/Button/Button";
+import HorsePageHeader from "./HorsePageHeader/HorsePageHeader";
+import StatsShapeGrid from "./StatsShapeGrid/StatsShapeGrid";
+import DetailsCard from "./DetailsCard/DetailsCard";
+import { useState, useEffect } from "react";
+import HorseEditModal from "@/components/Modals/HorseEditModal/HorseEditModal";
+import editHorseAction from "@/actions/editHorseAction";
+import HorseDeleteModal from "@/components/Modals/HorseDeleteModal/HorseDeleteModal";
+import deleteHorseAction from "@/actions/deleteHorseAction";
+
+export default function HorsePage({
+  horse,
+  horses,
+}: {
+  horse: Horse;
+  horses: Horse[];
+}) {
+  const router = useRouter();
+  const [editMode, setEditMode] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
+
+  const onEditClick = () => {
+    setEditMode(!editMode);
+  };
+
+  const onDeleteClick = () => {
+    setDeleteMode(true);
+  };
+
+  const onBackClick = () => {
+    router.back();
+  };
+  const horseColor = horse.hexColor || "#1e293b";
+  const { jump, health, speed, variant } = horse;
+  const processedStats = translateStatsForDisplay({
+    jump,
+    health,
+    speed,
+    variant,
+  });
+
+  const onSaveEdits = async (formData: Horse) => {
+    await editHorseAction(horse, formData);
+    setEditMode(false);
+  };
+
+  const onDeleteConfirm = async () => {
+    await deleteHorseAction(horse.id);
+    router.push("/horses");
+  };
+
+  const parent1Name = horse.parentId1
+    ? horses.find((h) => h.id === horse.parentId1)?.name || "Unknown"
+    : "None";
+  const parent2Name = horse.parentId2
+    ? horses.find((h) => h.id === horse.parentId2)?.name || "Unknown"
+    : "None";
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("recently-viewed-horses");
+      let viewed: string[] = stored ? JSON.parse(stored) : [];
+      
+      // Remove current id if it already exists to move it to the front
+      viewed = viewed.filter(id => id !== horse.id);
+      
+      // Add current id to the front
+      viewed.unshift(horse.id);
+      
+      // Limit to 10
+      const updated = viewed.slice(0, 10);
+      
+      localStorage.setItem("recently-viewed-horses", JSON.stringify(updated));
+      
+      // Dispatch a storage event so the sidebar can update immediately
+      window.dispatchEvent(new Event("storage"));
+    }
+  }, [horse.id]);
+
+  return (
+    <main className={styles.pageWrapper}>
+      <div className={styles.buttonRow}>
+        <Button onClick={onBackClick} text="⬅ Back" />
+
+        <div className={styles.buttonRow}>
+          <Button onClick={onEditClick} text="Edit" />
+          <Button
+            onClick={onDeleteClick}
+            text="Delete"
+            className={styles.deleteButton}
+          />
+        </div>
+      </div>
+
+      <HorseEditModal
+        horse={horse}
+        horses={horses}
+        isOpen={editMode}
+        onClose={() => setEditMode(false)}
+        onSave={onSaveEdits}
+      />
+
+      <HorseDeleteModal
+        isOpen={deleteMode}
+        onClose={() => setDeleteMode(false)}
+        onConfirm={onDeleteConfirm}
+      />
+
+      <HorsePageHeader horse={horse} horseColor={horseColor} />
+
+      <StatsShapeGrid
+        horse={horse}
+        processedStats={processedStats}
+        horseColor={horseColor}
+      />
+
+      <DetailsCard
+        horse={horse}
+        processedStats={processedStats}
+        parent1Name={parent1Name}
+        parent2Name={parent2Name}
+      />
+    </main>
+  );
+}
+</file>
+
+</files>

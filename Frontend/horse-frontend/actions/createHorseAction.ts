@@ -4,15 +4,23 @@ import { createHorse, getHorseById } from "@/lib/horses";
 import { createHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
 import { revalidatePath } from "next/cache";
+import { ObjectId } from "mongodb";
 
 export default async function createHorseAction(formData: createHorseData) {
-  const parentId1 = formData.parentId1;
-  const parentId2 = formData.parentId2;
+  const name = formData.name?.trim();
+  if (!name) {
+    throw new Error("Horse name is required.");
+  }
+
+  const parentId1 = formData.parentId1 || "";
+  const parentId2 = formData.parentId2 || "";
   //chnage this to allow for selection of bloodline for origin horses
 
+  // Empty strings mean "origin horse" — skip the lookup instead of
+  // constructing an invalid ObjectId (which only produced log noise).
   const [parent1, parent2] = await Promise.all([
-    getHorseById(parentId1),
-    getHorseById(parentId2),
+    ObjectId.isValid(parentId1) ? getHorseById(parentId1) : undefined,
+    ObjectId.isValid(parentId2) ? getHorseById(parentId2) : undefined,
   ]);
 
   const { dna, hexColor, generation } = processNewHorseGenetics(
@@ -21,7 +29,7 @@ export default async function createHorseAction(formData: createHorseData) {
   );
 
   const data: createHorseRequest = {
-    name: formData.name as string,
+    name,
     parentId1: formData.parentId1 as string,
     parentId2: formData.parentId2 as string,
     status: formData.status,
@@ -33,11 +41,12 @@ export default async function createHorseAction(formData: createHorseData) {
     hexColor: hexColor,
     generation: generation,
   };
+  // Throws on failure so the client shows an error instead of silently
+  // navigating away while nothing was written.
   const result = await createHorse(data);
 
   revalidatePath("/horses");
+  revalidatePath("/");
 
-  if (result) {
-    return { id: result, name: data.name };
-  }
+  return { id: result, name: data.name };
 }

@@ -41,6 +41,7 @@ export default function HorseCreateModal({
     variant: 1,
   });
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("An Error Occured");
 
   useEffect(() => {
     if (isOpen) {
@@ -60,15 +61,23 @@ export default function HorseCreateModal({
 
   const onCreate = async () => {
     try {
-      if (!formData.name) {
+      if (!formData.name?.trim()) {
+        setErrorMessage("Name is required.");
         setError(true);
         return;
       }
 
       const newHorse = await createHorseAction(formData);
-      
+      if (!newHorse?.id) {
+        setErrorMessage("Horse was not saved. Is MongoDB running?");
+        setError(true);
+        return;
+      }
+
+      setError(false);
+
       // Update local storage for recent activity
-      if (newHorse && typeof window !== "undefined") {
+      if (typeof window !== "undefined") {
         const stored = localStorage.getItem("recently-viewed-horses");
         let viewed: string[] = stored ? JSON.parse(stored) : [];
         viewed = viewed.filter(id => id !== newHorse.id);
@@ -81,6 +90,7 @@ export default function HorseCreateModal({
       router.refresh();
       router.push("/horses");
     } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "An Error Occured");
       setError(true);
       console.error(err);
     }
@@ -100,7 +110,7 @@ export default function HorseCreateModal({
           <Button text="Close" onClick={onClose} />
           <Button text="Create" onClick={onCreate} />
         </div>
-        {error && <div>An Error Occured</div>}
+        {error && <div>{errorMessage}</div>}
       </div>
     </div>
   );

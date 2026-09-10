@@ -1,0 +1,45 @@
+# Local Mongo for host `npm run dev`, plus an optional containerized app
+# for production-parity testing (`docker compose --profile docker-app up`).
+#
+# Compass connection string: mongodb://127.0.0.1:27017
+# Database: horse | Collection: horse (must match .env.local)
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: horse_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  app:
+    build:
+      context: ./Frontend/horse-frontend
+      dockerfile: Dockerfile
+    container_name: horse_app
+    restart: unless-stopped
+    profiles:
+      - docker-app
+    ports:
+      - "3000:3000"
+    environment:
+      # Inside the container, `mongodb` resolves to the service above.
+      # (From the Windows host, use 127.0.0.1 instead — see .env.example.)
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017
+      - DB_NAME=horse
+      - COLLECTION_NAME=horse
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
