@@ -80,3 +80,120 @@ export const plateTitle = style({
   fontWeight: vars.fontWeight.bold,
   color: vars.color.ink,
 });
+
+export const cover = style({
+  textAlign: "center",
+  padding: `${vars.spacing.xl} ${vars.spacing.lg}`,
+  marginBottom: vars.spacing.xl,
+});
+
+export const coverEyebrow = style({
+  fontFamily: vars.font.display,
+  fontSize: vars.fontSize.sm,
+  fontWeight: vars.fontWeight.bold,
+  letterSpacing: "0.32em",
+  textTransform: "uppercase",
+  color: vars.color.gold,
+  marginBottom: vars.spacing.sm,
+});
+
+export const coverTitle = style({
+  fontFamily: vars.font.display,
+  fontSize: vars.fontSize.display,
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.ink,
+  margin: 0,
+});
+
+export const coverRule = style({
+  border: "none",
+  borderTop: `2px solid ${vars.color.goldSoft}`,
+  width: "120px",
+  margin: `${vars.spacing.md} auto`,
+});
+
+export const coverIntro = style({
+  fontFamily: vars.font.display,
+  fontStyle: "italic",
+  fontSize: vars.fontSize.md,
+  color: vars.color.inkSoft,
+  maxWidth: "560px",
+  margin: "0 auto",
+});
+
+export const chapterCards = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: vars.spacing.md,
+  marginTop: vars.spacing.xl,
+  textAlign: "left",
+});
+
+export const chapterCard = style({
+  display: "block",
+  backgroundColor: vars.color.secondary,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderTop: `4px solid ${vars.color.gold}`,
+  borderRadius: vars.borderRadius.md,
+  padding: vars.spacing.md,
+  textDecoration: "none",
+  boxShadow: vars.shadow.sm,
+  transition: "transform 0.15s ease, boxShadow 0.15s ease",
+  ":hover": {
+    transform: "translateY(-2px)",
+    boxShadow: vars.shadow.md,
+  },
+});
+
+export const chapterCardNumeral = style({
+  fontFamily: vars.font.display,
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  letterSpacing: "0.22em",
+  color: vars.color.gold,
+});
+
+export const chapterCardTitle = style({
+  fontFamily: vars.font.display,
+  fontSize: vars.fontSize.md,
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.ink,
+  margin: `${vars.spacing.xs} 0`,
+});
+
+export const chapterCardText = style({
+  fontSize: vars.fontSize.sm,
+  color: vars.color.inkSoft,
+  margin: 0,
+});
+
+export const firstSteps = style({
+  display: "flex",
+  justifyContent: "center",
+  gap: vars.spacing.lg,
+  flexWrap: "wrap",
+  marginTop: vars.spacing.lg,
+  fontSize: vars.fontSize.sm,
+  color: vars.color.inkSoft,
+});
+
+export const firstStep = style({
+  display: "flex",
+  alignItems: "center",
+  gap: vars.spacing.sm,
+});
+
+export const firstStepNumber = style({
+  fontFamily: vars.font.display,
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.parchment,
+  backgroundColor: vars.color.leather,
+  borderRadius: vars.borderRadius.full,
+  width: "24px",
+  height: "24px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: vars.fontSize.xs,
+  flexShrink: 0,
+});

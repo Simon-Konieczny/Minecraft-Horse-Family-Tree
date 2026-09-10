@@ -3,7 +3,7 @@ import * as styles from "./Dashboard.css";
 import { translateStat } from "@/utils/translateRawStats";
 import { getHorseVariantImage } from "@/utils/variant";
 import { getHorseFullName } from "@/utils/horseNames";
-import { ChapterHeading, Folio } from "@/components/Book/Book";
+import { Cover, Folio } from "@/components/Book/Book";
 import { vars } from "@/styles/theme.css";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,11 +18,7 @@ export default async function DashboardPage() {
 
   return (
     <div className={styles.container}>
-      <ChapterHeading
-        numeral="Chapter I"
-        title="The Stable"
-        subtitle="Overview of your horse breeding program"
-      />
+      <Cover />
 
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
