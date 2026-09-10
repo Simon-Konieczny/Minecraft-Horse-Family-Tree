@@ -81,11 +81,10 @@ export default function ViewMenu({
           onChange={handleCompactToggle} 
         />
         <Switch 
-          label="Dead/Alive Highlight" 
+          label="Deceased Highlight" 
           checked={statusView} 
           onChange={handleStatusToggle} 
-        />
-      </div>
+        />      </div>
 
       <p className={styles.menuLabel} style={{ marginTop: "8px" }}>
         Rank by Stat (Left to Right)

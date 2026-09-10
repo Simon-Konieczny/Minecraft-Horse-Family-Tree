@@ -23,9 +23,9 @@ export default function HorsePageHeader({ horse, horseColor }: { horse: Horse; h
       </div>
       <div className={styles.titles}>
         <span
-          className={horse.status === 0 ? styles.statusDead : styles.statusAlive}
+          className={horse.status === "Deceased" ? styles.statusDead : styles.statusAlive}
         >
-          {horse.status === 0 ? "Deceased" : "Living"}
+          {horse.status === "Deceased" ? "Deceased" : "Living"}
         </span>
         <h1 className={styles.heading} style={{ color: horseColor }}>
           {getHorseFullName(horse)}

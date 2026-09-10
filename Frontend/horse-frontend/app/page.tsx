@@ -80,8 +80,8 @@ export default async function DashboardPage() {
                     </Link>
                   </td>
                   <td className={styles.td}>
-                    <span className={horse.status !== 0 ? styles.badgeAlive : styles.badgeDead}>
-                      {horse.status !== 0 ? "Alive" : "Dead"}
+                    <span className={horse.status === "Deceased" ? styles.badgeDead : styles.badgeAlive}>
+                      {horse.status}
                     </span>
                   </td>
                   <td className={styles.td}>{translateStat("speed", horse.speed).toFixed(2)}</td>

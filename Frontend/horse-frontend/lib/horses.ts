@@ -1,6 +1,6 @@
 import { Collection, Document, ObjectId, WithId } from "mongodb";
 import { getMongoClient } from "./mongodb";
-import { createHorseRequest, editHorseRequest, Horse } from "@/types/horse";
+import { createHorseRequest, editHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
 import { getSurnameFromDna } from "@/utils/genetics/utils";
 import { splitLegacyName } from "@/utils/horseNames";
 import { unstable_noStore as noStore } from "next/cache";
@@ -19,7 +19,7 @@ function toHorse(row: WithId<Document>): Horse {
       row.familyName || getSurnameFromDna(row.dna || {}),
     parentId1: row.parentId1 || null,
     parentId2: row.parentId2 || null,
-    status: row.status,
+    status: parseHorseStatus(row.status),
     speed: toNumber(row.speed),
     jump: toNumber(row.jump),
     health: toNumber(row.health),
@@ -145,7 +145,7 @@ export async function getStablesStats() {
       {
         $facet: {
           total: [{ $count: "count" }],
-          alive: [{ $match: { status: { $ne: 0 } } }, { $count: "count" }],
+          alive: [{ $match: { status: { $in: ["Alive", "Retired"] } } }, { $count: "count" }],
           averages: [
             {
               $group: {

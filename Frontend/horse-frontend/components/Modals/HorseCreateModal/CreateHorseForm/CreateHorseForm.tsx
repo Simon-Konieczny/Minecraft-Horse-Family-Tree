@@ -80,8 +80,9 @@ export default function CreateHorseForm({
     label: getHorseFullName(horse),
   }));
   const statusOptions = [
-    { value: 1, label: "Alive" },
-    { value: 0, label: "Dead" },
+    { value: "Alive", label: "Alive" },
+    { value: "Deceased", label: "Deceased" },
+    { value: "Retired", label: "Retired" },
   ];
 
   // Known families for autocomplete (derived from DNA-derived names in the DB).

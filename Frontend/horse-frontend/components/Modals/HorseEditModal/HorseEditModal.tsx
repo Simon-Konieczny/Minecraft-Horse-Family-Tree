@@ -94,8 +94,9 @@ export default function HorseEditModal({
   };
 
   const statusOptions = [
-    { value: 1, label: "Alive" },
-    { value: 0, label: "Dead" },
+    { value: "Alive", label: "Alive" },
+    { value: "Deceased", label: "Deceased" },
+    { value: "Retired", label: "Retired" },
   ];
 
   const handleImportedStats = (newStats: HorseStats) => {
@@ -181,11 +182,11 @@ export default function HorseEditModal({
               </>
             )}
             <label className={statRowStyles.label}>Status</label>
-            <Select
-              options={statusOptions}
-              defaultValue={statusOptions.find(
-                (opt) => opt.label === (horse.status === 0 ? "Dead" : "Alive"),
-              )}
+                <Select
+                  options={statusOptions}
+                  defaultValue={statusOptions.find(
+                    (opt) => opt.value === horse.status,
+                  )}
               onChange={(selected) => {
                 if (selected) {
                   handleChange("status", selected.value);

@@ -47,7 +47,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
   const processedStats = translateStatsForDisplay({jump, health, speed, variant})
   const dnaColor = horse.hexColor || '#444444';
 
-  const isDead = horse.status === 0;
+  const isDead = horse.status === "Deceased";
   const useShade = statusView && isDead;
 
   // Calculate a darker version of the dnaColor for the background when dead

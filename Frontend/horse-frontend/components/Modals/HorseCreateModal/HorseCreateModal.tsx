@@ -2,7 +2,7 @@ import Button from "@/components/Common/Button/Button";
 import * as modalStyles from "../Modals.css";
 import * as styles from "./HorseCreateModal.css";
 import CreateHorseForm from "./CreateHorseForm/CreateHorseForm";
-import { Horse } from "@/types/horse";
+import { Horse, HorseStatus } from "@/types/horse";
 import { useState, useEffect } from "react";
 import createHorseAction from "@/actions/createHorseAction";
 import getAllHorsesAction from "@/actions/getAllHorsesAction";
@@ -18,7 +18,7 @@ export interface createHorseData {
   familyName: string;
   parentId1: string;
   parentId2: string;
-  status: number;
+  status: HorseStatus;
   speed: number;
   health: number;
   jump: number;
@@ -36,7 +36,7 @@ export default function HorseCreateModal({
     familyName: "",
     parentId1: "",
     parentId2: "",
-    status: 1,
+    status: "Alive",
     speed: 0,
     health: 0,
     jump: 0,
