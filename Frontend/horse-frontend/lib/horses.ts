@@ -1,6 +1,7 @@
 import { Collection, Document, ObjectId, WithId } from "mongodb";
 import { getMongoClient } from "./mongodb";
 import { createHorseRequest, editHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
 import { getSurnameFromDna } from "@/utils/genetics/utils";
 import { splitLegacyName } from "@/utils/horseNames";
 import { unstable_noStore as noStore } from "next/cache";
@@ -236,6 +237,61 @@ export async function getDistinctFamilyNames(): Promise<string[]> {
   } catch (error) {
     console.error("Error fetching family names:", error);
     return [];
+  }
+}
+
+/**
+ * Renames a bloodline across all horses: DNA keys whose slug matches
+ * `oldName` become `newName`, and exact-slug `familyName` values follow.
+ * Returns the number of horses changed.
+ */
+export async function renameBloodlineInHorses(
+  oldName: string,
+  newName: string,
+): Promise<number> {
+  noStore();
+  const oldSlug = bloodlineSlug(oldName);
+  const horses = await getCollection();
+  const docs = await horses.find({}).toArray();
+
+  const ops = [];
+  for (const doc of docs) {
+    const dna = (doc.dna || {}) as Record<string, number>;
+    let nextDna: Record<string, number> | null = null;
+    for (const key of Object.keys(dna)) {
+      if (bloodlineSlug(key) === oldSlug && key !== newName) {
+        nextDna = nextDna || { ...dna };
+        nextDna[newName] = (nextDna[newName] || 0) + nextDna[key];
+        delete nextDna[key];
+      }
+    }
+    const family =
+      typeof doc.familyName === "string" &&
+      bloodlineSlug(doc.familyName) === oldSlug &&
+      doc.familyName !== newName
+        ? newName
+        : undefined;
+    if (nextDna || family !== undefined) {
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: {
+            $set: {
+              ...(nextDna ? { dna: nextDna } : {}),
+              ...(family !== undefined ? { familyName: family } : {}),
+            },
+          },
+        },
+      });
+    }
+  }
+  if (ops.length === 0) return 0;
+  try {
+    const result = await horses.bulkWrite(ops);
+    return result.modifiedCount;
+  } catch (error) {
+    console.error("Error renaming bloodline in horses", error);
+    throw new Error("Could not rename bloodline in horse records.");
   }
 }
 

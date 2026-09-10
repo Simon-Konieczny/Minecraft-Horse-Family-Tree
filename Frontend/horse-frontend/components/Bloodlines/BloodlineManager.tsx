@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Bloodline } from "@/lib/bloodlines";
 import addBloodlineAction from "@/actions/addBloodlineAction";
+import updateBloodlineAction from "@/actions/updateBloodlineAction";
 import updateBloodlineColorAction from "@/actions/updateBloodlineColorAction";
 import deleteBloodlineAction from "@/actions/deleteBloodlineAction";
 import { vars } from "@/styles/theme.css";
 import * as styles from "./BloodlineManager.css";
+import * as modalStyles from "../Modals/Modals.css";
 
 export default function BloodlineManager({
   initial,
@@ -20,6 +22,10 @@ export default function BloodlineManager({
   const [theme, setTheme] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Bloodline | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editHex, setEditHex] = useState("#888888");
+  const [editTheme, setEditTheme] = useState("");
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -41,6 +47,35 @@ export default function BloodlineManager({
       setName("");
       setTheme("");
     });
+
+  const openEdit = (b: Bloodline) => {
+    setEditing(b);
+    setEditName(b.name);
+    setEditHex(b.hexColor);
+    setEditTheme(b.theme || "");
+    setError(null);
+  };
+
+  const onSaveEdit = async () => {
+    if (!editing) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await updateBloodlineAction({
+        oldName: editing.name,
+        name: editName,
+        hexColor: editHex,
+        theme: editTheme,
+      });
+      setEditing(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      console.error(err);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div>
@@ -83,7 +118,15 @@ export default function BloodlineManager({
                   title={`Recolor ${b.name}`}
                 />
               </td>
-              <td>
+              <td style={{ whiteSpace: "nowrap" }}>
+                <button
+                  disabled={busy}
+                  className={styles.addButton}
+                  style={{ marginRight: 8 }}
+                  onClick={() => openEdit(b)}
+                >
+                  Edit
+                </button>
                 <button
                   disabled={busy}
                   className={styles.deleteButton}
@@ -152,6 +195,65 @@ export default function BloodlineManager({
       {error && (
         <div role="alert" style={{ marginTop: 16, color: vars.color.danger }}>
           {error}
+        </div>
+      )}
+
+      {editing && (
+        <div className={modalStyles.overlay} onClick={() => setEditing(null)}>
+          <div
+            className={modalStyles.modal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>Edit Bloodline</h2>
+            <label className={styles.formLabel}>
+              Name
+              <input
+                value={editName}
+                className={styles.input}
+                onChange={(e) => setEditName(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+            <label className={styles.formLabel}>
+              Color
+              <input
+                type="color"
+                value={editHex}
+                className={styles.colorInput}
+                onChange={(e) => setEditHex(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+            <label className={styles.formLabel}>
+              Theme (optional)
+              <input
+                value={editTheme}
+                className={styles.input}
+                onChange={(e) => setEditTheme(e.target.value)}
+                placeholder="e.g. storm / night sky"
+                disabled={busy}
+              />
+            </label>
+            <p style={{ opacity: 0.7, fontSize: 13 }}>
+              Renaming updates every horse&apos;s DNA and family name to match.
+            </p>
+            <div className={styles.modalButtons}>
+              <button
+                className={styles.cancelButton}
+                disabled={busy}
+                onClick={() => setEditing(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.addButton}
+                disabled={busy || !editName.trim()}
+                onClick={() => void onSaveEdit()}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

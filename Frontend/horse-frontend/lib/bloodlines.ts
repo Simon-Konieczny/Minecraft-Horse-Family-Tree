@@ -1,7 +1,12 @@
 import { Collection } from "mongodb";
 import { getMongoClient } from "./mongodb";
-import { getAllHorses } from "./horses";
+import { getAllHorses, renameBloodlineInHorses } from "./horses";
 import { BLOODLINE_COLORS } from "@/utils/genetics/utils";
+import {
+  bloodlineSlug,
+  isValidHex,
+  validateBloodlineInput,
+} from "@/utils/bloodlineValidation";
 import { unstable_noStore as noStore } from "next/cache";
 
 const BLOODLINES_COLLECTION = "bloodlines";
@@ -19,12 +24,9 @@ interface BloodlineDoc {
   theme?: string;
 }
 
-function slug(name: string): string {
-  return name.trim().toLowerCase();
-}
-
-function isValidHex(hex: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(hex);
+function cleanTheme(theme?: string): string | undefined {
+  const trimmed = theme?.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 /** Seed entries mirroring the built-in map (used on first run). */
@@ -43,7 +45,7 @@ export async function getBloodlines(): Promise<Bloodline[]> {
     const seed = seedBloodlines();
     if (seed.length > 0) {
       await collection.insertMany(
-        seed.map((b) => ({ _id: slug(b.name), ...b })),
+        seed.map((b) => ({ _id: bloodlineSlug(b.name), ...b })),
       );
       docs = await collection.find({}).toArray();
     }
@@ -65,30 +67,74 @@ export async function getBloodlineColors(): Promise<Record<string, string>> {
 
 export async function addBloodline(input: Bloodline): Promise<Bloodline> {
   noStore();
-  const name = input.name?.trim();
-  if (!name) throw new Error("Bloodline name is required.");
-  if (name.includes(".") || name.includes("$")) {
-    throw new Error('Bloodline names cannot contain "." or "$".');
-  }
-  if (!isValidHex(input.hexColor || "")) {
-    throw new Error(`"${input.hexColor}" is not a valid #rrggbb color.`);
-  }
+  const { name, hexColor } = validateBloodlineInput(input);
   const collection = await getBloodlinesCollection();
-  const existing = await collection.findOne({ _id: slug(name) });
+  const existing = await collection.findOne({ _id: bloodlineSlug(name) });
   if (existing) throw new Error(`Bloodline "${name}" already exists.`);
 
+  const theme = cleanTheme(input.theme);
   const bloodline: Bloodline = {
     name,
-    hexColor: input.hexColor,
-    ...(input.theme?.trim() ? { theme: input.theme.trim() } : {}),
+    hexColor,
+    ...(theme ? { theme } : {}),
   };
   try {
-    await collection.insertOne({ _id: slug(name), name, hexColor: bloodline.hexColor, ...(bloodline.theme ? { theme: bloodline.theme } : {}) });
+    await collection.insertOne({ _id: bloodlineSlug(name), name, hexColor, ...(theme ? { theme } : {}) });
   } catch (error) {
     console.error("Error adding bloodline", error);
     throw new Error("Could not save bloodline. Is MongoDB running?");
   }
   return bloodline;
+}
+
+export interface UpdateBloodlineInput {
+  oldName: string;
+  name: string;
+  hexColor: string;
+  theme?: string;
+}
+
+/**
+ * Edits a bloodline (name, color, theme). A rename propagates to every
+ * horse: matching DNA keys and familyName values follow the new name.
+ * Ordered writes (horses first, old registry doc deleted last) because
+ * standalone Mongo has no transactions.
+ */
+export async function updateBloodline(
+  input: UpdateBloodlineInput,
+): Promise<Bloodline> {
+  noStore();
+  const collection = await getBloodlinesCollection();
+  const doc = await collection.findOne({ _id: bloodlineSlug(input.oldName) });
+  if (!doc) throw new Error(`Bloodline "${input.oldName}" not found.`);
+
+  const { name, hexColor } = validateBloodlineInput(input);
+  const theme = cleanTheme(input.theme);
+  const renamed = bloodlineSlug(name) !== doc._id;
+
+  if (renamed) {
+    const clash = await collection.findOne({ _id: bloodlineSlug(name) });
+    if (clash) throw new Error(`Bloodline "${name}" already exists.`);
+    await renameBloodlineInHorses(doc.name, name);
+    await collection.insertOne({
+      _id: bloodlineSlug(name),
+      name,
+      hexColor,
+      ...(theme ? { theme } : {}),
+    });
+    await collection.deleteOne({ _id: doc._id });
+  } else {
+    const update: Record<string, unknown> = { name, hexColor };
+    if (theme !== undefined) update.theme = theme;
+    await collection.updateOne(
+      { _id: doc._id },
+      {
+        $set: update,
+        ...(theme === undefined ? { $unset: { theme: "" } } : {}),
+      },
+    );
+  }
+  return { name, hexColor, ...(theme ? { theme } : {}) };
 }
 
 export async function updateBloodlineColor(
@@ -101,7 +147,7 @@ export async function updateBloodlineColor(
   }
   const collection = await getBloodlinesCollection();
   const result = await collection.updateOne(
-    { _id: slug(name) },
+    { _id: bloodlineSlug(name) },
     { $set: { hexColor } },
   );
   if (result.matchedCount === 0) {
@@ -112,7 +158,7 @@ export async function updateBloodlineColor(
 export async function deleteBloodline(name: string): Promise<void> {
   noStore();
   const collection = await getBloodlinesCollection();
-  const doc = await collection.findOne({ _id: slug(name) });
+  const doc = await collection.findOne({ _id: bloodlineSlug(name) });
   if (!doc) throw new Error(`Bloodline "${name}" not found.`);
 
   // Names are keys inside horses' DNA maps — refuse while referenced
@@ -123,14 +169,14 @@ export async function deleteBloodline(name: string): Promise<void> {
       `Cannot delete "${doc.name}": ${count} horse${count === 1 ? "" : "s"} still reference${count === 1 ? "s" : ""} it in their DNA.`,
     );
   }
-  await collection.deleteOne({ _id: slug(name) });
+  await collection.deleteOne({ _id: bloodlineSlug(name) });
 }
 
 async function countReferences(id: string): Promise<number> {
   const horses = await getAllHorses();
   return horses.filter((h) => {
     const dna = h.dna || {};
-    return Object.keys(dna).some((k) => slug(k) === id);
+    return Object.keys(dna).some((k) => bloodlineSlug(k) === id);
   }).length;
 }
 
@@ -142,7 +188,8 @@ async function getBloodlinesCollection(): Promise<Collection<BloodlineDoc>> {
         "in Docker it comes from docker-compose.yml.",
     );
   const client = await getMongoClient();
-  const collection = client.db(dbName).collection<BloodlineDoc>(BLOODLINES_COLLECTION);
-  await collection.createIndex({ _id: 1 }, { unique: true }).catch(() => {});
-  return collection;
+  // Note: no explicit index setup — _id is uniquely indexed by Mongo
+  // itself (an explicit createIndex({_id: 1}) call throws here).
+  return client.db(dbName).collection<BloodlineDoc>(BLOODLINES_COLLECTION);
 }
+

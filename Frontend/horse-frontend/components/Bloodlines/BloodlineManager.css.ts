@@ -66,6 +66,25 @@ export const deleteButton = style([
   },
 ]);
 
+export const cancelButton = style([
+  actionButton,
+  {
+    color: vars.color.ink,
+    backgroundColor: "transparent",
+    border: `1px solid ${vars.color.inkSoft}`,
+    ":hover": {
+      backgroundColor: vars.color.parchmentDeep,
+    },
+  },
+]);
+
+export const modalButtons = style({
+  display: "flex",
+  gap: vars.spacing.sm,
+  justifyContent: "flex-end",
+  marginTop: vars.spacing.md,
+});
+
 export const formLabel = style({
   fontFamily: vars.font.display,
   fontSize: vars.fontSize.xs,
