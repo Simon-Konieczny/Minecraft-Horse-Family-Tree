@@ -1,4 +1,5 @@
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
 
 export const heading = style({
   margin: 10,
@@ -15,10 +16,11 @@ export const backButton = style({
   paddingLeft: 16,
   paddingRight: 16,
   borderRadius: "8px",
-  border: "2px solid #3b82f6",
+  border: `2px solid ${vars.color.gold}`,
+  color: vars.color.ink,
   cursor: "pointer",
   ":hover": {
-    backgroundColor: "#eff6ff"
+    backgroundColor: vars.color.parchmentDeep
   }
 });
 
@@ -29,7 +31,8 @@ export const bloodlineSection = style({
 export const bloodlineHeading = style({
   fontSize: "16px",
   fontWeight: 600,
-  color: "#475569",
+  fontFamily: vars.font.display,
+  color: vars.color.inkSoft,
   marginBottom: "16px",
   letterSpacing: "-0.01em",
 });
@@ -38,11 +41,14 @@ export const tierBadge = style({
   display: "inline-block",
   fontSize: "13px",
   fontWeight: 700,
+  fontFamily: vars.font.display,
+  letterSpacing: "0.04em",
   color: "#ffffff",
-  padding: "4px 12px",
+  padding: "6px 18px",
   borderRadius: "999px",
+  border: "2px solid rgba(255, 255, 255, 0.65)",
+  boxShadow: "0 2px 6px rgba(43, 33, 24, 0.35)",
   marginBottom: "16px",
-  letterSpacing: "0.01em",
 });
 
 export const bloodlineList = style({
@@ -66,20 +72,20 @@ export const bloodlineInfo = style({
 export const bloodlineName = style({
   fontSize: "14px",
   fontWeight: 600,
-  color: "#1e293b",
+  color: vars.color.ink,
 });
 
 export const bloodlinePercent = style({
   fontSize: "13px",
   fontWeight: 500,
-  color: "#64748b",
+  color: vars.color.inkSoft,
   fontVariantNumeric: "tabular-nums", // Keeps numbers from jumping around
 });
 
 export const progressTrack = style({
   width: "100%",
   height: "8px", 
-  backgroundColor: "#f1f5f9", // Lighter, cleaner track
+  backgroundColor: vars.color.parchmentDeep, // Lighter, cleaner track
   borderRadius: "10px",
   overflow: "hidden",
 });

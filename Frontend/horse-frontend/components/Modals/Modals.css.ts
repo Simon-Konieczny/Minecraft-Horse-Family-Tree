@@ -10,13 +10,19 @@ export const overlay = style({
     alignItems: "center",
     zIndex: 1000,
     backdropFilter: "blur(4px)",
+    "@media": {
+      print: {
+        display: "none",
+      },
+    },
 })
 
 export const modal = style({
-    backgroundColor: vars.color.white,
-    color: vars.color.textMain,
+    backgroundColor: vars.color.parchment,
+    color: vars.color.ink,
     padding: vars.spacing.xl,
     borderRadius: vars.borderRadius.lg,
+    border: `1px solid ${vars.color.gold}`,
     width: "440px",
     maxWidth: "95%",
     maxHeight: "90vh",
@@ -30,10 +36,11 @@ export const modal = style({
 globalStyle(`${modal} h2`, {
     margin: 0,
     fontSize: vars.fontSize.xl,
-    fontWeight: vars.fontWeight.extrabold,
-    color: vars.color.primary,
-    letterSpacing: "-0.02em",
-    borderBottom: `2px solid ${vars.color.secondary}`,
+    fontWeight: vars.fontWeight.bold,
+    fontFamily: vars.font.display,
+    color: vars.color.ink,
+    letterSpacing: "0",
+    borderBottom: `2px solid ${vars.color.goldSoft}`,
     paddingBottom: vars.spacing.sm,
     marginBottom: vars.spacing.sm,
 });

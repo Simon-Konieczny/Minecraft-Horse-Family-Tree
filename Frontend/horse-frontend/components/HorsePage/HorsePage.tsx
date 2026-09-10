@@ -13,6 +13,7 @@ import editHorseAction from "@/actions/editHorseAction";
 import HorseDeleteModal from "@/components/Modals/HorseDeleteModal/HorseDeleteModal";
 import deleteHorseAction from "@/actions/deleteHorseAction";
 import { getHorseFullName } from "@/utils/horseNames";
+import { Folio } from "@/components/Book/Book";
 
 export default function HorsePage({
   horse,
@@ -136,6 +137,7 @@ export default function HorsePage({
         parent1Name={parent1Name}
         parent2Name={parent2Name}
       />
+      <Folio text={`Entry · ${getHorseFullName(horse)}`} />
     </main>
   );
 }

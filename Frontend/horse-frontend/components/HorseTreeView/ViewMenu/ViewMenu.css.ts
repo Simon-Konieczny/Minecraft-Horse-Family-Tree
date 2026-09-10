@@ -9,13 +9,18 @@ export const menuWrapper = style({
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  backgroundColor: vars.color.white,
+  backgroundColor: vars.color.parchment,
   padding: vars.spacing.md,
   borderRadius: vars.borderRadius.lg,
   boxShadow: vars.shadow.lg,
-  border: `1px solid ${vars.color.border}`,
+  border: `1px solid ${vars.color.goldSoft}`,
   transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease",
   width: "240px",
+  "@media": {
+    print: {
+      display: "none",
+    },
+  },
 });
 
 export const menuClosed = style({
@@ -29,22 +34,28 @@ export const toggleButton = style({
   top: "16px",
   right: "16px",
   zIndex: 90,
-  backgroundColor: vars.color.white,
-  border: `1px solid ${vars.color.border}`,
+  backgroundColor: vars.color.parchment,
+  border: `1px solid ${vars.color.goldSoft}`,
   borderRadius: vars.borderRadius.md,
   padding: "8px 16px",
   cursor: "pointer",
   boxShadow: vars.shadow.md,
   fontSize: "12px",
   fontWeight: 700,
-  color: vars.color.primary,
+  fontFamily: vars.font.display,
+  color: vars.color.ink,
   transition: "all 0.2s",
   display: "flex",
   alignItems: "center",
   gap: "8px",
   ":hover": {
-    backgroundColor: vars.color.secondary,
+    backgroundColor: vars.color.goldSoft,
     transform: "translateY(-1px)",
+  },
+  "@media": {
+    print: {
+      display: "none",
+    },
   },
 });
 
@@ -67,17 +78,18 @@ export const menuHeader = style({
   justifyContent: "space-between",
   alignItems: "center",
   marginBottom: vars.spacing.sm,
-  borderBottom: `1px solid ${vars.color.border}`,
+  borderBottom: `1px solid ${vars.color.goldSoft}`,
   paddingBottom: vars.spacing.sm,
 });
 
 export const menuLabel = style({
   fontSize: "10px",
   fontWeight: 800,
-  color: vars.color.primary,
+  color: vars.color.gold,
   textTransform: "uppercase",
-  letterSpacing: "0.12em",
+  letterSpacing: "0.18em",
   marginBottom: vars.spacing.xs,
+  fontFamily: vars.font.display,
 });
 
 const buttonBase = style({
@@ -88,25 +100,25 @@ const buttonBase = style({
   fontWeight: 700,
   transition: "all 0.15s ease",
   cursor: "pointer",
-  border: `1px solid ${vars.color.border}`,
+  border: `1px solid ${vars.color.goldSoft}`,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "8px",
-  backgroundColor: vars.color.white,
-  color: vars.color.textMain,
+  backgroundColor: vars.color.parchment,
+  color: vars.color.ink,
   ":hover": {
-    backgroundColor: vars.color.secondary,
-    borderColor: vars.color.primary,
+    backgroundColor: vars.color.parchmentDeep,
+    borderColor: vars.color.gold,
   }
 });
 
 export const statButtonActive = style([
   buttonBase,
   {
-    backgroundColor: vars.color.primary,
-    color: vars.color.white,
-    borderColor: vars.color.primary,
+    backgroundColor: vars.color.leather,
+    color: vars.color.parchment,
+    borderColor: vars.color.leather,
   },
 ]);
 
@@ -118,9 +130,9 @@ export const resetButton = style([
   buttonBase,
   {
     marginTop: vars.spacing.md,
-    backgroundColor: vars.color.textMain,
-    color: vars.color.white,
-    borderColor: vars.color.textMain,
+    backgroundColor: vars.color.ink,
+    color: vars.color.parchment,
+    borderColor: vars.color.ink,
     ":hover": { backgroundColor: "#000000" },
   },
 ]);
@@ -128,9 +140,9 @@ export const resetButton = style([
 export const baseButtonActive = style([
   buttonBase,
   {
-    backgroundColor: vars.color.primary,
-    color: vars.color.white,
-    borderColor: vars.color.primary,
+    backgroundColor: vars.color.leather,
+    color: vars.color.parchment,
+    borderColor: vars.color.leather,
     marginBottom: vars.spacing.xs,
   },
 ]);

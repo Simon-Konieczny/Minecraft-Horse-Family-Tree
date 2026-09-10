@@ -4,8 +4,9 @@ import { vars } from "@/styles/theme.css";
 export const sidebar = style({
   width: "280px",
   height: "100vh",
-  backgroundColor: vars.color.primary,
-  color: vars.color.secondary,
+  backgroundColor: vars.color.leather,
+  backgroundImage: `linear-gradient(180deg, ${vars.color.leather} 0%, ${vars.color.leatherDeep} 100%)`,
+  color: vars.color.parchment,
   display: "flex",
   flexDirection: "column",
   padding: vars.spacing.lg,
@@ -13,8 +14,53 @@ export const sidebar = style({
   left: 0,
   top: 0,
   zIndex: 1000,
-  borderRight: `1px solid ${vars.color.primaryHover}`,
+  borderRight: `1px solid ${vars.color.goldSoft}`,
   boxShadow: vars.shadow.lg,
+  transition: "transform 0.3s ease",
+  "@media": {
+    "screen and (max-width: 900px)": {
+      transform: "translateX(-100%)",
+      width: "280px",
+    },
+    print: {
+      display: "none",
+    },
+  },
+});
+
+export const sidebarOpen = style({
+  "@media": {
+    "screen and (max-width: 900px)": {
+      transform: "translateX(0)",
+    },
+  },
+});
+
+export const menuToggle = style({
+  display: "none",
+  position: "fixed",
+  top: vars.spacing.md,
+  left: vars.spacing.md,
+  zIndex: 1100,
+  backgroundColor: vars.color.leather,
+  color: vars.color.parchment,
+  border: `1px solid ${vars.color.gold}`,
+  borderRadius: vars.borderRadius.md,
+  padding: "8px 16px",
+  fontFamily: vars.font.display,
+  fontSize: vars.fontSize.sm,
+  fontWeight: vars.fontWeight.bold,
+  letterSpacing: "0.08em",
+  cursor: "pointer",
+  boxShadow: vars.shadow.md,
+  "@media": {
+    "screen and (max-width: 900px)": {
+      display: "block",
+    },
+    print: {
+      display: "none",
+    },
+  },
 });
 
 export const logo = style({
@@ -24,9 +70,10 @@ export const logo = style({
   display: "flex",
   alignItems: "center",
   gap: vars.spacing.sm,
-  color: vars.color.secondary,
+  color: vars.color.parchment,
   textDecoration: "none",
   letterSpacing: "-0.04em",
+  fontFamily: vars.font.display,
 });
 
 export const logoEmoji = style({
@@ -34,7 +81,7 @@ export const logoEmoji = style({
 });
 
 export const logoText = style({
-  background: `linear-gradient(to right, ${vars.color.secondary}, ${vars.color.accent})`,
+  background: `linear-gradient(to right, ${vars.color.parchment}, ${vars.color.gold})`,
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
 });
@@ -56,10 +103,12 @@ export const sectionLabel = style({
   fontSize: vars.fontSize.xs,
   fontWeight: vars.fontWeight.bold,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
-  color: "rgba(255, 255, 255, 0.4)",
+  letterSpacing: "0.18em",
+  color: vars.color.goldSoft,
+  opacity: 0.8,
   paddingLeft: vars.spacing.md,
   marginBottom: vars.spacing.xs,
+  fontFamily: vars.font.display,
 });
 
 export const navLink = style({
@@ -68,15 +117,16 @@ export const navLink = style({
   gap: vars.spacing.md,
   padding: `${vars.spacing.sm} ${vars.spacing.md}`,
   borderRadius: vars.borderRadius.md,
-  color: vars.color.secondary,
+  color: vars.color.parchment,
   textDecoration: "none",
-  fontSize: vars.fontSize.sm,
+  fontSize: vars.fontSize.md,
   fontWeight: vars.fontWeight.semibold,
+  fontFamily: vars.font.display,
   transition: "all 0.2s",
-  opacity: 0.8,
+  opacity: 0.85,
   ":hover": {
     opacity: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(244, 236, 217, 0.08)",
     transform: "translateX(4px)",
   },
 });
@@ -89,11 +139,20 @@ export const navLinkActive = style([
   navLink,
   {
     opacity: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderLeft: `4px solid ${vars.color.accent}`,
+    backgroundColor: "rgba(244, 236, 217, 0.1)",
+    borderLeft: `4px solid ${vars.color.gold}`,
     color: vars.color.white,
   },
 ]);
+
+export const navNumeral = style({
+  fontFamily: vars.font.display,
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.gold,
+  minWidth: "28px",
+  fontSize: vars.fontSize.sm,
+  letterSpacing: "0.05em",
+});
 
 export const recentList = style({
   display: "flex",
@@ -107,13 +166,15 @@ export const recentItem = style({
   gap: vars.spacing.sm,
   padding: `${vars.spacing.xs} ${vars.spacing.md}`,
   borderRadius: vars.borderRadius.sm,
-  color: "rgba(255, 255, 255, 0.7)",
+  color: vars.color.parchment,
+  opacity: 0.7,
   textDecoration: "none",
   fontSize: vars.fontSize.sm,
   transition: "all 0.15s",
   ":hover": {
+    opacity: 1,
     color: vars.color.white,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(244, 236, 217, 0.06)",
   },
 });
 
@@ -121,7 +182,7 @@ export const recentImageContainer = style({
   width: "24px",
   height: "24px",
   borderRadius: vars.borderRadius.sm,
-  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  backgroundColor: "rgba(244, 236, 217, 0.1)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -137,13 +198,13 @@ export const recentName = style({
 export const footer = style({
   marginTop: "auto",
   paddingTop: vars.spacing.lg,
-  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+  borderTop: `1px solid ${vars.color.goldSoft}`,
 });
 
 export const createButton = style({
   width: "100%",
-  backgroundColor: vars.color.accent,
-  color: vars.color.primary,
+  backgroundColor: vars.color.gold,
+  color: vars.color.leatherDeep,
   border: "none",
   padding: `${vars.spacing.md} ${vars.spacing.lg}`,
   borderRadius: vars.borderRadius.md,
@@ -158,7 +219,7 @@ export const createButton = style({
   justifyContent: "center",
   gap: vars.spacing.sm,
   ":hover": {
-    backgroundColor: "#e5b484",
+    backgroundColor: vars.color.goldSoft,
     transform: "translateY(-1px)",
     boxShadow: vars.shadow.md,
   },
@@ -168,5 +229,21 @@ export const contentArea = style({
   marginLeft: "280px",
   width: "calc(100% - 280px)",
   minHeight: "100vh",
-  backgroundColor: vars.color.background,
+  backgroundColor: vars.color.parchment,
+  borderLeft: `1px solid ${vars.color.goldSoft}`,
+  boxShadow: "inset 16px 0 24px -16px rgba(43, 33, 24, 0.45)",
+  "@media": {
+    "screen and (max-width: 900px)": {
+      marginLeft: 0,
+      width: "100%",
+      borderLeft: "none",
+      boxShadow: "none",
+    },
+    print: {
+      marginLeft: 0,
+      width: "100%",
+      borderLeft: "none",
+      boxShadow: "none",
+    },
+  },
 });

@@ -1,12 +1,13 @@
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
 
 export const pageWrapper = style({
   padding: "40px 20px",
   margin: "0 auto",
-  backgroundColor: "#fdfbf7",
+  maxWidth: "960px",
+  backgroundColor: "transparent",
   minHeight: "100vh",
-  borderLeft: "8px solid #2d4a3e",
-  fontFamily: "Inter, system-ui, sans-serif",
+  fontFamily: vars.font.main,
 });
 
 export const buttonRow = style({

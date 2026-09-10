@@ -6,8 +6,8 @@ export const Button = style({
   letterSpacing: "0.1em",
   fontSize: "11px",
   fontWeight: 800,
-  color: vars.color.primary,
-  border: `2px solid ${vars.color.primary}`,
+  color: vars.color.ink,
+  border: `2px solid ${vars.color.ink}`,
   background: "transparent",
   padding: "10px 24px",
   marginTop: "10px",
@@ -19,8 +19,8 @@ export const Button = style({
   justifyContent: "center",
   gap: "8px",
   ":hover": {
-    background: vars.color.primary,
-    color: "white",
+    background: vars.color.ink,
+    color: vars.color.parchment,
   },
   ":active": {
     transform: "translateY(1px)",

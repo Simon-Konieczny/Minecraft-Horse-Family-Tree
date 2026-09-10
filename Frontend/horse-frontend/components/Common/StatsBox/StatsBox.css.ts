@@ -19,17 +19,17 @@ export const textArea = style({
   width: "100%",
   padding: vars.spacing.md,
   borderRadius: vars.borderRadius.md,
-  border: `2px solid ${vars.color.border}`,
-  backgroundColor: vars.color.secondary,
+  border: `2px solid ${vars.color.goldSoft}`,
+  backgroundColor: vars.color.parchment,
   fontSize: "13px",
   fontFamily: vars.font.mono,
-  color: vars.color.textMain,
+  color: vars.color.ink,
   resize: "vertical",
   transition: "all 0.2s",
   ":focus": {
     outline: "none",
-    borderColor: vars.color.primary,
-    backgroundColor: vars.color.white,
+    borderColor: vars.color.gold,
+    backgroundColor: vars.color.secondary,
     boxShadow: vars.shadow.sm,
   },
 });
@@ -47,9 +47,9 @@ export const parsedStats = style({
   gap: "8px",
   marginTop: "8px",
   padding: vars.spacing.md,
-  backgroundColor: "#f0fdf4",
+  backgroundColor: vars.color.parchmentDeep,
   borderRadius: vars.borderRadius.md,
-  border: "1px solid #bbf7d0",
+  border: `1px solid ${vars.color.goldSoft}`,
 });
 
 export const statItem = style({
@@ -61,12 +61,15 @@ export const statItem = style({
 export const statLabel = style({
   fontSize: "10px",
   fontWeight: 700,
-  color: "#166534",
+  color: vars.color.inkSoft,
   textTransform: "uppercase",
+  fontFamily: vars.font.display,
+  letterSpacing: "0.08em",
 });
 
 export const statValue = style({
   fontSize: "14px",
   fontWeight: 800,
-  color: "#14532d",
+  color: vars.color.ink,
+  fontFamily: vars.font.display,
 });

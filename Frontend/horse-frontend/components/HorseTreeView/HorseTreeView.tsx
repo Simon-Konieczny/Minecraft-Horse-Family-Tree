@@ -100,6 +100,19 @@ function TreeContent({
         setCompactView={setCompactView}
       />
 
+      <div className={styles.legend} aria-hidden="true">
+        <span className={styles.legendTitle}>Legend</span>
+        <span className={styles.legendRow}>
+          <span className={styles.legendSwatch} /> Node color — family
+        </span>
+        <span className={styles.legendRow}>
+          <span className={styles.legendShade} /> Darkened — deceased
+        </span>
+        <span className={styles.legendRow}>
+          <span className={styles.legendLine} /> Line — parent to foal
+        </span>
+      </div>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}

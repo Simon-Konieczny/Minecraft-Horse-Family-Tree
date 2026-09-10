@@ -7,11 +7,12 @@ export const header = style({
   gap: "32px",
   marginTop: "40px",
   marginBottom: "48px",
-  backgroundColor: vars.color.white,
+  backgroundColor: vars.color.secondary,
   padding: vars.spacing.xl,
   borderRadius: vars.borderRadius.lg,
   boxShadow: vars.shadow.md,
-  border: `1px solid ${vars.color.border}`,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderLeft: `6px solid ${vars.color.gold}`,
 });
 
 export const imageContainer = style({
@@ -40,8 +41,8 @@ export const titles = style({
 export const statusAlive = style({
   padding: "4px 12px",
   borderRadius: vars.borderRadius.full,
-  backgroundColor: "#dcfce7",
-  color: "#166534",
+  backgroundColor: vars.color.goldSoft,
+  color: vars.color.ink,
   fontSize: vars.fontSize.xs,
   fontWeight: vars.fontWeight.bold,
   textTransform: "uppercase",
@@ -51,8 +52,8 @@ export const statusAlive = style({
 export const statusDead = style({
   padding: "4px 12px",
   borderRadius: vars.borderRadius.full,
-  backgroundColor: "#fee2e2",
-  color: "#991b1b",
+  backgroundColor: vars.color.dangerBg,
+  color: vars.color.danger,
   fontSize: vars.fontSize.xs,
   fontWeight: vars.fontWeight.bold,
   textTransform: "uppercase",
@@ -61,16 +62,19 @@ export const statusDead = style({
 
 export const heading = style({
   fontSize: vars.fontSize.display,
-  fontWeight: vars.fontWeight.black,
+  fontWeight: vars.fontWeight.bold,
   margin: 0,
-  letterSpacing: "-0.05em",
-  color: vars.color.primary,
-  lineHeight: 1,
+  letterSpacing: "0",
+  color: vars.color.ink,
+  lineHeight: 1.05,
+  fontFamily: vars.font.display,
 });
 
 export const subHeading = style({
   fontSize: vars.fontSize.md,
-  color: vars.color.textMuted,
+  color: vars.color.inkSoft,
   fontWeight: vars.fontWeight.medium,
   margin: 0,
+  fontFamily: vars.font.display,
+  fontStyle: "italic",
 });

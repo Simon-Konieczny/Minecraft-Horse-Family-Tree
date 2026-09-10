@@ -14,6 +14,16 @@ export const vars = createGlobalTheme(":root", {
     backgroundDark: "#1a2c25", // Dark Forest Green
     white: "#ffffff",
     accent: "#d4a373",        // Sandy/Wood accent
+    // --- Book theme (Phase 1): parchment & ink ---
+    parchment: "#f4ecd9",     // Page surface
+    parchmentDeep: "#e9dcc0", // Aged edges / Alt surface
+    ink: "#2b2118",           // Body text on parchment
+    inkSoft: "#5c4f3d",       // Muted text on parchment
+    gold: "#b98a2f",          // Foil / active chapter
+    goldSoft: "#e8d5a3",      // Ruled lines, subtle gilding
+    leather: "#3a2c1c",       // Binding / ToC surface
+    leatherDeep: "#241a10",
+    wax: "#8f2d22",           // Seals, destructive accents
   },
   spacing: {
     xs: "4px",
@@ -36,6 +46,7 @@ export const vars = createGlobalTheme(":root", {
   font: {
     main: "var(--font-geist-sans), sans-serif",
     mono: "var(--font-geist-mono), monospace",
+    display: "var(--font-display), Georgia, 'Times New Roman', serif",
   },
   fontSize: {
     xs: "11px",

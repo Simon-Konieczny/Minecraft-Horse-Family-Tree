@@ -22,6 +22,7 @@ export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreed
   const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recentViewed, setRecentViewed] = useState<Horse[]>([]);
+  const [tocOpen, setTocOpen] = useState(false);
   const [allowCloseRelativeBreeding, setAllowCloseRelativeBreeding] = useState(
     initialAllowCloseRelativeBreeding,
   );
@@ -45,9 +46,9 @@ export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreed
   }, [fallbackHorses]);
 
   const navItems = [
-    { label: "Dashboard", href: "/", icon: "📊" },
-    { label: "Lineage Tree", href: "/horses", icon: "🌳" },
-    { label: "Bloodlines", href: "/bloodlines", icon: "🧬" },
+    { numeral: "I", label: "The Stable", href: "/" },
+    { numeral: "II", label: "Lineage Tree", href: "/horses" },
+    { numeral: "III", label: "Bloodlines Registry", href: "/bloodlines" },
   ];
 
   const onBreedingToggle = async (blockCloseRelatives: boolean) => {
@@ -65,35 +66,44 @@ export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreed
 
   return (
     <>
-      <aside className={styles.sidebar}>
-        <Link href="/" className={styles.logo}>
+      <button
+        className={styles.menuToggle}
+        onClick={() => setTocOpen((open) => !open)}
+        aria-label="Toggle table of contents"
+      >
+        ☰ Chapters
+      </button>
+      <aside className={`${styles.sidebar} ${tocOpen ? styles.sidebarOpen : ""}`}>
+        <Link href="/" className={styles.logo} onClick={() => setTocOpen(false)}>
           <span className={styles.logoEmoji}>🐴</span> 
           <span className={styles.logoText}>HorseTree</span>
         </Link>
 
         <nav className={styles.nav}>
           <div className={styles.navSection}>
-            <span className={styles.sectionLabel}>Navigation</span>
+            <span className={styles.sectionLabel}>Table of Contents</span>
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setTocOpen(false)}
                 className={
                   pathname === item.href ? styles.navLinkActive : styles.navLink
                 }
               >
-                <span className={styles.navIcon}>{item.icon}</span> {item.label}
+                <span className={styles.navNumeral}>{item.numeral}</span> {item.label}
               </Link>
             ))}
           </div>
 
           <div className={styles.navSection}>
-            <span className={styles.sectionLabel}>Recent Activity</span>
+            <span className={styles.sectionLabel}>Recent Entries</span>
             <div className={styles.recentList}>
               {recentViewed.map((horse) => (
                 <Link 
                   key={horse.id} 
                   href={`/horses/${horse.id}`} 
+                  onClick={() => setTocOpen(false)}
                   className={styles.recentItem}
                 >
                   <div className={styles.recentImageContainer}>
@@ -125,6 +135,7 @@ export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreed
               checked={!allowCloseRelativeBreeding}
               onChange={onBreedingToggle}
               labelLeft={false}
+              light
             />
             {breedingError && (
               <div style={{ opacity: 0.7, fontSize: 12 }}>{breedingError}</div>

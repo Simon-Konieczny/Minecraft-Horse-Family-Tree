@@ -1,4 +1,5 @@
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
 
 export const switchWrapper = style({
   display: "flex",
@@ -17,7 +18,17 @@ export const label = style({
   letterSpacing: "0.1em",
   fontSize: "11px",
   fontWeight: 800,
-  color: "#2d4a3e",
+  fontFamily: vars.font.display,
+  color: vars.color.ink,
+});
+
+export const labelLight = style({
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontSize: "11px",
+  fontWeight: 800,
+  fontFamily: vars.font.display,
+  color: vars.color.parchment,
 });
 
 export const switchContainer = style({
@@ -42,7 +53,7 @@ export const slider = style({
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: "#ccc",
+  backgroundColor: vars.color.border,
   transition: ".4s",
   borderRadius: "20px",
   ":before": {
@@ -59,7 +70,38 @@ export const slider = style({
   selectors: {
     // Look "up" to see if the sibling input is checked
     [`${input}:checked + &`]: {
-      backgroundColor: "#2d4a3e",
+      backgroundColor: vars.color.gold,
+    },
+    [`${input}:checked + &:before`]: {
+      transform: "translateX(20px)",
+    },
+  },
+});
+
+export const sliderLight = style({
+  position: "absolute",
+  cursor: "pointer",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "rgba(244, 236, 217, 0.28)",
+  transition: ".4s",
+  borderRadius: "20px",
+  ":before": {
+    position: "absolute",
+    content: '""',
+    height: "16px",
+    width: "16px",
+    left: "2px",
+    bottom: "2px",
+    backgroundColor: vars.color.parchment,
+    transition: ".4s",
+    borderRadius: "50%",
+  },
+  selectors: {
+    [`${input}:checked + &`]: {
+      backgroundColor: vars.color.gold,
     },
     [`${input}:checked + &:before`]: {
       transform: "translateX(20px)",

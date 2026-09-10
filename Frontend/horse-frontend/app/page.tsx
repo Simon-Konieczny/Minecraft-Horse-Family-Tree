@@ -3,6 +3,8 @@ import * as styles from "./Dashboard.css";
 import { translateStat } from "@/utils/translateRawStats";
 import { getHorseVariantImage } from "@/utils/variant";
 import { getHorseFullName } from "@/utils/horseNames";
+import { ChapterHeading, Folio } from "@/components/Book/Book";
+import { vars } from "@/styles/theme.css";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -16,10 +18,11 @@ export default async function DashboardPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Stables Dashboard</h1>
-        <p className={styles.subtitle}>Overview of your horse breeding program</p>
-      </header>
+      <ChapterHeading
+        numeral="Chapter I"
+        title="The Stable"
+        subtitle="Overview of your horse breeding program"
+      />
 
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
@@ -43,7 +46,7 @@ export default async function DashboardPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Recent Horses</h2>
-          <Link href="/horses" style={{ fontSize: '12px', color: '#2d4a3e', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
+            <Link href="/horses" style={{ fontSize: '12px', color: vars.color.primary, fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
             View Tree →
           </Link>
         </div>
@@ -94,6 +97,7 @@ export default async function DashboardPage() {
           </table>
         </div>
       </section>
+      <Folio text="Chapter I · The Stable" />
     </div>
   );
 }

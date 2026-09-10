@@ -6,6 +6,8 @@ import type { Bloodline } from "@/lib/bloodlines";
 import addBloodlineAction from "@/actions/addBloodlineAction";
 import updateBloodlineColorAction from "@/actions/updateBloodlineColorAction";
 import deleteBloodlineAction from "@/actions/deleteBloodlineAction";
+import { vars } from "@/styles/theme.css";
+import * as styles from "./BloodlineManager.css";
 
 export default function BloodlineManager({
   initial,
@@ -44,7 +46,7 @@ export default function BloodlineManager({
     <div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ textAlign: "left", opacity: 0.6 }}>
+          <tr style={{ textAlign: "left", color: vars.color.inkSoft, fontFamily: vars.font.display, borderBottom: `2px solid ${vars.color.goldSoft}` }}>
             <th>Swatch</th>
             <th>Name</th>
             <th>Theme</th>
@@ -54,7 +56,7 @@ export default function BloodlineManager({
         </thead>
         <tbody>
           {initial.map((b) => (
-            <tr key={b.name} style={{ borderTop: "1px solid #eee" }}>
+            <tr key={b.name} style={{ borderBottom: `1px solid ${vars.color.goldSoft}` }}>
               <td>
                 <span
                   style={{
@@ -63,7 +65,7 @@ export default function BloodlineManager({
                     height: 24,
                     borderRadius: 6,
                     backgroundColor: b.hexColor,
-                    border: "1px solid #ccc",
+                    border: `1px solid ${vars.color.border}`,
                   }}
                 />
               </td>
@@ -74,6 +76,7 @@ export default function BloodlineManager({
                   type="color"
                   value={b.hexColor}
                   disabled={busy}
+                  className={styles.colorInput}
                   onChange={(e) =>
                     run(() => updateBloodlineColorAction(b.name, e.target.value))
                   }
@@ -83,6 +86,7 @@ export default function BloodlineManager({
               <td>
                 <button
                   disabled={busy}
+                  className={styles.deleteButton}
                   onClick={() => {
                     if (
                       window.confirm(
@@ -108,45 +112,45 @@ export default function BloodlineManager({
         </tbody>
       </table>
 
-      <h2 style={{ marginTop: 32 }}>Add Bloodline</h2>
+      <h2 style={{ marginTop: 32, fontFamily: vars.font.display, color: vars.color.ink }}>Add Bloodline</h2>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>
-        <label>
+        <label className={styles.formLabel}>
           Name
-          <br />
           <input
             value={name}
+            className={styles.input}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Stormmane"
             disabled={busy}
           />
         </label>
-        <label>
+        <label className={styles.formLabel}>
           Color
-          <br />
           <input
             type="color"
             value={hexColor}
+            className={styles.colorInput}
             onChange={(e) => setHexColor(e.target.value)}
             disabled={busy}
           />
         </label>
-        <label>
+        <label className={styles.formLabel}>
           Theme (optional)
-          <br />
           <input
             value={theme}
+            className={styles.input}
             onChange={(e) => setTheme(e.target.value)}
             placeholder="e.g. storm / night sky"
             disabled={busy}
           />
         </label>
-        <button disabled={busy || !name.trim()} onClick={() => void onAdd()}>
+        <button className={styles.addButton} disabled={busy || !name.trim()} onClick={() => void onAdd()}>
           Add
         </button>
       </div>
 
       {error && (
-        <div role="alert" style={{ marginTop: 16, color: "#b91c1c" }}>
+        <div role="alert" style={{ marginTop: 16, color: vars.color.danger }}>
           {error}
         </div>
       )}

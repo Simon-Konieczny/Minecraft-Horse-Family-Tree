@@ -2,8 +2,8 @@ import { style, globalStyle } from "@vanilla-extract/css";
 import { vars } from "@/styles/theme.css";
 
 export const detailsSection = style({
-  backgroundColor: vars.color.white,
-  border: `1px solid ${vars.color.border}`,
+  backgroundColor: vars.color.secondary,
+  border: `1px solid ${vars.color.goldSoft}`,
   borderRadius: vars.borderRadius.md,
   padding: vars.spacing.xl,
   boxShadow: vars.shadow.sm,
@@ -22,8 +22,8 @@ export const parentGrid = style({
 
 export const parentBox = style({
   padding: vars.spacing.md,
-  backgroundColor: vars.color.secondary,
-  border: `1px solid ${vars.color.border}`,
+  backgroundColor: vars.color.parchmentDeep,
+  border: `1px solid ${vars.color.goldSoft}`,
   borderRadius: vars.borderRadius.md,
   transition: "border-color 0.2s ease",
   selectors: {
@@ -36,22 +36,24 @@ export const parentLabel = style({
   display: "block",
   fontSize: vars.fontSize.xs,
   textTransform: "uppercase",
-  color: vars.color.textMuted,
+  color: vars.color.inkSoft,
   fontWeight: vars.fontWeight.extrabold,
   marginBottom: vars.spacing.xs,
-  letterSpacing: "0.05em",
+  letterSpacing: "0.08em",
+  fontFamily: vars.font.display,
 });
 
 export const parentName = style({
   fontSize: vars.fontSize.lg,
   fontWeight: vars.fontWeight.semibold,
-  color: vars.color.textMain,
+  color: vars.color.ink,
   margin: 0,
+  fontFamily: vars.font.display,
 });
 
 export const divider = style({
   border: 0,
-  borderTop: `2px dashed ${vars.color.border}`,
+  borderTop: `2px dashed ${vars.color.goldSoft}`,
   margin: `${vars.spacing.xl} 0`,
 });
 
@@ -62,10 +64,11 @@ export const bloodlineWrapper = style({
 export const sectionTitle = style({
   fontSize: vars.fontSize.sm,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
+  letterSpacing: "0.12em",
   fontWeight: vars.fontWeight.extrabold,
-  color: vars.color.textMuted,
+  color: vars.color.inkSoft,
   marginBottom: vars.spacing.md,
+  fontFamily: vars.font.display,
 });
 
 export const detailRow = style({

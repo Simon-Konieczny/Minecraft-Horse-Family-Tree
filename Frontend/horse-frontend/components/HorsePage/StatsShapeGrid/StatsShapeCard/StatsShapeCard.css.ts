@@ -49,13 +49,15 @@ export const shapeLabel = style({
   fontSize: vars.fontSize.xs,
   fontWeight: vars.fontWeight.bold,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
+  letterSpacing: "0.12em",
   opacity: 0.9,
+  fontFamily: vars.font.display,
 });
 
 export const shapeValue = style({
   fontSize: vars.fontSize.xxl,
-  fontWeight: vars.fontWeight.black,
+  fontWeight: vars.fontWeight.bold,
+  fontFamily: vars.font.display,
   margin: "0",
   zIndex: 20,
   display: "flex",

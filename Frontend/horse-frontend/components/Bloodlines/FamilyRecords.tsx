@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Bloodline } from "@/lib/bloodlines";
 import type { FamilyRecord } from "@/utils/studbook";
+import { vars } from "@/styles/theme.css";
 
 function formatDate(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "date unknown";
@@ -46,7 +47,9 @@ export default function FamilyRecords({
           <article
             key={r.family}
             style={{
-              border: "1px solid #e5e7eb",
+              border: `1px solid ${vars.color.goldSoft}`,
+              borderLeft: `4px solid ${vars.color.gold}`,
+              backgroundColor: vars.color.secondary,
               borderRadius: 12,
               padding: 16,
               marginBottom: 16,
@@ -61,11 +64,11 @@ export default function FamilyRecords({
                   width: 20,
                   height: 20,
                   borderRadius: 6,
-                  backgroundColor: meta?.hexColor || "#94a3b8",
-                  border: "1px solid #ccc",
+                  backgroundColor: meta?.hexColor || vars.color.textMuted,
+                  border: `1px solid ${vars.color.border}`,
                 }}
               />
-              <h3 style={{ margin: 0 }}>
+              <h3 style={{ margin: 0, fontFamily: vars.font.display, color: vars.color.ink }}>
                 {r.family}{" "}
                 <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 14 }}>
                   · {r.count} horse{r.count === 1 ? "" : "s"}

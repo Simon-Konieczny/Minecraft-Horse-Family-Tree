@@ -51,7 +51,7 @@ export default async function HomePage() {
   const dataKey = `tree-${horses.length}`;
 
   return (
-    <main className="h-screen w-full" suppressHydrationWarning>
+    <main className="h-screen w-full relative" suppressHydrationWarning>
       <HorseTreeView initialNodes={nodes} initialEdges={edges} key={dataKey} horses={horses}/>
     </main>
   );

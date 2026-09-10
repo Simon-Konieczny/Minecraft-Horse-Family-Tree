@@ -31,11 +31,12 @@ export const statsGrid = style({
 });
 
 export const statCard = style({
-  backgroundColor: vars.color.white,
+  backgroundColor: vars.color.secondary,
   padding: vars.spacing.lg,
   borderRadius: vars.borderRadius.lg,
   boxShadow: vars.shadow.md,
-  border: `1px solid ${vars.color.border}`,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderTop: `4px solid ${vars.color.gold}`,
   display: "flex",
   flexDirection: "column",
   gap: vars.spacing.xs,
@@ -44,39 +45,42 @@ export const statCard = style({
 export const statLabel = style({
   fontSize: vars.fontSize.xs,
   fontWeight: vars.fontWeight.bold,
-  color: vars.color.textMuted,
+  color: vars.color.inkSoft,
   textTransform: "uppercase",
-  letterSpacing: "0.05em",
+  letterSpacing: "0.08em",
+  fontFamily: vars.font.display,
 });
 
 export const statValue = style({
   fontSize: vars.fontSize.xxl,
   fontWeight: vars.fontWeight.extrabold,
-  color: vars.color.primary,
+  color: vars.color.ink,
+  fontFamily: vars.font.display,
 });
 
 export const section = style({
-  backgroundColor: vars.color.white,
+  backgroundColor: vars.color.secondary,
   borderRadius: vars.borderRadius.lg,
   boxShadow: vars.shadow.md,
-  border: `1px solid ${vars.color.border}`,
+  border: `1px solid ${vars.color.goldSoft}`,
   overflow: "hidden",
 });
 
 export const sectionHeader = style({
   padding: vars.spacing.lg,
-  borderBottom: `1px solid ${vars.color.border}`,
+  borderBottom: `2px solid ${vars.color.goldSoft}`,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  backgroundColor: vars.color.secondary,
+  backgroundColor: vars.color.parchmentDeep,
 });
 
 export const sectionTitle = style({
   fontSize: vars.fontSize.lg,
-  fontWeight: vars.fontWeight.extrabold,
-  color: vars.color.primary,
-  letterSpacing: "-0.01em",
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.ink,
+  letterSpacing: "0",
+  fontFamily: vars.font.display,
 });
 
 export const tableWrapper = style({
@@ -92,19 +96,20 @@ export const table = style({
 export const th = style({
   textAlign: "left",
   padding: `${vars.spacing.md} ${vars.spacing.lg}`,
-  backgroundColor: vars.color.white,
-  color: vars.color.textMuted,
+  backgroundColor: vars.color.secondary,
+  color: vars.color.inkSoft,
   fontSize: vars.fontSize.xs,
   textTransform: "uppercase",
-  letterSpacing: "0.05em",
+  letterSpacing: "0.08em",
   fontWeight: vars.fontWeight.bold,
-  borderBottom: `1px solid ${vars.color.border}`,
+  fontFamily: vars.font.display,
+  borderBottom: `2px solid ${vars.color.goldSoft}`,
 });
 
 export const td = style({
   padding: `${vars.spacing.md} ${vars.spacing.lg}`,
-  borderBottom: `1px solid ${vars.color.border}`,
-  color: vars.color.textMain,
+  borderBottom: `1px solid ${vars.color.goldSoft}`,
+  color: vars.color.ink,
   verticalAlign: "middle",
 });
 
@@ -130,7 +135,7 @@ export const smallHorseImage = style({
 
 export const tr = style({
   ":hover": {
-    backgroundColor: "rgba(0, 0, 0, 0.02)",
+    backgroundColor: vars.color.parchmentDeep,
   },
   cursor: "pointer",
 });
@@ -146,15 +151,15 @@ export const badge = style({
 export const badgeAlive = style([
   badge,
   {
-    backgroundColor: "#dcfce7",
-    color: "#166534",
+    backgroundColor: vars.color.goldSoft,
+    color: vars.color.ink,
   },
 ]);
 
 export const badgeDead = style([
   badge,
   {
-    backgroundColor: "#fee2e2",
-    color: "#991b1b",
+    backgroundColor: vars.color.dangerBg,
+    color: vars.color.danger,
   },
 ]);
