@@ -1,5 +1,5 @@
 import { Horse } from "@/types/horse";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import * as modalStyles from "../Modals.css";
 import * as styles from "./HorseEditModal.css";
@@ -11,6 +11,7 @@ import { HorseStats } from "@/utils/parseHorseStats";
 import StatsBox from "@/components/Common/StatsBox/StatsBox";
 import StatRow from "../StatRow/StatRow";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
+import { getDescendantIds } from "@/utils/lineage";
 
 import * as statRowStyles from "../StatRow/StatRow.css";
 
@@ -57,12 +58,24 @@ export default function HorseEditModal({
     }
   };
 
-  if (!isOpen) return null;
+  // A horse can never be parented to itself or to one of its own
+  // descendants — those options would loop the family tree.
+  const blockedIds = useMemo(
+    () => getDescendantIds(horses, horse.id),
+    [horses, horse.id],
+  );
+  const parentOptions = useMemo(
+    () =>
+      horses
+        .filter((h) => h.id !== horse.id && !blockedIds.has(h.id))
+        .map((h) => ({
+          value: h.id.toString(),
+          label: h.name,
+        })),
+    [horses, horse.id, blockedIds],
+  );
 
-  const parentOptions = horses.map((horse) => ({
-    value: horse.id.toString(),
-    label: horse.name,
-  }));
+  if (!isOpen) return null;
 
   const onCancel = () => {
     setFormData({ ...horse });

@@ -144,8 +144,7 @@ export async function editHorse(
   }
 }
 
-export async function deleteHorse(id: string): Promise<boolean> {
-  noStore();
+export async function deleteHorse(id: string): Promise<boolean> {  noStore();
   try {
     const horses = await getCollection();
 
@@ -221,6 +220,28 @@ export async function getHorsesByIds(ids: string[]): Promise<Horse[]> {
   } catch (error) {
     console.error("Error fetching horses by ids:", error);
     return [];
+  }
+}
+
+export async function bulkUpdateGenerations(
+  updates: { id: string; generation: number }[],
+): Promise<void> {
+  noStore();
+  const valid = updates.filter((u) => isValidId(u.id));
+  if (!valid.length) return;
+  const horses = await getCollection();
+  try {
+    await horses.bulkWrite(
+      valid.map((u) => ({
+        updateOne: {
+          filter: { _id: new ObjectId(u.id) },
+          update: { $set: { generation: u.generation } },
+        },
+      })),
+    );
+  } catch (error) {
+    console.error("Error bulk updating generations", error);
+    throw new Error("Could not update descendant generations in MongoDB.");
   }
 }
 

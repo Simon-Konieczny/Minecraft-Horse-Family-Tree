@@ -37,6 +37,11 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017
       - DB_NAME=horse
       - COLLECTION_NAME=horse
+      # Optional breeding policy (defaults: allowed / 3 gens / threshold 1).
+      # Uncomment to run a clean-lineage container:
+      # - ALLOW_CLOSE_RELATIVE_BREEDING=false
+      # - INBREEDING_GENERATIONS=3
+      # - INBREEDING_ANCESTOR_THRESHOLD=1
     depends_on:
       mongodb:
         condition: service_healthy

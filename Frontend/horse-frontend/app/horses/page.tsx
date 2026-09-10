@@ -21,8 +21,10 @@ export default async function HomePage() {
 
   const initialEdges: Edge[] = horses.flatMap((h) => {
   const connections: Edge[] = [];
-  
-  if (h.parentId1) {
+
+  // Guard against corrupt self-links (a horse as its own parent):
+  // they would loop the tree, so never render them.
+  if (h.parentId1 && h.parentId1 !== h.id.toString()) {
     connections.push({
       id: `e-${h.parentId1}-${h.id}`,
       source: h.parentId1,
@@ -30,15 +32,15 @@ export default async function HomePage() {
       animated: true,
     });
   }
-  
-  if (h.parentId2) {
+
+  if (h.parentId2 && h.parentId2 !== h.id.toString()) {
     connections.push({
       id: `e-${h.parentId2}-${h.id}`,
       source: h.parentId2,
       target: h.id?.toString(),
     });
   }
-  
+
   return connections;
 });
 

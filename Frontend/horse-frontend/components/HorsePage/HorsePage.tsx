@@ -23,8 +23,10 @@ export default function HorsePage({
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const onEditClick = () => {
+    setSaveError(null);
     setEditMode(!editMode);
   };
 
@@ -45,8 +47,14 @@ export default function HorsePage({
   });
 
   const onSaveEdits = async (formData: Horse) => {
-    await editHorseAction(horse, formData);
-    setEditMode(false);
+    try {
+      await editHorseAction(horse, formData);
+      setSaveError(null);
+      setEditMode(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not save changes.");
+      console.error(err);
+    }
   };
 
   const onDeleteConfirm = async () => {
@@ -104,6 +112,7 @@ export default function HorsePage({
         onClose={() => setEditMode(false)}
         onSave={onSaveEdits}
       />
+      {saveError && <div role="alert">{saveError}</div>}
 
       <HorseDeleteModal
         isOpen={deleteMode}

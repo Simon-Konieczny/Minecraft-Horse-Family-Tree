@@ -1,8 +1,10 @@
 "use server";
 import { createHorseData } from "@/components/Modals/HorseCreateModal/HorseCreateModal";
-import { createHorse, getHorseById } from "@/lib/horses";
+import { createHorse, getAllHorses, getHorseById } from "@/lib/horses";
 import { createHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
+import { validatePairing, validateParents } from "@/utils/lineage";
+import { breedingSettings } from "@/utils/breedingSettings";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 
@@ -15,6 +17,13 @@ export default async function createHorseAction(formData: createHorseData) {
   const parentId1 = formData.parentId1 || "";
   const parentId2 = formData.parentId2 || "";
   //chnage this to allow for selection of bloodline for origin horses
+
+  // A new node has no id yet so it cannot loop the tree, but validate
+  // anyway as defense-in-depth for future import paths.
+  const allHorses = await getAllHorses();
+  validateParents(allHorses, null, parentId1, parentId2);
+  // No-op while close-relative breeding is allowed (the default).
+  validatePairing(allHorses, parentId1, parentId2, breedingSettings);
 
   // Empty strings mean "origin horse" — skip the lookup instead of
   // constructing an invalid ObjectId (which only produced log noise).
