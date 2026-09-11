@@ -17,18 +17,16 @@ export default async function AppWrapper({
   ]);
 
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar
-        fallbackHorses={fallbackHorses}
-        initialAllowCloseRelativeBreeding={
-          breedingSettings.allowCloseRelativeBreeding
-        }
-      />
-      <main className={styles.contentArea}>
-        <BloodlineProvider bloodlines={bloodlines}>
-          {children}
-        </BloodlineProvider>
-      </main>
-    </div>
+    <BloodlineProvider bloodlines={bloodlines}>
+      <div style={{ display: "flex" }}>
+        <Sidebar
+          fallbackHorses={fallbackHorses}
+          initialAllowCloseRelativeBreeding={
+            breedingSettings.allowCloseRelativeBreeding
+          }
+        />
+        <main className={styles.contentArea}>{children}</main>
+      </div>
+    </BloodlineProvider>
   );
 }

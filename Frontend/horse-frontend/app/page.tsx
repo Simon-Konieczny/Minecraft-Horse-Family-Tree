@@ -1,4 +1,6 @@
-import { getRecentHorses, getStablesStats } from "@/lib/horses";
+import { getRecentHorses, getStablesStats, getAllHorses } from "@/lib/horses";
+import { generationCounts } from "@/utils/analytics";
+import { Bars, ChartCard, Donut } from "@/components/Charts/Charts";
 import * as styles from "./Dashboard.css";
 import { translateStat } from "@/utils/translateRawStats";
 import { getHorseVariantImage } from "@/utils/variant";
@@ -9,12 +11,14 @@ import Link from "next/link";
 import Image from "next/image";
 
 export default async function DashboardPage() {
-  const [horses, stats] = await Promise.all([
+  const [horses, stats, allHorses] = await Promise.all([
     getRecentHorses(10),
     getStablesStats(),
+    getAllHorses(),
   ]);
 
-  const { total, alive, avgSpeed, avgJump } = stats;
+  const { total, alive, byStatus, speed, jump } = stats;
+  const generations = generationCounts(allHorses);
 
   return (
     <div className={styles.container}>
@@ -31,12 +35,39 @@ export default async function DashboardPage() {
         </div>
         <div className={styles.statCard}>
           <span className={styles.statLabel}>Avg. Speed</span>
-          <span className={styles.statValue}>{translateStat("speed", avgSpeed).toFixed(2)} m/s</span>
+          <span className={styles.statValue}>{translateStat("speed", speed.avg).toFixed(2)} m/s</span>
+          <span className={styles.statRange}>
+            {translateStat("speed", speed.min).toFixed(2)} – {translateStat("speed", speed.max).toFixed(2)}
+          </span>
         </div>
         <div className={styles.statCard}>
           <span className={styles.statLabel}>Avg. Jump</span>
-          <span className={styles.statValue}>{translateStat("jump", avgJump).toFixed(2)} blocks</span>
+          <span className={styles.statValue}>{translateStat("jump", jump.avg).toFixed(2)} blocks</span>
+          <span className={styles.statRange}>
+            {translateStat("jump", jump.min).toFixed(2)} – {translateStat("jump", jump.max).toFixed(2)}
+          </span>
         </div>
+      </div>
+
+      <div className={styles.chartsGrid}>
+        <ChartCard title="Horses by Status">
+          <Donut
+            centerLabel={`${total}`}
+            segments={[
+              { label: "Alive", value: byStatus.Alive, color: "#2d4a3e" },
+              { label: "Retired", value: byStatus.Retired, color: "#b98a2f" },
+              { label: "Deceased", value: byStatus.Deceased, color: "#8f2d22" },
+            ]}
+          />
+        </ChartCard>
+        <ChartCard title="Horses per Generation">
+          <Bars
+            rows={generations.map((g) => ({
+              label: `Gen ${g.generation}`,
+              value: g.count,
+            }))}
+          />
+        </ChartCard>
       </div>
 
       <section className={styles.section}>

@@ -15,6 +15,7 @@ export interface Bloodline {
   name: string;
   hexColor: string;
   theme?: string;
+  hidden?: boolean;
 }
 
 interface BloodlineDoc {
@@ -22,6 +23,7 @@ interface BloodlineDoc {
   name: string;
   hexColor: string;
   theme?: string;
+  hidden?: boolean;
 }
 
 function cleanTheme(theme?: string): string | undefined {
@@ -51,7 +53,12 @@ export async function getBloodlines(): Promise<Bloodline[]> {
     }
   }
   return docs
-    .map((d) => ({ name: d.name || d._id, hexColor: d.hexColor, theme: d.theme }))
+    .map((d) => ({
+      name: d.name || d._id,
+      hexColor: d.hexColor,
+      theme: d.theme,
+      ...(d.hidden ? { hidden: true } : {}),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -121,6 +128,7 @@ export async function updateBloodline(
       name,
       hexColor,
       ...(theme ? { theme } : {}),
+      ...(doc.hidden ? { hidden: true } : {}),
     });
     await collection.deleteOne({ _id: doc._id });
   } else {
@@ -135,6 +143,22 @@ export async function updateBloodline(
     );
   }
   return { name, hexColor, ...(theme ? { theme } : {}) };
+}
+
+/** Flips visibility only — edits never touch this flag implicitly. */
+export async function setBloodlineVisibility(
+  name: string,
+  hidden: boolean,
+): Promise<void> {
+  noStore();
+  const collection = await getBloodlinesCollection();
+  const result = await collection.updateOne(
+    { _id: bloodlineSlug(name) },
+    hidden ? { $set: { hidden: true } } : { $unset: { hidden: "" } },
+  );
+  if (result.matchedCount === 0) {
+    throw new Error(`Bloodline "${name}" not found.`);
+  }
 }
 
 export async function updateBloodlineColor(

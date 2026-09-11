@@ -58,6 +58,24 @@ export const statValue = style({
   fontFamily: vars.font.display,
 });
 
+export const statRange = style({
+  fontSize: vars.fontSize.xs,
+  color: vars.color.inkSoft,
+  fontVariantNumeric: "tabular-nums",
+});
+
+export const chartsGrid = style({
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: vars.spacing.lg,
+  marginBottom: vars.spacing.xl,
+  "@media": {
+    "screen and (max-width: 900px)": {
+      gridTemplateColumns: "1fr",
+    },
+  },
+});
+
 export const section = style({
   backgroundColor: vars.color.secondary,
   borderRadius: vars.borderRadius.lg,

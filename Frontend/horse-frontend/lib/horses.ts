@@ -154,12 +154,20 @@ export async function getStablesStats() {
         $facet: {
           total: [{ $count: "count" }],
           alive: [{ $match: { status: { $in: ["Alive", "Retired"] } } }, { $count: "count" }],
+          byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
           averages: [
             {
               $group: {
                 _id: null,
                 avgSpeed: { $avg: "$speed" },
+                minSpeed: { $min: "$speed" },
+                maxSpeed: { $max: "$speed" },
                 avgJump: { $avg: "$jump" },
+                minJump: { $min: "$jump" },
+                maxJump: { $max: "$jump" },
+                avgHealth: { $avg: "$health" },
+                minHealth: { $min: "$health" },
+                maxHealth: { $max: "$health" },
               },
             },
           ],
@@ -168,15 +176,38 @@ export async function getStablesStats() {
     ]).toArray();
 
     const result = stats[0];
+    // Buckets may hold legacy numeric codes — coerce via parseHorseStatus.
+    const byStatus = { Alive: 0, Deceased: 0, Retired: 0 };
+    for (const bucket of result.byStatus || []) {
+      byStatus[parseHorseStatus(bucket._id)] += bucket.count || 0;
+    }
+    const avg = result.averages[0] || {};
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
     return {
       total: result.total[0]?.count || 0,
       alive: result.alive[0]?.count || 0,
-      avgSpeed: result.averages[0]?.avgSpeed || 0,
-      avgJump: result.averages[0]?.avgJump || 0,
+      byStatus,
+      avgSpeed: num(avg.avgSpeed),
+      avgJump: num(avg.avgJump),
+      avgHealth: num(avg.avgHealth),
+      speed: { avg: num(avg.avgSpeed), min: num(avg.minSpeed), max: num(avg.maxSpeed) },
+      jump: { avg: num(avg.avgJump), min: num(avg.minJump), max: num(avg.maxJump) },
+      health: { avg: num(avg.avgHealth), min: num(avg.minHealth), max: num(avg.maxHealth) },
     };
   } catch (error) {
     console.error("Error fetching stats:", error);
-    return { total: 0, alive: 0, avgSpeed: 0, avgJump: 0 };
+    const empty = { avg: 0, min: 0, max: 0 };
+    return {
+      total: 0,
+      alive: 0,
+      byStatus: { Alive: 0, Deceased: 0, Retired: 0 },
+      avgSpeed: 0,
+      avgJump: 0,
+      avgHealth: 0,
+      speed: empty,
+      jump: empty,
+      health: empty,
+    };
   }
 }
 

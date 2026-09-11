@@ -1,16 +1,18 @@
-import { getBloodlines } from "@/lib/bloodlines";
+import { getBloodlines, getBloodlineColors } from "@/lib/bloodlines";
 import { getAllHorses } from "@/lib/horses";
 import { buildFamilyRecords } from "@/utils/studbook";
 import { ChapterHeading, Folio } from "@/components/Book/Book";
 import BloodlineManager from "@/components/Bloodlines/BloodlineManager";
 import FamilyRecords from "@/components/Bloodlines/FamilyRecords";
+import HerdGenetics from "@/components/Bloodlines/HerdGenetics";
 
 export const dynamic = "force-dynamic";
 
 export default async function BloodlinesPage() {
-  const [bloodlines, horses] = await Promise.all([
+  const [bloodlines, horses, colors] = await Promise.all([
     getBloodlines(),
     getAllHorses(),
+    getBloodlineColors(),
   ]);
   const records = buildFamilyRecords(horses);
 
@@ -23,6 +25,7 @@ export default async function BloodlinesPage() {
       />
       <BloodlineManager initial={bloodlines} />
       <FamilyRecords bloodlines={bloodlines} records={records} />
+      <HerdGenetics horses={horses} bloodlines={bloodlines} colors={colors} />
       <Folio text="Chapter III · Bloodlines Registry" />
     </main>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Bloodline } from "@/lib/bloodlines";
 import type { FamilyRecord } from "@/utils/studbook";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
 import { vars } from "@/styles/theme.css";
 
 function formatDate(iso: string | null): string {
@@ -19,6 +20,9 @@ export default function FamilyRecords({
   records: FamilyRecord[];
 }) {
   const registry = new Map(bloodlines.map((b) => [b.name, b]));
+  const hiddenSlugs = new Set(
+    bloodlines.filter((b) => b.hidden).map((b) => bloodlineSlug(b.name)),
+  );
   const recorded = new Set(records.map((r) => r.family));
   // Registry families with no horses yet still get a card.
   const empty: FamilyRecord[] = bloodlines
@@ -33,6 +37,8 @@ export default function FamilyRecords({
   const all = [...records, ...empty].sort((a, b) =>
     a.family.localeCompare(b.family),
   );
+  const shown = all.filter((r) => !hiddenSlugs.has(bloodlineSlug(r.family)));
+  const hiddenCards = all.filter((r) => hiddenSlugs.has(bloodlineSlug(r.family)));
 
   return (
     <section style={{ marginTop: 40 }}>
@@ -41,11 +47,34 @@ export default function FamilyRecords({
         Computed live from the herd — founders, last known purebreds, and
         record holders per family.
       </p>
-      {all.map((r) => {
+      {shown.map((r) => {
         const meta = registry.get(r.family);
-        return (
+        return <FamilyCard key={r.family} record={r} meta={meta} />;
+      })}
+      {hiddenCards.length > 0 && (
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+            Hidden families ({hiddenCards.length})
+          </summary>
+          {hiddenCards.map((r) => {
+            const meta = registry.get(r.family);
+            return <FamilyCard key={r.family} record={r} meta={meta} />;
+          })}
+        </details>
+      )}
+    </section>
+  );
+}
+
+function FamilyCard({
+  record: r,
+  meta,
+}: {
+  record: FamilyRecord;
+  meta: Bloodline | undefined;
+}) {
+  return (
           <article
-            key={r.family}
             style={{
               border: `1px solid ${vars.color.goldSoft}`,
               borderLeft: `4px solid ${vars.color.gold}`,
@@ -140,8 +169,5 @@ export default function FamilyRecords({
               </>
             )}
           </article>
-        );
-      })}
-    </section>
   );
 }

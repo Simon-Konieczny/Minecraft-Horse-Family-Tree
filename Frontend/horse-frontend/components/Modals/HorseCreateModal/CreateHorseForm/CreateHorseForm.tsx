@@ -12,6 +12,9 @@ import { createHorseData } from "../HorseCreateModal";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
 import { getHorseFullName } from "@/utils/horseNames";
 import { getSurnameFromDna, mergeDna } from "@/utils/genetics/utils";
+import { ancestryOverlap } from "@/utils/analytics";
+import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvider";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
 
 export interface CreateHorseFormProps {
   horses: Horse[];
@@ -85,15 +88,21 @@ export default function CreateHorseForm({
     { value: "Retired", label: "Retired" },
   ];
 
-  // Known families for autocomplete (derived from DNA-derived names in the DB).
+  // Known families for autocomplete (DNA-derived names in the DB,
+  // minus hidden bloodlines).
+  const hiddenSlugs = useHiddenBloodlineSlugs();
   const knownFamilies = useMemo(
     () =>
       Array.from(
         new Set(
-          horses.map((h) => (h.familyName || "").trim()).filter(Boolean),
+          horses
+            .map((h) => (h.familyName || "").trim())
+            .filter(
+              (f) => f && !hiddenSlugs.includes(bloodlineSlug(f)),
+            ),
         ),
       ).sort((a, b) => a.localeCompare(b)),
-    [horses],
+    [horses, hiddenSlugs],
   );
 
   // Live DNA suggestion: once both parents are picked, suggest the foal's
@@ -117,6 +126,18 @@ export default function CreateHorseForm({
     }
     prevSuggestion.current = dnaSuggestion;
   }, [dnaSuggestion, formData.familyName, setFormData]);
+
+  // Live inbreeding flag (never a block — see breeding policy).
+  const overlap = useMemo(() => {
+    if (
+      !formData.parentId1 ||
+      !formData.parentId2 ||
+      formData.parentId1 === formData.parentId2
+    ) {
+      return null;
+    }
+    return ancestryOverlap(horses, formData.parentId1, formData.parentId2);
+  }, [horses, formData.parentId1, formData.parentId2]);
 
   return (
     <div className={styles.container}>
@@ -173,6 +194,20 @@ export default function CreateHorseForm({
                 menuPortalTarget={null}
               />
             </>
+          )}
+          {overlap && (
+            <div style={{ fontSize: 12, opacity: 0.85 }}>
+              {overlap.shared > 0 ? (
+                <span>
+                  Shared ancestry (3 gens): {overlap.shared} ancestor
+                  {overlap.shared === 1 ? "" : "s"},{" "}
+                  {(overlap.pct * 100).toFixed(0)}% overlap — allowed,
+                  flagged for review.
+                </span>
+              ) : (
+                <span>No shared ancestry in the last 3 generations.</span>
+              )}
+            </div>
           )}
 
           <Select

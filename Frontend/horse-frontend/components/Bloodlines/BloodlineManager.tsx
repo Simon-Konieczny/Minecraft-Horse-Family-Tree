@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Bloodline } from "@/lib/bloodlines";
 import addBloodlineAction from "@/actions/addBloodlineAction";
 import updateBloodlineAction from "@/actions/updateBloodlineAction";
+import toggleBloodlineVisibilityAction from "@/actions/toggleBloodlineVisibilityAction";
 import updateBloodlineColorAction from "@/actions/updateBloodlineColorAction";
 import deleteBloodlineAction from "@/actions/deleteBloodlineAction";
 import { vars } from "@/styles/theme.css";
@@ -77,6 +78,9 @@ export default function BloodlineManager({
     }
   };
 
+  const visible = initial.filter((b) => !b.hidden);
+  const hidden = initial.filter((b) => b.hidden);
+
   return (
     <div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -90,7 +94,7 @@ export default function BloodlineManager({
           </tr>
         </thead>
         <tbody>
-          {initial.map((b) => (
+          {visible.map((b) => (
             <tr key={b.name} style={{ borderBottom: `1px solid ${vars.color.goldSoft}` }}>
               <td>
                 <span
@@ -129,6 +133,14 @@ export default function BloodlineManager({
                 </button>
                 <button
                   disabled={busy}
+                  className={styles.cancelButton}
+                  style={{ marginRight: 8 }}
+                  onClick={() => void run(() => toggleBloodlineVisibilityAction(b.name, true))}
+                >
+                  Hide
+                </button>
+                <button
+                  disabled={busy}
                   className={styles.deleteButton}
                   onClick={() => {
                     if (
@@ -145,7 +157,7 @@ export default function BloodlineManager({
               </td>
             </tr>
           ))}
-          {initial.length === 0 && (
+          {visible.length === 0 && (
             <tr>
               <td colSpan={5} style={{ opacity: 0.5 }}>
                 No bloodlines yet.
@@ -154,6 +166,30 @@ export default function BloodlineManager({
           )}
         </tbody>
       </table>
+
+      {hidden.length > 0 && (
+        <details style={{ marginTop: 16 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+            Hidden bloodlines ({hidden.length})
+          </summary>
+          <ul>
+            {hidden.map((b) => (
+              <li key={b.name} style={{ marginTop: 8 }}>
+                {b.name}{" "}
+                <button
+                  disabled={busy}
+                  className={styles.cancelButton}
+                  onClick={() =>
+                    void run(() => toggleBloodlineVisibilityAction(b.name, false))
+                  }
+                >
+                  Reveal
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <h2 style={{ marginTop: 32, fontFamily: vars.font.display, color: vars.color.ink }}>Add Bloodline</h2>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>

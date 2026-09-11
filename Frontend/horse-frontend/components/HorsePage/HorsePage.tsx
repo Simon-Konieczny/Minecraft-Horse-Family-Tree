@@ -2,7 +2,9 @@
 import { Horse } from "@/types/horse";
 import { useRouter } from "next/navigation";
 import * as styles from "./HorsePage.css";
-import { translateStatsForDisplay } from "@/utils/translateRawStats";
+import { translateStat, translateStatsForDisplay } from "@/utils/translateRawStats";
+import { ChartCard, Donut, Radar } from "@/components/Charts/Charts";
+import * as chartStyles from "@/components/Charts/Charts.css";
 import Button from "../Common/Button/Button";
 import HorsePageHeader from "./HorsePageHeader/HorsePageHeader";
 import StatsShapeGrid from "./StatsShapeGrid/StatsShapeGrid";
@@ -18,9 +20,11 @@ import { Folio } from "@/components/Book/Book";
 export default function HorsePage({
   horse,
   horses,
+  colors,
 }: {
   horse: Horse;
   horses: Horse[];
+  colors: Record<string, string>;
 }) {
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
@@ -71,6 +75,73 @@ export default function HorsePage({
   };
   const parent1Name = parentNameOf(horse.parentId1);
   const parent2Name = parentNameOf(horse.parentId2);
+
+  // Herd-relative radar: this horse's translated stats against herd min/max.
+  const mySpeed = translateStat("speed", horse.speed);
+  const myJump = translateStat("jump", horse.jump);
+  const myHealth = translateStat("health", horse.health);
+  const herdValues = (field: "speed" | "jump" | "health") =>
+    horses
+      .map((h) => translateStat(field, h[field]))
+      .filter((v) => Number.isFinite(v));
+  const rangeOf = (values: number[]) =>
+    values.length > 0
+      ? { min: Math.min(...values), max: Math.max(...values) }
+      : { min: 0, max: 0 };
+  const speedRange = rangeOf(herdValues("speed"));
+  const jumpRange = rangeOf(herdValues("jump"));
+  const healthRange = rangeOf(herdValues("health"));
+  const radarAxes = [
+    {
+      label: "Speed",
+      value: mySpeed,
+      ...speedRange,
+      display: `${mySpeed.toFixed(2)} m/s`,
+    },
+    {
+      label: "Jump",
+      value: myJump,
+      ...jumpRange,
+      display: `${myJump.toFixed(2)} blocks`,
+    },
+    {
+      label: "Health",
+      value: myHealth,
+      ...healthRange,
+      display: `${myHealth.toFixed(1)} hp`,
+    },
+  ];
+
+  // DNA breakdown for the donut.
+  const dnaSegments = Object.entries(horse.dna || {})
+    .filter((entry): entry is [string, number] => {
+      const weight = entry[1];
+      return typeof weight === "number" && Number.isFinite(weight) && weight > 0;
+    })
+    .map(([bloodline, weight]) => ({
+      label: bloodline,
+      value: Math.round(weight * 100) / 100,
+      color: colors[bloodline] || "#94a3b8",
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  // Ancestor comparison: this horse vs the average of its known parents.
+  const sire = horses.find((h) => h.id === horse.parentId1);
+  const dam = horses.find((h) => h.id === horse.parentId2);
+  const knownParents = [sire, dam].filter((p): p is Horse => !!p);
+  const parentAvg = (field: "speed" | "jump" | "health"): number | null => {
+    const values = knownParents
+      .map((p) => translateStat(field, p[field]))
+      .filter((v) => Number.isFinite(v));
+    return values.length > 0
+      ? values.reduce((t, v) => t + v, 0) / values.length
+      : null;
+  };
+  const comparisons = [
+    { label: "Speed", mine: mySpeed, parent: parentAvg("speed"), decimals: 2, unit: "m/s" },
+    { label: "Jump", mine: myJump, parent: parentAvg("jump"), decimals: 2, unit: "blocks" },
+    { label: "Health", mine: myHealth, parent: parentAvg("health"), decimals: 1, unit: "hp" },
+  ];
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -137,6 +208,77 @@ export default function HorsePage({
         parent1Name={parent1Name}
         parent2Name={parent2Name}
       />
+
+      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
+        <ChartCard title="Stat Radar — vs Herd">
+          <Radar axes={radarAxes} color={horseColor} />
+          <p className={chartStyles.mutedNote}>
+            Herd-relative: each axis spans the herd&apos;s min to max.
+          </p>
+        </ChartCard>
+        <ChartCard title="DNA Breakdown">
+          {dnaSegments.length > 0 ? (
+            <Donut segments={dnaSegments} />
+          ) : (
+            <p className={chartStyles.mutedNote}>No DNA recorded yet.</p>
+          )}
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Ancestor Comparison — vs Sire & Dam">
+          {knownParents.length > 0 ? (
+            <table className={chartStyles.ledgerTable}>
+              <thead>
+                <tr>
+                  <th className={chartStyles.ledgerTh}>Stat</th>
+                  <th className={chartStyles.ledgerTh}>This Horse</th>
+                  <th className={chartStyles.ledgerTh}>Parents Avg</th>
+                  <th className={chartStyles.ledgerTh}>Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisons.map((c) => {
+                  const delta = c.parent !== null ? c.mine - c.parent : null;
+                  const arrow =
+                    delta === null ? "—" : delta > 0 ? "▲" : delta < 0 ? "▼" : "＝";
+                  const color =
+                    delta === null || delta === 0
+                      ? "inherit"
+                      : delta > 0
+                        ? "#2d4a3e"
+                        : "#8f2d22";
+                  return (
+                    <tr key={c.label}>
+                      <td className={chartStyles.ledgerTd}>{c.label}</td>
+                      <td className={chartStyles.ledgerTd}>
+                        {c.mine.toFixed(c.decimals)} {c.unit}
+                      </td>
+                      <td className={chartStyles.ledgerTd}>
+                        {c.parent !== null
+                          ? `${c.parent.toFixed(c.decimals)} ${c.unit}`
+                          : "—"}
+                      </td>
+                      <td
+                        className={chartStyles.ledgerTd}
+                        style={{ color, fontWeight: 700 }}
+                      >
+                        {delta !== null
+                          ? `${(delta >= 0 ? "+" : "") + delta.toFixed(c.decimals)} ${arrow}`
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className={chartStyles.mutedNote}>
+              Parents unknown — the comparison appears once parents are recorded.
+            </p>
+          )}
+        </ChartCard>
+      </div>
       <Folio text={`Entry · ${getHorseFullName(horse)}`} />
     </main>
   );

@@ -13,6 +13,9 @@ import StatRow from "../StatRow/StatRow";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
 import { getDescendantIds } from "@/utils/lineage";
 import { getHorseFullName } from "@/utils/horseNames";
+import { ancestryOverlap } from "@/utils/analytics";
+import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvider";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
 
 import * as statRowStyles from "../StatRow/StatRow.css";
 
@@ -76,15 +79,32 @@ export default function HorseEditModal({
     [horses, horse.id, blockedIds],
   );
 
+  const hiddenSlugs = useHiddenBloodlineSlugs();
   const knownFamilies = useMemo(
     () =>
       Array.from(
         new Set(
-          horses.map((h) => (h.familyName || "").trim()).filter(Boolean),
+          horses
+            .map((h) => (h.familyName || "").trim())
+            .filter(
+              (f) => f && !hiddenSlugs.includes(bloodlineSlug(f)),
+            ),
         ),
       ).sort((a, b) => a.localeCompare(b)),
-    [horses],
+    [horses, hiddenSlugs],
   );
+
+  // Live inbreeding flag (never a block — see breeding policy).
+  const overlap = useMemo(() => {
+    if (
+      !formData.parentId1 ||
+      !formData.parentId2 ||
+      formData.parentId1 === formData.parentId2
+    ) {
+      return null;
+    }
+    return ancestryOverlap(horses, formData.parentId1, formData.parentId2);
+  }, [horses, formData.parentId1, formData.parentId2]);
 
   if (!isOpen) return null;
 
@@ -180,6 +200,20 @@ export default function HorseEditModal({
                   menuPortalTarget={null}
                 />
               </>
+            )}
+            {overlap && (
+              <div style={{ fontSize: 12, opacity: 0.85 }}>
+                {overlap.shared > 0 ? (
+                  <span>
+                    Shared ancestry (3 gens): {overlap.shared} ancestor
+                    {overlap.shared === 1 ? "" : "s"},{" "}
+                    {(overlap.pct * 100).toFixed(0)}% overlap — allowed,
+                    flagged for review.
+                  </span>
+                ) : (
+                  <span>No shared ancestry in the last 3 generations.</span>
+                )}
+              </div>
             )}
             <label className={statRowStyles.label}>Status</label>
                 <Select
