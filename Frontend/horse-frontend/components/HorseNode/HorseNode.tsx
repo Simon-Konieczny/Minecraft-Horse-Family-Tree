@@ -6,13 +6,14 @@ import { getHorseFullName } from '@/utils/horseNames';
 import * as styles from './HorseNode.css';
 import { CSSProperties } from 'react';
 import Image from 'next/image';
+import { DENSITY_CONFIG, NodeDensity } from '@/utils/layout';
 
 export type HorseNodeData = {
   horse: Horse;
   label?: string;
   activeView?: 'speed' | 'jump' | 'health' | 'base';
   statusView?: boolean;
-  compactView?: boolean;
+  density?: NodeDensity;
 };
 
 // 2. Define the specialized Node type for this component
@@ -42,7 +43,10 @@ function darkenColor(hex: string, amount: number): string {
 }
 
 export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
-  const { horse, activeView, statusView, compactView } = data;
+  const { horse, activeView, statusView } = data;
+  const density: NodeDensity = data.density ?? 'full';
+  const maxWidth = DENSITY_CONFIG[density].nodeWidth;
+  const fullName = getHorseFullName(horse);
   const {jump, health, speed, variant} = horse;
   const processedStats = translateStatsForDisplay({jump, health, speed, variant})
   const dnaColor = horse.hexColor || '#444444';
@@ -63,7 +67,17 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
     borderTopWidth: '2px',
     borderRightWidth: '2px',
     borderBottomWidth: '2px',
-    borderLeftWidth: compactView ? '2px' : '6px',
+    borderLeftWidth: density === 'full' ? '6px' : '2px',
+    maxWidth: maxWidth,
+  };
+
+  // Ellipsis keeps rendered names within the layout's assumed width;
+  // the full name is always one hover away.
+  const ellipsisStyle: CSSProperties = {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '100%',
   };
 
   const getDisplayStat = () => {
@@ -82,13 +96,25 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
   const display = getDisplayStat();
   const horseImage = getHorseVariantImage(horse.variant);
 
-  if (compactView) {
+  if (density === 'minimal') {
+    return (
+      <div className={styles.nodeContainer} style={{ ...containerStyle, minWidth: 0 }}>
+        <Handle type="target" position={Position.Top} className={styles.handleStyle} />
+        <div className={styles.horseName} title={fullName} style={{ color: textColor, fontSize: '12px', ...ellipsisStyle }}>
+          {horse.firstName}
+        </div>
+        <Handle type="source" position={Position.Bottom} className={styles.handleStyle} />
+      </div>
+    );
+  }
+
+  if (density === 'compact') {
     return (
       <div className={styles.nodeContainer} style={{ ...containerStyle, minWidth: '140px' }}>
         <Handle type="target" position={Position.Top} className={styles.handleStyle} />
         <div className={styles.contentWrapper} style={{ flexDirection: 'column', gap: '2px' }}>
-          <div className={styles.horseName} style={{ color: textColor, fontSize: '13px' }}>
-            {getHorseFullName(horse)}
+          <div className={styles.horseName} title={fullName} style={{ color: textColor, fontSize: '13px', ...ellipsisStyle }}>
+            {fullName}
           </div>
           <div className={styles.statText} style={{ color: textColor, opacity: 0.9 }}>
             {display.label}: {display.value}
@@ -118,8 +144,8 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
           />
         </div>
         <div className={styles.textDetails}>
-          <div className={styles.horseName} style={{ color: textColor }}>
-            {getHorseFullName(horse)}
+          <div className={styles.horseName} title={fullName} style={{ color: textColor, ...ellipsisStyle }}>
+            {fullName}
           </div>
           <div className={styles.statText} style={{ color: textColor, opacity: 0.8 }}>
             <span className={styles.statLabel} style={{ color: 'inherit' }}>{display.label}:</span>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFamilyRecords,
   effectiveFamily,
+  familiesWithCounts,
   getFoundingDate,
 } from "./studbook";
 import type { Horse } from "@/types/horse";
@@ -54,6 +55,25 @@ describe("getFoundingDate", () => {
 
   it("returns null when neither is available", () => {
     expect(getFoundingDate({ id: "nope" })).toBeNull();
+  });
+});
+
+describe("familiesWithCounts", () => {
+  it("groups by effective family, sorted, with counts", () => {
+    expect(
+      familiesWithCounts([
+        { familyName: "Longbottom", dna: {} },
+        { familyName: "  Longbottom  ", dna: {} },
+        { familyName: "", dna: { Emberhoof: 1.0 } },
+      ]),
+    ).toEqual([
+      { family: "Emberhoof", count: 1 },
+      { family: "Longbottom", count: 2 },
+    ]);
+  });
+
+  it("is empty-safe", () => {
+    expect(familiesWithCounts([])).toEqual([]);
   });
 });
 

@@ -55,6 +55,25 @@ export function effectiveFamily(horse: Pick<Horse, "familyName" | "dna">): strin
   return getSurnameFromDna(horse.dna || {});
 }
 
+export interface FamilyCount {
+  family: string;
+  count: number;
+}
+
+/** Distinct families present in a list, name-sorted, with horse counts. */
+export function familiesWithCounts(
+  horses: Pick<Horse, "familyName" | "dna">[],
+): FamilyCount[] {
+  const counts = new Map<string, number>();
+  for (const h of horses) {
+    const family = effectiveFamily(h);
+    counts.set(family, (counts.get(family) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([family, count]) => ({ family, count }))
+    .sort((a, b) => a.family.localeCompare(b.family));
+}
+
 /**
  * Derives a founding date without any stored timestamp: prefers
  * createdAt, falls back to the ObjectId timestamp (first 4 bytes).
