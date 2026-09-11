@@ -4,6 +4,7 @@ import {
   calculateColorFromDna,
   mergeDna,
   normalizeDna,
+  resolveOriginBlood,
 } from "./utils";
 import { processNewHorseGenetics } from "./service";
 import type { Horse } from "@/types/horse";
@@ -102,6 +103,46 @@ describe("normalizeDna / assertDnaSum guard", () => {
     const { dna } = processNewHorseGenetics(
       horseWithDna({ Emberhoof: 1.0 }),
       horseWithDna({ Frostmane: 1.0 }),
+    );
+    expect(dna).toEqual({ Emberhoof: 0.5, Frostmane: 0.5 });
+  });
+});
+
+describe("resolveOriginBlood", () => {
+  const colors = { Longbottom: "#123456", Emberhoof: "#ff0000", Unknown: "#444444" };
+
+  it("resolves surnames to canonical casing, ignoring case/whitespace", () => {
+    expect(resolveOriginBlood("Longbottom", colors)).toBe("Longbottom");
+    expect(resolveOriginBlood("  longbottom  ", colors)).toBe("Longbottom");
+    expect(resolveOriginBlood("EMBERHOOF", colors)).toBe("Emberhoof");
+  });
+
+  it("returns undefined for blank, Unknown, or unmatched names", () => {
+    expect(resolveOriginBlood("", colors)).toBeUndefined();
+    expect(resolveOriginBlood("   ", colors)).toBeUndefined();
+    expect(resolveOriginBlood(undefined, colors)).toBeUndefined();
+    expect(resolveOriginBlood("Unknown", colors)).toBeUndefined();
+    expect(resolveOriginBlood("Mistral", colors)).toBeUndefined();
+  });
+
+  it("seeds founder DNA and color through processNewHorseGenetics", () => {
+    const { dna, hexColor, generation } = processNewHorseGenetics(
+      undefined,
+      undefined,
+      resolveOriginBlood("longbottom", colors),
+      colors,
+    );
+    expect(dna).toEqual({ Longbottom: 1.0 });
+    expect(hexColor).toBe("#123456");
+    expect(generation).toBe(0);
+  });
+
+  it("leaves two-parent inheritance untouched by originBlood", () => {
+    const { dna } = processNewHorseGenetics(
+      horseWithDna({ Emberhoof: 1.0 }),
+      horseWithDna({ Frostmane: 1.0 }),
+      "Longbottom",
+      colors,
     );
     expect(dna).toEqual({ Emberhoof: 0.5, Frostmane: 0.5 });
   });

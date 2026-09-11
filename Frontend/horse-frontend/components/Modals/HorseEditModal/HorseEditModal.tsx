@@ -16,6 +16,7 @@ import { getHorseFullName } from "@/utils/horseNames";
 import { ancestryOverlap } from "@/utils/analytics";
 import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvider";
 import FamilyNameBloodlineLink from "@/components/Bloodlines/FamilyNameBloodlineLink";
+import FounderBloodlinePicker from "@/components/Bloodlines/FounderBloodlinePicker";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
 
 import * as statRowStyles from "../StatRow/StatRow.css";
@@ -25,7 +26,7 @@ interface HorseEditModalProps {
   horses: Horse[];
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedHorse: Horse) => void;
+  onSave: (updatedHorse: Horse, originBloodline?: string) => void;
 }
 
 export default function HorseEditModal({
@@ -37,6 +38,8 @@ export default function HorseEditModal({
 }: HorseEditModalProps) {
   const [formData, setFormData] = useState({ ...horse });
   const [rawStatsView, setRawStatsView] = useState(false);
+  // Explicit founder-bloodline correction (parentless horses only).
+  const [originBloodline, setOriginBloodline] = useState("");
   const [displayStats, setDisplayStats] = useState({
     speed: translateStat("speed", horse.speed).toString(),
     health: translateStat("health", horse.health).toString(),
@@ -111,6 +114,7 @@ export default function HorseEditModal({
 
   const onCancel = () => {
     setFormData({ ...horse });
+    setOriginBloodline("");
     onClose();
   };
 
@@ -227,6 +231,21 @@ export default function HorseEditModal({
                 )}
               </div>
             )}
+            {!formData.parentId1 && !formData.parentId2 && (
+              <div>
+                <label className={statRowStyles.label}>Founder Bloodline</label>
+                <FounderBloodlinePicker
+                  value={originBloodline}
+                  onChange={setOriginBloodline}
+                />
+                {blockedIds.size > 0 && originBloodline && (
+                  <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                    {blockedIds.size} descendant{blockedIds.size === 1 ? "" : "s"} keep{blockedIds.size === 1 ? "s" : ""} existing
+                    DNA — only this horse changes.
+                  </div>
+                )}
+              </div>
+            )}
             <label className={statRowStyles.label}>Status</label>
                 <Select
                   options={statusOptions}
@@ -279,7 +298,10 @@ export default function HorseEditModal({
         </div>
         <div className={styles.buttonRow}>
           <Button onClick={onCancel} text="Cancel" />
-          <Button onClick={() => onSave(formData)} text="Save Changes" />
+          <Button
+            onClick={() => onSave(formData, originBloodline)}
+            text="Save Changes"
+          />
         </div>
       </div>
     </div>

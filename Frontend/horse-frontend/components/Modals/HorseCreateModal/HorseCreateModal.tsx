@@ -18,6 +18,8 @@ export interface createHorseData {
   familyName: string;
   parentId1: string;
   parentId2: string;
+  /** Explicit founder bloodline pick (parentless horses only). */
+  originBloodline: string;
   status: HorseStatus;
   speed: number;
   health: number;
@@ -36,6 +38,7 @@ export default function HorseCreateModal({
     familyName: "",
     parentId1: "",
     parentId2: "",
+    originBloodline: "",
     status: "Alive",
     speed: 0,
     health: 0,

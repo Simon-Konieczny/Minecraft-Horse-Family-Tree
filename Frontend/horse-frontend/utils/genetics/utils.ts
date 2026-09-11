@@ -1,4 +1,7 @@
 import { BloodlineMap } from "@/types/horse";
+// Relative import: vitest has no "@" alias configured, and this is a
+// runtime (value) import, unlike the type-only import above.
+import { bloodlineSlug } from "../bloodlineValidation";
 
 export const BLOODLINE_COLORS: Record<string, string> = {
   "Star Strider": "#000066",
@@ -90,6 +93,23 @@ export function calculateColorFromDna(
 
 /** Minimum DNA weight for a bloodline to appear in a surname. */
 export const SURNAME_INCLUSION_THRESHOLD = 0.15;
+
+/**
+ * Canonical registry name for a founder's surname (slug-compared, so
+ * "longbottom" resolves to "Longbottom"), or undefined when it matches
+ * nothing usable. Used as originBlood for parentless horses so a linked
+ * surname seeds DNA instead of falling back to Unknown. Blank, Unknown,
+ * and unmatched names all resolve to undefined (Unknown fallback).
+ */
+export function resolveOriginBlood(
+  familyName: string | undefined | null,
+  colors: Record<string, string>,
+): string | undefined {
+  const trimmed = (familyName || "").trim();
+  if (!trimmed || bloodlineSlug(trimmed) === "unknown") return undefined;
+  const slug = bloodlineSlug(trimmed);
+  return Object.keys(colors || {}).find((name) => bloodlineSlug(name) === slug);
+}
 /** Weight gap below which two bloodlines count as tied (sire decides). */
 const SURNAME_TIE_EPSILON = 0.02;
 /** Max bloodlines joined into a surname. */

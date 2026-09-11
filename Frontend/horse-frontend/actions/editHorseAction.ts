@@ -3,12 +3,17 @@
 import { bulkUpdateGenerations, editHorse, getAllHorses, getHorseById } from "@/lib/horses";
 import { Horse, editHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
+import { resolveOriginBlood } from "@/utils/genetics/utils";
 import { getDescendantIds, validatePairing, validateParents } from "@/utils/lineage";
 import { getBreedingSettings } from "@/lib/breedingSettings";
 import { getBloodlineColors } from "@/lib/bloodlines";
 import { revalidatePath } from 'next/cache';
 
-export default async function editHorseAction(horse: Horse, formData: Horse) {
+export default async function editHorseAction(
+  horse: Horse,
+  formData: Horse,
+  originBloodline?: string,
+) {
   const allHorses = await getAllHorses();
 
   // Block loops before writing: a horse can never be parented to itself
@@ -28,12 +33,16 @@ export default async function editHorseAction(horse: Horse, formData: Horse) {
       getHorseById(parentId2),
     ]);}
 
-    const { dna, hexColor, generation } = processNewHorseGenetics(
-      parent1,
-      parent2,
-      undefined,
-      await getBloodlineColors(),
-    );
+    const { dna, hexColor, generation } = await resolveEditGenetics(
+    allHorses,
+    horse,
+    parent1,
+    parent2,
+    parentId1,
+    parentId2,
+    formData.familyName,
+    originBloodline,
+  );
 
 
   const data: editHorseRequest = {
@@ -57,6 +66,47 @@ export default async function editHorseAction(horse: Horse, formData: Horse) {
   await recomputeDescendantGenerations(allHorses, horse.id, generation);
 
   revalidatePath(`/horses/${horse.id}`);
+}
+
+async function resolveEditGenetics(
+  allHorses: Horse[],
+  horse: Horse,
+  parent1: Horse | undefined,
+  parent2: Horse | undefined,
+  parentId1: string | undefined,
+  parentId2: string | undefined,
+  familyName: string,
+  originBloodline?: string,
+) {
+  const colors = await getBloodlineColors();
+  // With both parents set, DNA always inherits and any founder pick is
+  // ignored (mirrors the service's origin path).
+  if (parentId1 && parentId2) {
+    return processNewHorseGenetics(parent1, parent2, undefined, colors);
+  }
+  const pick = (originBloodline || "").trim();
+  if (pick) {
+    const resolved = resolveOriginBlood(pick, colors);
+    if (!resolved) throw new Error(`Unknown bloodline "${pick}".`);
+    return processNewHorseGenetics(parent1, parent2, resolved, colors);
+  }
+  if (getDescendantIds(allHorses, horse.id).size === 0) {
+    // Childless founder: a matching surname seeds DNA on re-save, so
+    // previously Unknown horses self-repair without touching the picker.
+    return processNewHorseGenetics(
+      parent1,
+      parent2,
+      resolveOriginBlood(familyName, colors),
+      colors,
+    );
+  }
+  // Has descendants and no explicit correction: preserve stored genetics
+  // so foal maps don't go stale (edits only recompute generations).
+  return {
+    dna: horse.dna,
+    hexColor: horse.hexColor || "#000000",
+    generation: horse.generation,
+  };
 }
 
 async function recomputeDescendantGenerations(

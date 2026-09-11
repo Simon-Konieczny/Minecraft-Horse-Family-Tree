@@ -3,7 +3,7 @@ import { createHorseData } from "@/components/Modals/HorseCreateModal/HorseCreat
 import { createHorse, getAllHorses, getHorseById } from "@/lib/horses";
 import { createHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
-import { getSurnameFromDna } from "@/utils/genetics/utils";
+import { getSurnameFromDna, resolveOriginBlood } from "@/utils/genetics/utils";
 import { getHorseFullName } from "@/utils/horseNames";
 import { validatePairing, validateParents } from "@/utils/lineage";
 import { getBreedingSettings } from "@/lib/breedingSettings";
@@ -36,17 +36,32 @@ export default async function createHorseAction(formData: createHorseData) {
     ObjectId.isValid(parentId2) ? getHorseById(parentId2) : undefined,
   ]);
 
+  const colors = await getBloodlineColors();
+
+  // Founder bloodline precedence: explicit picker pick -> matching
+  // surname -> Unknown. Only consulted on the origin path (parentless
+  // horses); two-parent foals always inherit via mergeDna.
+  const explicitPick = (formData.originBloodline || "").trim();
+  if (explicitPick && !resolveOriginBlood(explicitPick, colors)) {
+    throw new Error(`Unknown bloodline "${explicitPick}".`);
+  }
+  const typedFamily = formData.familyName?.trim() || "";
+  const originBlood =
+    resolveOriginBlood(explicitPick, colors) ||
+    resolveOriginBlood(typedFamily, colors) ||
+    undefined;
+
   const { dna, hexColor, generation } = processNewHorseGenetics(
     parent1,
     parent2,
-    undefined,
-    await getBloodlineColors(),
+    originBlood,
+    colors,
   );
 
   // Family name is overwritable: a typed value wins, otherwise derive it
   // from the foal's DNA (sire line breaks near-ties).
   const familyName =
-    formData.familyName?.trim() ||
+    typedFamily ||
     getSurnameFromDna(dna, { sireDna: parent1?.dna, damDna: parent2?.dna });
 
   const data: createHorseRequest = {

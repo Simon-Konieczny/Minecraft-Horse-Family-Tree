@@ -52,9 +52,9 @@ export default function HorsePage({
     variant,
   });
 
-  const onSaveEdits = async (formData: Horse) => {
+  const onSaveEdits = async (formData: Horse, originBloodline?: string) => {
     try {
-      await editHorseAction(horse, formData);
+      await editHorseAction(horse, formData, originBloodline);
       setSaveError(null);
       setEditMode(false);
     } catch (err) {

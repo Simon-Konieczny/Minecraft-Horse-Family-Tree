@@ -12,6 +12,7 @@ import { createHorseData } from "../HorseCreateModal";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
 import { getHorseFullName } from "@/utils/horseNames";
 import { getSurnameFromDna, mergeDna } from "@/utils/genetics/utils";
+import FounderBloodlinePicker from "@/components/Bloodlines/FounderBloodlinePicker";
 import { ancestryOverlap } from "@/utils/analytics";
 import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvider";
 import FamilyNameBloodlineLink from "@/components/Bloodlines/FamilyNameBloodlineLink";
@@ -206,6 +207,15 @@ export default function CreateHorseForm({
                 menuPortalTarget={null}
               />
             </>
+          )}
+          {!formData.parentId1 && !formData.parentId2 && (
+            <div>
+              <label className={styles.label}>Founder Bloodline</label>
+              <FounderBloodlinePicker
+                value={formData.originBloodline}
+                onChange={(v) => handleSelectChange("originBloodline", v)}
+              />
+            </div>
           )}
           {overlap && (
             <div style={{ fontSize: 12, opacity: 0.85 }}>
