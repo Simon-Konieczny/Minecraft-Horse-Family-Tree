@@ -113,6 +113,30 @@ describe("buildFamilyRecords", () => {
   it("returns no families for an empty herd", () => {
     expect(buildFamilyRecords([])).toEqual([]);
   });
+
+  it("averages translated stats over living members only", () => {
+    const records = buildFamilyRecords([
+      horse({ id: "a", familyName: "Emberhoof", speed: 0.2, status: "Alive" }),
+      horse({ id: "b", familyName: "Emberhoof", speed: 0.3, status: "Alive" }),
+      horse({ id: "c", familyName: "Emberhoof", speed: 0.1, status: "Deceased" }),
+      horse({ id: "d", familyName: "Emberhoof", speed: 0.1, status: "Retired" }),
+    ]);
+    const ember = records.find((r) => r.family === "Emberhoof")!;
+    // Translate-first: avg(0.2, 0.3) * 43.17, deceased/retired excluded.
+    expect(ember.averages.aliveCount).toBe(2);
+    expect(ember.averages.speed).toBeCloseTo(0.25 * 43.17, 3);
+  });
+
+  it("reports null averages when nobody is alive", () => {
+    const records = buildFamilyRecords(herd);
+    const ember = records.find((r) => r.family === "Emberhoof")!;
+    expect(ember.averages).toEqual({
+      speed: null,
+      jump: null,
+      health: null,
+      aliveCount: 0,
+    });
+  });
 });
 
 

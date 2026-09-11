@@ -39,6 +39,13 @@ export interface FamilyRecord {
     jump: RecordHolder | null;
     health: RecordHolder | null;
   };
+  /** Translated averages over living members only (null when none alive). */
+  averages: {
+    speed: number | null;
+    jump: number | null;
+    health: number | null;
+    aliveCount: number;
+  };
 }
 
 /** Family key for grouping: stored name, else DNA-derived surname. */
@@ -129,12 +136,29 @@ export function buildFamilyRecords(horses: Horse[]): FamilyRecord[] {
       return holder;
     };
 
+    // Living averages: translate first (jump is nonlinear), average over
+    // Alive members only — deceased/retired history stays in records.
+    const living = members.filter((h) => h.status === "Alive");
+    const avgAlive = (field: "speed" | "jump" | "health"): number | null => {
+      if (living.length === 0) return null;
+      return (
+        living.reduce((t, h) => t + translateStat(field, h[field]), 0) /
+        living.length
+      );
+    };
+
     records.push({
       family,
       count: members.length,
       founders,
       lastPurebred,
       records: { speed: best("speed"), jump: best("jump"), health: best("health") },
+      averages: {
+        speed: avgAlive("speed"),
+        jump: avgAlive("jump"),
+        health: avgAlive("health"),
+        aliveCount: living.length,
+      },
     });
   }
 

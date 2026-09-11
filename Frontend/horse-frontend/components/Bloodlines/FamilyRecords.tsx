@@ -33,6 +33,7 @@ export default function FamilyRecords({
       founders: [],
       lastPurebred: null,
       records: { speed: null, jump: null, health: null },
+      averages: { speed: null, jump: null, health: null, aliveCount: 0 },
     }));
   const all = [...records, ...empty].sort((a, b) =>
     a.family.localeCompare(b.family),
@@ -150,6 +151,21 @@ function FamilyCard({
                     ) : null,
                   )}
                 </div>
+                {r.averages.aliveCount > 0 &&
+                r.averages.speed !== null &&
+                r.averages.jump !== null &&
+                r.averages.health !== null ? (
+                  <p style={{ margin: "8px 0 0" }}>
+                    Living averages ({r.averages.aliveCount} alive): speed{" "}
+                    {r.averages.speed.toFixed(2)} m/s · jump{" "}
+                    {r.averages.jump.toFixed(2)} blocks · health{" "}
+                    {r.averages.health.toFixed(1)} hp
+                  </p>
+                ) : (
+                  <p style={{ margin: "8px 0 0", opacity: 0.5 }}>
+                    No living horses — averages unavailable.
+                  </p>
+                )}
                 {r.founders.length > 0 && (
                   <details style={{ marginTop: 8 }}>
                     <summary>
