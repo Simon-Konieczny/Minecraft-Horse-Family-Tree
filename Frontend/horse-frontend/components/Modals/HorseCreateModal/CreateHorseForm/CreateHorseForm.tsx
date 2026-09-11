@@ -30,7 +30,7 @@ export default function CreateHorseForm({
   formData,
   setFormData,
 }: CreateHorseFormProps) {
-  const [statsView, setStatsView] = useState(false);
+  const [statsView, setStatsView] = useState(true);
   const [displayStats, setDisplayStats] = useState({
     speed: translateStat("speed", formData.speed).toString(),
     health: translateStat("health", formData.health).toString(),
