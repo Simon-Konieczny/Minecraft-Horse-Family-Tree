@@ -4,6 +4,9 @@ import dagre from 'dagre';
 import type { Edge } from '@xyflow/react';
 import type { HorseNode } from '@/components/HorseNode/HorseNode';
 import { translateStat } from './translateRawStats';
+// Relative import: vitest has no "@" alias configured (same reason as
+// in genetics/utils.ts and lineage.ts).
+import { effectiveFamily } from './studbook';
 
 const VERTICAL_SPACING = 200;
 const NODE_HEIGHT = 80;
@@ -32,17 +35,24 @@ export const DENSITY_LABELS: Record<NodeDensity, string> = {
 
 /**
  * Sweep-and-push: enforce a minimum step between node centers along one
- * row, preserving dagre's left-to-right order, then recenter the row on
- * dagre's original centroid. Guarantees zero overlap by construction.
- * Ties break by id so output is deterministic across runs.
+ * row, preserving the input order, then recenter the row on the input
+ * centroid. Guarantees zero overlap by construction. The base layout
+ * passes families as groups so bloodlines read as contiguous blocks
+ * with dagre order kept inside each family; ties break by id so output
+ * is deterministic across runs.
  */
 export function sweepRow(
-  centers: { id: string; x: number }[],
+  centers: { id: string; x: number; group?: string }[],
   nodeWidth: number,
   gap: number,
 ): Map<string, number> {
   const step = nodeWidth + gap;
-  const sorted = [...centers].sort((a, b) => a.x - b.x || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const sorted = [...centers].sort(
+    (a, b) =>
+      (a.group ?? "").localeCompare(b.group ?? "") ||
+      a.x - b.x ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
   const placed = new Map<string, number>();
   if (sorted.length === 0) return placed;
   let cursor = sorted[0].x;
@@ -95,14 +105,16 @@ export const getBaseLayout = (nodes: HorseNode[], edges: Edge[], density: NodeDe
   // Dagre's x positions assume dagre's own row assignment, which we
   // replace with generation rows below — so re-enforce spacing per row.
   // Without this pass, nodes dagre stacked on different ranks collapse
-  // onto one generation row and overlap.
-  const rows = new Map<number, { id: string; x: number }[]>();
+  // onto one generation row and overlap. Rows are grouped by family
+  // first (bloodline blocks), dagre order within each family.
+  const rows = new Map<number, { id: string; x: number; group: string }[]>();
   for (const node of nodes) {
     const gen = node.data.horse.generation || 0;
     const list = rows.get(gen);
     const center = dagreGraph.node(node.id).x;
-    if (list) list.push({ id: node.id, x: center });
-    else rows.set(gen, [{ id: node.id, x: center }]);
+    const entry = { id: node.id, x: center, group: effectiveFamily(node.data.horse) };
+    if (list) list.push(entry);
+    else rows.set(gen, [entry]);
   }
   const fixed = new Map<string, number>();
   for (const [, row] of rows) {

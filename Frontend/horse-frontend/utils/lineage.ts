@@ -1,5 +1,7 @@
 import { Horse } from "@/types/horse";
-import { getHorseFullName } from "@/utils/horseNames";
+// Relative import: vitest has no "@" alias configured, and this is a
+// runtime (value) import (same reason as in genetics/utils.ts).
+import { getHorseFullName } from "./horseNames";
 
 export interface ParentIds {
   parentId1?: string | null;
@@ -96,7 +98,7 @@ export function validatePairing(
     inbreedingAncestorThreshold = 1,
   } = options;
   if (allowCloseRelativeBreeding) return;
-  if (!parentId1 || !parentId2) return; // single-parent / origin foal: nothing to check
+  if (!parentId1 || !parentId2) return; // origin foal: nothing to check
 
   const byId = new Map(horses.map((h) => [h.id, h]));
   const nameOf = (id: string) => {
@@ -156,8 +158,11 @@ export function validatePairing(
 
 /**
  * Throws if assigning `parentId1`/`parentId2` to the horse would corrupt
- * the tree into a loop. Pass `horseId` as null when creating a horse
- * (a new node has no id yet and cannot be its own ancestor).
+ * the tree. Two rules: parents come in pairs (exactly one recorded parent
+ * is rejected — a legacy single-parent path no longer exists), and the
+ * tree can never loop (self-parent / descendant as parent).
+ * Pass `horseId` as null when creating a horse (a new node has no id yet
+ * and cannot be its own ancestor).
  */
 export function validateParents(
   horses: (Pick<Horse, "id" | "firstName" | "familyName"> & ParentIds)[],
@@ -165,6 +170,11 @@ export function validateParents(
   parentId1?: string | null,
   parentId2?: string | null,
 ): void {
+  if ((!!parentId1 && !parentId2) || (!parentId1 && !!parentId2)) {
+    throw new Error(
+      "Record two parents, or none for a founder — a single recorded parent is not allowed.",
+    );
+  }
   const byId = new Map(horses.map((h) => [h.id, h]));
   const nameOf = (id: string) => {
     const h = byId.get(id);

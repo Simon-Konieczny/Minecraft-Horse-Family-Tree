@@ -14,6 +14,8 @@ export type HorseNodeData = {
   activeView?: 'speed' | 'jump' | 'health' | 'base';
   statusView?: boolean;
   density?: NodeDensity;
+  /** Disambiguated first name for minimal chips (duplicates gain II/III). */
+  shortName?: string;
 };
 
 // 2. Define the specialized Node type for this component
@@ -101,7 +103,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
       <div className={styles.nodeContainer} style={{ ...containerStyle, minWidth: 0 }}>
         <Handle type="target" position={Position.Top} className={styles.handleStyle} />
         <div className={styles.horseName} title={fullName} style={{ color: textColor, fontSize: '12px', ...ellipsisStyle }}>
-          {horse.firstName}
+          {data.shortName ?? horse.firstName}
         </div>
         <Handle type="source" position={Position.Bottom} className={styles.handleStyle} />
       </div>

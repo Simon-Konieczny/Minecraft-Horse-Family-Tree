@@ -78,6 +78,11 @@ export default function HorseCreateModal({
         setError(true);
         return;
       }
+      if ((!!formData.parentId1 && !formData.parentId2) || (!formData.parentId1 && !!formData.parentId2)) {
+        setErrorMessage("Record two parents, or none for a founder.");
+        setError(true);
+        return;
+      }
 
       const newHorse = await createHorseAction(formData);
       if (!newHorse?.id) {

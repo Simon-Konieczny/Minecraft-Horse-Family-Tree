@@ -6,7 +6,7 @@ import Select from "react-select";
 import * as styles from "./CreateHorseForm.css";
 import StatsBox from "@/components/Common/StatsBox/StatsBox";
 import Switch from "@/components/Common/Switch/Switch";
-import { translateStat, untranslateStat } from "@/utils/translateRawStats";
+import { untranslateStat, formatStatsForView } from "@/utils/translateRawStats";
 import StatRow from "../../StatRow/StatRow";
 import { createHorseData } from "../HorseCreateModal";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
@@ -31,11 +31,9 @@ export default function CreateHorseForm({
   setFormData,
 }: CreateHorseFormProps) {
   const [statsView, setStatsView] = useState(true);
-  const [displayStats, setDisplayStats] = useState({
-    speed: translateStat("speed", formData.speed).toString(),
-    health: translateStat("health", formData.health).toString(),
-    jump: translateStat("jump", formData.jump).toString(),
-  });
+  const [displayStats, setDisplayStats] = useState(() =>
+    formatStatsForView(formData.speed, formData.health, formData.jump, true),
+  );
 
   const handleSelectChange = (
     field: keyof createHorseData,
@@ -65,15 +63,19 @@ export default function CreateHorseForm({
           ? prev.familyName
           : newStats.familyName,
     }));
+    // The text fields mirror the import immediately (no sync effect).
+    setDisplayStats(
+      formatStatsForView(newStats.speed, newStats.health, newStats.jump, statsView),
+    );
   };
 
-  useEffect(() => {
-    setDisplayStats({
-      speed: (statsView ? formData.speed : translateStat("speed", formData.speed)).toString(),
-      health: (statsView ? formData.health : translateStat("health", formData.health)).toString(),
-      jump: (statsView ? formData.jump : translateStat("jump", formData.jump)).toString(),
-    });
-  }, [formData.speed, formData.health, formData.jump, statsView]);
+  const handleStatsViewChange = (checked: boolean) => {
+    const rawView = !checked;
+    setStatsView(rawView);
+    setDisplayStats(
+      formatStatsForView(formData.speed, formData.health, formData.jump, rawView),
+    );
+  };
 
   const handleTextChange = (
     field: string,
@@ -250,7 +252,7 @@ export default function CreateHorseForm({
             <Switch
               label={statsView ? "Raw Stats" : "Processed Stats"}
               checked={!statsView}
-              onChange={(checked) => setStatsView(!checked)}
+              onChange={handleStatsViewChange}
               labelLeft={false}
             />
           </div>

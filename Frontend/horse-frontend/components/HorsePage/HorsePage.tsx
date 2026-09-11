@@ -53,6 +53,10 @@ export default function HorsePage({
   });
 
   const onSaveEdits = async (formData: Horse, originBloodline?: string) => {
+    if ((!!formData.parentId1 && !formData.parentId2) || (!formData.parentId1 && !!formData.parentId2)) {
+      setSaveError("Record two parents, or none for a founder.");
+      return;
+    }
     try {
       await editHorseAction(horse, formData, originBloodline);
       setSaveError(null);

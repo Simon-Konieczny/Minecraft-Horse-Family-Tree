@@ -11,11 +11,11 @@ import {
   type NodeDensity,
 } from "./layout";
 
-function horse(id: string, generation: number, speed = 0.2): Horse {
+function horse(id: string, generation: number, speed = 0.2, family = "Fam"): Horse {
   return {
     id,
     firstName: "Test",
-    familyName: "Fam",
+    familyName: family,
     dna: {},
     status: "Alive",
     speed,
@@ -26,12 +26,12 @@ function horse(id: string, generation: number, speed = 0.2): Horse {
   } as Horse;
 }
 
-function node(id: string, generation: number, speed = 0.2): HorseNode {
+function node(id: string, generation: number, speed = 0.2, family = "Fam"): HorseNode {
   return {
     id,
     type: "horseNode",
     position: { x: 0, y: 0 },
-    data: { horse: horse(id, generation, speed) },
+    data: { horse: horse(id, generation, speed, family) },
   } as HorseNode;
 }
 
@@ -145,6 +145,34 @@ describe("getBaseLayout", () => {
     expect(first.map((n) => n.position)).toEqual(
       second.map((n) => n.position),
     );
+  });
+
+  it("groups each row by family, dagre order within families", () => {
+    // Interleaved insertion: families must still read as blocks.
+    const nodes = [
+      node("m1", 0, 0.2, "Mandragoran"),
+      node("l1", 0, 0.2, "Longbottom"),
+      node("m2", 0, 0.2, "Mandragoran"),
+      node("l2", 0, 0.2, "Longbottom"),
+    ];
+    const laid = getBaseLayout(nodes, [], "full");
+    const order = [...laid]
+      .sort((a, b) => a.position.x - b.position.x)
+      .map((n) => n.id);
+    expect(order).toEqual(["l1", "l2", "m1", "m2"]);
+  });
+
+  it("falls back to DNA surnames when no family name is stored", () => {
+    const nodes = [
+      node("x", 0, 0.2, ""),
+      node("y", 0, 0.2, "Longbottom"),
+    ];
+    nodes[0].data.horse.dna = { Emberhoof: 1.0 };
+    const laid = getBaseLayout(nodes, [], "full");
+    const order = [...laid]
+      .sort((a, b) => a.position.x - b.position.x)
+      .map((n) => n.id);
+    expect(order).toEqual(["x", "y"]);
   });
 });
 

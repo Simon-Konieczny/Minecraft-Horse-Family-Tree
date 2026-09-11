@@ -42,7 +42,7 @@ export default function StatsBox({ onStatsParsed }: StatsBoxProps){
             
             {error && (
               <p className={styles.errorText}>
-                ⚠️ Could not parse stats. Make sure it's a valid Minecraft command.
+                ⚠️ Could not parse stats. Make sure it&apos;s a valid Minecraft command.
               </p>
             )}
 

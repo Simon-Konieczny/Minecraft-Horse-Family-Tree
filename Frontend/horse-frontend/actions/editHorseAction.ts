@@ -79,8 +79,8 @@ async function resolveEditGenetics(
   originBloodline?: string,
 ) {
   const colors = await getBloodlineColors();
-  // With both parents set, DNA always inherits and any founder pick is
-  // ignored (mirrors the service's origin path).
+  // Both-or-neither is enforced by validateParents above: a single
+  // recorded parent never reaches here, so parentless means founder.
   if (parentId1 && parentId2) {
     return processNewHorseGenetics(parent1, parent2, undefined, colors);
   }

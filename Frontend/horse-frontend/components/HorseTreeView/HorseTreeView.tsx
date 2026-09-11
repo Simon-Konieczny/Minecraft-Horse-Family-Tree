@@ -12,11 +12,11 @@ import {
   Background,
   BackgroundVariant,
 } from "@xyflow/react";
-import { useState, useCallback, useEffect, useMemo, Suspense } from "react";
+import { useState, useCallback, useDeferredValue, useEffect, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie, setCookie } from "cookies-next";
 import { getBaseLayout, getSortLayout, NodeDensity } from "@/utils/layout";
-import { familiesWithCounts } from "@/utils/studbook";
+import { disambiguatedFirstNames, familiesWithCounts } from "@/utils/studbook";
 import {
   applyTreeFilters,
   defaultTreeFilters,
@@ -59,6 +59,8 @@ function TreeContent({
 
   const colors = useBloodlineColors();
   const families = useMemo(() => familiesWithCounts(horses), [horses]);
+  // First-name chips need duplicate suffixes (Onyx / Onyx II).
+  const shortNames = useMemo(() => disambiguatedFirstNames(horses), [horses]);
   const genBounds = useMemo(() => {
     const gens = horses.map((h) => h.generation || 0);
     return {
@@ -71,9 +73,12 @@ function TreeContent({
     () => filters ?? defaultTreeFilters(horses),
     [filters, horses],
   );
+  // Search stays instant in the input; the expensive dagre re-layout
+  // follows the deferred query so rapid typing doesn't jank large herds.
+  const deferredSearch = useDeferredValue(activeFilters.search);
   const visibleIds = useMemo(
-    () => applyTreeFilters(horses, activeFilters),
-    [horses, activeFilters],
+    () => applyTreeFilters(horses, { ...activeFilters, search: deferredSearch }),
+    [horses, activeFilters, deferredSearch],
   );
   const visibleNodes = useMemo(
     () => initialNodes.filter((n) => visibleIds.has(n.id)),
@@ -97,7 +102,10 @@ function TreeContent({
     setFilters(defaultTreeFilters(horses));
   }, [horses]);
 
-  // Initial cookie sync
+  // Initial cookie sync (mount only): restores persisted view choices.
+  // Suppression justified below: one-shot external-store hydration,
+  // not a render loop.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const savedView = getCookie("horse-tree-view") as ViewMode;
     if (savedView) setView(savedView);
@@ -131,6 +139,7 @@ function TreeContent({
       // Corrupt cookie: fall through to all-on defaults.
     }
   }, [horses]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Persist filter choices (snapshot the current family set alongside).
   useEffect(() => {
@@ -141,26 +150,32 @@ function TreeContent({
     });
   }, [filters, horses]);
 
+  // Re-layout on view/filter/herd changes and push the result into the
+  // controlled ReactFlow instance. Suppression justified below: the
+  // nodes prop must stay synced with the external layout inputs.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const layoutNodes =
       view === "base"
         ? getBaseLayout(visibleNodes, visibleEdges, density)
         : getSortLayout(visibleNodes, view, density);
 
-    // Update nodes with statusView and density data
+    // Update nodes with statusView, density, and short-name data
     const newNodes = layoutNodes.map(node => ({
       ...node,
       data: {
         ...node.data,
         activeView: view,
         statusView: statusView,
-        density: density
+        density: density,
+        shortName: shortNames.get(node.id) ?? node.data.horse.firstName,
       }
     }));
 
     setNodes(newNodes);
     setEdges(visibleEdges);
-  }, [view, statusView, density, visibleNodes, visibleEdges]);
+  }, [view, statusView, density, shortNames, visibleNodes, visibleEdges]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) =>

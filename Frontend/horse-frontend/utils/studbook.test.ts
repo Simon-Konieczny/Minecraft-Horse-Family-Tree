@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFamilyRecords,
+  disambiguatedFirstNames,
   effectiveFamily,
   familiesWithCounts,
   getFoundingDate,
@@ -74,6 +75,37 @@ describe("familiesWithCounts", () => {
 
   it("is empty-safe", () => {
     expect(familiesWithCounts([])).toEqual([]);
+  });
+});
+
+describe("disambiguatedFirstNames", () => {
+  it("passes unique names through untouched", () => {
+    const out = disambiguatedFirstNames([
+      { id: "a", firstName: "Ash" },
+      { id: "b", firstName: "Mist" },
+    ]);
+    expect(out.get("a")).toBe("Ash");
+    expect(out.get("b")).toBe("Mist");
+  });
+
+  it("suffixes duplicates by seniority, eldest keeps the bare name", () => {
+    const out = disambiguatedFirstNames([
+      { id: "young", firstName: "Onyx", createdAt: "2024-06-01T00:00:00.000Z" },
+      { id: "old", firstName: "Onyx", createdAt: "2024-01-01T00:00:00.000Z" },
+      { id: "mid", firstName: "Onyx", createdAt: "2024-03-01T00:00:00.000Z" },
+    ]);
+    expect(out.get("old")).toBe("Onyx");
+    expect(out.get("mid")).toBe("Onyx II");
+    expect(out.get("young")).toBe("Onyx III");
+  });
+
+  it("is empty-safe and deterministic without dates", () => {
+    expect(disambiguatedFirstNames([]).size).toBe(0);
+    const herd = [
+      { id: "b", firstName: "Onyx" },
+      { id: "a", firstName: "Onyx" },
+    ];
+    expect(disambiguatedFirstNames(herd)).toEqual(disambiguatedFirstNames([...herd].reverse()));
   });
 });
 

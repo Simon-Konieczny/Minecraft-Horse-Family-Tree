@@ -23,6 +23,20 @@ export function translateStatsForDisplay(stats: RawStats): ProcessedStats {
     };
 }
 
+/** Text-field values for the stat inputs in raw or display units. */
+export function formatStatsForView(
+    speed: number,
+    health: number,
+    jump: number,
+    rawView: boolean,
+): { speed: string; health: string; jump: string } {
+    return {
+        speed: (rawView ? speed : translateStat("speed", speed)).toString(),
+        health: (rawView ? health : translateStat("health", health)).toString(),
+        jump: (rawView ? jump : translateStat("jump", jump)).toString(),
+    };
+}
+
 export function translateStat(field: string, value: number): number {
     switch (field) {
         case "speed":

@@ -1,12 +1,12 @@
 import { Horse } from "@/types/horse";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Select from "react-select";
 import * as modalStyles from "../Modals.css";
 import * as styles from "./HorseEditModal.css";
 import * as createFormStyles from "../HorseCreateModal/CreateHorseForm/CreateHorseForm.css";
 import Button from "@/components/Common/Button/Button";
 import Switch from "@/components/Common/Switch/Switch";
-import { translateStat, untranslateStat } from "@/utils/translateRawStats";
+import { untranslateStat, formatStatsForView } from "@/utils/translateRawStats";
 import { HorseStats } from "@/utils/parseHorseStats";
 import StatsBox from "@/components/Common/StatsBox/StatsBox";
 import StatRow from "../StatRow/StatRow";
@@ -40,19 +40,9 @@ export default function HorseEditModal({
   const [rawStatsView, setRawStatsView] = useState(false);
   // Explicit founder-bloodline correction (parentless horses only).
   const [originBloodline, setOriginBloodline] = useState("");
-  const [displayStats, setDisplayStats] = useState({
-    speed: translateStat("speed", horse.speed).toString(),
-    health: translateStat("health", horse.health).toString(),
-    jump: translateStat("jump", horse.jump).toString(),
-  });
-
-  useEffect(() => {
-    setDisplayStats({
-      speed: (rawStatsView ? formData.speed : translateStat("speed", formData.speed)).toString(),
-      health: (rawStatsView ? formData.health : translateStat("health", formData.health)).toString(),
-      jump: (rawStatsView ? formData.jump : translateStat("jump", formData.jump)).toString(),
-    });
-  }, [formData.speed, formData.health, formData.jump, rawStatsView]);
+  const [displayStats, setDisplayStats] = useState(() =>
+    formatStatsForView(horse.speed, horse.health, horse.jump, false),
+  );
 
   const handleTextChange = (field: string, textValue: string) => {
     setDisplayStats((prev) => ({ ...prev, [field]: textValue }));
@@ -142,14 +132,22 @@ export default function HorseEditModal({
           ? prev.familyName
           : newStats.familyName,
     }));
+    // The text fields mirror the import immediately (no sync effect).
+    setDisplayStats(
+      formatStatsForView(newStats.speed, newStats.health, newStats.jump, rawStatsView),
+    );
   };
 
   const handleChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleViewChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRawStatsView(!event.target.checked);
+  const handleStatsViewChange = (checked: boolean) => {
+    const rawView = !checked;
+    setRawStatsView(rawView);
+    setDisplayStats(
+      formatStatsForView(formData.speed, formData.health, formData.jump, rawView),
+    );
   };
 
   return (
@@ -265,7 +263,7 @@ export default function HorseEditModal({
             <Switch
               label={rawStatsView ? "Raw Stats" : "Processed Stats"}
               checked={!rawStatsView}
-              onChange={(checked) => setRawStatsView(!checked)}
+              onChange={handleStatsViewChange}
               labelLeft={false}
             />
           </div>

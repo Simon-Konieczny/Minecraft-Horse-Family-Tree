@@ -74,6 +74,57 @@ export function familiesWithCounts(
     .sort((a, b) => a.family.localeCompare(b.family));
 }
 
+function toRoman(n: number): string {
+  const table: [number, string][] = [
+    [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+    [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
+    [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"],
+  ];
+  let out = "";
+  let rest = Math.max(1, Math.floor(n));
+  for (const [value, numeral] of table) {
+    while (rest >= value) {
+      out += numeral;
+      rest -= value;
+    }
+  }
+  return out;
+}
+
+/**
+ * Display first names with duplicate disambiguation: unique names pass
+ * through untouched; the eldest of a duplicate set keeps the bare name
+ * and younger ones gain II / III / … suffixes. Seniority is founding
+ * date (ObjectId fallback), id-tie-broken — fully deterministic.
+ * Built for minimal tree chips, where surnames are hidden.
+ */
+export function disambiguatedFirstNames(
+  horses: Pick<Horse, "id" | "firstName" | "createdAt">[],
+): Map<string, string> {
+  const groups = new Map<string, { id: string; foundedAt: string }[]>();
+  for (const h of horses) {
+    const name = (h.firstName || "").trim() || "Unknown";
+    const list = groups.get(name);
+    const entry = { id: h.id, foundedAt: getFoundingDate(h) || "" };
+    if (list) list.push(entry);
+    else groups.set(name, [entry]);
+  }
+  const out = new Map<string, string>();
+  for (const [name, members] of groups) {
+    if (members.length === 1) {
+      out.set(members[0].id, name);
+      continue;
+    }
+    const ordered = [...members].sort(
+      (a, b) => a.foundedAt.localeCompare(b.foundedAt) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+    );
+    ordered.forEach((m, i) => {
+      out.set(m.id, i === 0 ? name : `${name} ${toRoman(i + 1)}`);
+    });
+  }
+  return out;
+}
+
 /**
  * Derives a founding date without any stored timestamp: prefers
  * createdAt, falls back to the ObjectId timestamp (first 4 bytes).
