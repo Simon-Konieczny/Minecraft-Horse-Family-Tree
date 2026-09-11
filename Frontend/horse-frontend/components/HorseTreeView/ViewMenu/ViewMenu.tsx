@@ -27,10 +27,17 @@ interface ViewMenuProps {
   totalCount: number;
 }
 
-export default function ViewMenu({ 
-  setView, 
-  view, 
-  statusView, 
+const LAYOUT_MODES = [
+  { mode: "base", label: "Traditional" },
+  { mode: "speed", label: "Speed" },
+  { mode: "jump", label: "Jump" },
+  { mode: "health", label: "Health" },
+] as const;
+
+export default function ViewMenu({
+  setView,
+  view,
+  statusView,
   setStatusView,
   density,
   setDensity,
@@ -104,8 +111,8 @@ export default function ViewMenu({
 
   return (
     <>
-      <button 
-        className={styles.toggleButton} 
+      <button
+        className={styles.toggleButton}
         onClick={() => setIsOpen(true)}
         style={{ display: isOpen ? 'none' : 'flex' }}
       >
@@ -118,157 +125,150 @@ export default function ViewMenu({
           <button className={styles.closeButton} onClick={() => setIsOpen(false)}>×</button>
         </div>
 
-        <p className={styles.menuLabel} style={{ marginTop: "8px" }}>Layout Mode</p>
-
-      <Button
-        onClick={() => toggleView("base")}
-        className={
-          view === "base"
-            ? styles.baseButtonActive
-            : styles.baseButtonInactive
-        }
-        text="Traditional Lineage Tree"
-      />
-
-      <p className={styles.menuLabel} style={{ marginTop: "16px" }}>
-        View Filters
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div>
-          <p className={styles.menuLabel} style={{ margin: "0 0 4px" }}>
-            Node Density: {DENSITY_LABELS[density]}
-          </p>
-          <input
-            type="range"
-            min={0}
-            max={DENSITY_LEVELS.length - 1}
-            step={1}
-            value={DENSITY_LEVELS.indexOf(density)}
-            onChange={(e) => handleDensityChange(DENSITY_LEVELS[Number(e.target.value)])}
-            aria-label="Node density"
-            title="Full: detailed cards. Compact: smaller cards. Minimal: name chips (hover for full name)."
-            style={{ width: "100%" }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, opacity: 0.7 }}>
-            {DENSITY_LEVELS.map((level) => (
-              <span key={level}>{DENSITY_LABELS[level]}</span>
+        <section className={styles.section} style={{ marginTop: 0 }}>
+          <p className={styles.menuLabel}>Layout Mode</p>
+          <div className={styles.segmentGrid}>
+            {LAYOUT_MODES.map(({ mode, label }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => toggleView(mode)}
+                className={view === mode ? styles.segmentActive : styles.segmentInactive}
+              >
+                {label}
+              </button>
             ))}
           </div>
-        </div>
-        <Switch 
-          label="Deceased Highlight" 
-          checked={statusView} 
-          onChange={handleStatusToggle} 
-        />      </div>
+          <p className={styles.sectionCaption} style={{ marginTop: 6 }}>
+            Traditional draws the pedigree; stat modes reorder each
+            generation row left to right.
+          </p>
+        </section>
 
-      <p className={styles.menuLabel} style={{ marginTop: "16px" }}>
-        Tree Filters
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <span style={{ fontSize: 12, opacity: 0.7 }}>
-            Showing {visibleCount} of {totalCount}
-          </span>
-          <Button
-            onClick={() => { resetFilters(); refit(); }}
-            className={styles.resetButton}
-            text="Reset"
-          />
-        </div>
-        <input
-          type="search"
-          placeholder="Search names…"
-          value={filters.search}
-          onChange={(e) => updateFilters({ search: e.target.value })}
-          aria-label="Search horses by name"
-          style={{ width: "100%", padding: "6px 8px", fontSize: 13 }}
-        />
-        <div>
-          <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Bloodlines</p>
-          {families.map((f) => (
-            <label key={f.family} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: "2px 0" }}>
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Nodes</p>
+          <div className={styles.sectionBody}>
+            <div>
+              <p className={styles.menuLabel} style={{ margin: "0 0 4px" }}>
+                Node Density: {DENSITY_LABELS[density]}
+              </p>
               <input
-                type="checkbox"
-                checked={filters.families.includes(f.family)}
-                onChange={() => toggleFamily(f.family)}
+                type="range"
+                min={0}
+                max={DENSITY_LEVELS.length - 1}
+                step={1}
+                value={DENSITY_LEVELS.indexOf(density)}
+                onChange={(e) => handleDensityChange(DENSITY_LEVELS[Number(e.target.value)])}
+                aria-label="Node density"
+                title="Full: detailed cards. Compact: smaller cards. Minimal: name chips (hover for full name)."
+                className={styles.densitySlider}
               />
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 12,
-                  height: 12,
-                  borderRadius: 3,
-                  backgroundColor: colors[f.family] || "#94a3b8",
-                  flexShrink: 0,
-                }}
-              />
-              {f.family} ({f.count})
-            </label>
-          ))}
-        </div>
-        <div>
-          <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Status</p>
-          {ALL_STATUSES.map((status) => (
-            <label key={status} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: "2px 0" }}>
-              <input
-                type="checkbox"
-                checked={filters.statuses.includes(status)}
-                onChange={() => toggleStatus(status)}
-              />
-              {status}
-            </label>
-          ))}
-        </div>
-        <div>
-          <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Generations</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="number"
-              aria-label="Minimum generation"
-              min={genBounds.min}
-              max={genBounds.max}
-              value={filters.genMin}
-              onChange={(e) => setGenBound("genMin", e.target.value)}
-              style={{ width: 64, padding: "6px 8px", fontSize: 13 }}
-            />
-            <span style={{ fontSize: 13, opacity: 0.7 }}>to</span>
-            <input
-              type="number"
-              aria-label="Maximum generation"
-              min={genBounds.min}
-              max={genBounds.max}
-              value={filters.genMax}
-              onChange={(e) => setGenBound("genMax", e.target.value)}
-              style={{ width: 64, padding: "6px 8px", fontSize: 13 }}
+              <div className={styles.sliderLabels}>
+                {DENSITY_LEVELS.map((level) => (
+                  <span key={level}>{DENSITY_LABELS[level]}</span>
+                ))}
+              </div>
+            </div>
+            <Switch
+              label="Deceased Highlight"
+              checked={statusView}
+              onChange={handleStatusToggle}
             />
           </div>
-        </div>
-      </div>
+        </section>
 
-      <p className={styles.menuLabel} style={{ marginTop: "8px" }}>
-        Rank by Stat (Left to Right)
-      </p>
-      <div className={styles.statGrid}>
-        {(["speed", "jump", "health"] as const).map((stat) => (
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Tree Filters</p>
+          <div className={styles.sectionBody}>
+            <div className={styles.countRow}>
+              <span className={styles.countPill}>
+                Showing {visibleCount} of {totalCount}
+              </span>
+              <button
+                type="button"
+                className={styles.resetTextButton}
+                onClick={() => { resetFilters(); refit(); }}
+              >
+                Reset
+              </button>
+            </div>
+            <input
+              type="search"
+              placeholder="Search names…"
+              value={filters.search}
+              onChange={(e) => updateFilters({ search: e.target.value })}
+              aria-label="Search horses by name"
+              className={styles.searchInput}
+            />
+            <div>
+              <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Bloodlines</p>
+              <div className={styles.scrollList}>
+                {families.map((f) => (
+                  <label key={f.family} className={styles.checkRow}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkBox}
+                    checked={filters.families.includes(f.family)}
+                    onChange={() => toggleFamily(f.family)}
+                  />
+                    <span
+                      className={styles.checkDot}
+                      style={{ backgroundColor: colors[f.family] || "#94a3b8" }}
+                    />
+                    {f.family} ({f.count})
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Status</p>
+              {ALL_STATUSES.map((status) => (
+                <label key={status} className={styles.checkRow}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkBox}
+                    checked={filters.statuses.includes(status)}
+                    onChange={() => toggleStatus(status)}
+                  />
+                  {status}
+                </label>
+              ))}
+            </div>
+            <div>
+              <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Generations</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  aria-label="Minimum generation"
+                  min={genBounds.min}
+                  max={genBounds.max}
+                  value={filters.genMin}
+                  onChange={(e) => setGenBound("genMin", e.target.value)}
+                  className={styles.numberInput}
+                />
+                <span style={{ fontSize: 13, opacity: 0.7 }}>to</span>
+                <input
+                  type="number"
+                  aria-label="Maximum generation"
+                  min={genBounds.min}
+                  max={genBounds.max}
+                  value={filters.genMax}
+                  onChange={(e) => setGenBound("genMax", e.target.value)}
+                  className={styles.numberInput}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
           <Button
-            key={stat}
-            onClick={() => toggleView(stat)}
-            className={
-              view === stat
-                ? styles.statButtonActive
-                : styles.statButtonInactive
-            }
-            text={stat}
+            onClick={() => fitView({ duration: 800, padding: 0.2 })}
+            className={styles.resetButton}
+            text="🔍 Reset Zoom"
           />
-        ))}
+        </section>
       </div>
-
-      <Button
-        onClick={() => fitView({ duration: 800, padding: 0.2 })}
-        className={styles.resetButton}
-        text="🔍 Reset Zoom"
-      />
-    </div>
     </>
   );
 }

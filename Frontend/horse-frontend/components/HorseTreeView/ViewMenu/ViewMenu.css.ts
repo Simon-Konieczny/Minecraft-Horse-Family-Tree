@@ -15,7 +15,7 @@ export const menuWrapper = style({
   boxShadow: vars.shadow.lg,
   border: `1px solid ${vars.color.goldSoft}`,
   transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease",
-  width: "240px",
+  width: "264px",
   "@media": {
     print: {
       display: "none",
@@ -113,19 +113,6 @@ const buttonBase = style({
   }
 });
 
-export const statButtonActive = style([
-  buttonBase,
-  {
-    backgroundColor: vars.color.leather,
-    color: vars.color.parchment,
-    borderColor: vars.color.leather,
-  },
-]);
-
-export const statButtonInactive = style([
-  buttonBase,
-]);
-
 export const resetButton = style([
   buttonBase,
   {
@@ -137,25 +124,178 @@ export const resetButton = style([
   },
 ]);
 
-export const baseButtonActive = style([
-  buttonBase,
+// ---- Menu sections (shared rhythm) ----
+
+export const section = style({
+  marginTop: vars.spacing.md,
+});
+
+export const sectionBody = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+});
+
+export const sectionCaption = style({
+  fontSize: vars.fontSize.xs,
+  color: vars.color.inkSoft,
+  margin: 0,
+  lineHeight: 1.4,
+});
+
+// ---- Segmented layout-mode control (2x2 radio group) ----
+
+export const segmentGrid = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: "6px",
+});
+
+const segmentBase = style({
+  width: "100%",
+  boxSizing: "border-box",
+  margin: 0,
+  padding: "7px 4px",
+  borderRadius: vars.borderRadius.md,
+  fontSize: "11px",
+  fontWeight: 700,
+  fontFamily: vars.font.display,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  transition: "all 0.15s ease",
+  cursor: "pointer",
+  border: `1px solid ${vars.color.goldSoft}`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "6px",
+  backgroundColor: vars.color.parchment,
+  color: vars.color.ink,
+  ":hover": {
+    backgroundColor: vars.color.parchmentDeep,
+    borderColor: vars.color.gold,
+  }
+});
+
+export const segmentActive = style([
+  segmentBase,
   {
     backgroundColor: vars.color.leather,
     color: vars.color.parchment,
     borderColor: vars.color.leather,
-    marginBottom: vars.spacing.xs,
   },
 ]);
 
-export const baseButtonInactive = style([
-  buttonBase,
-  {
-    marginBottom: vars.spacing.xs,
-  },
+export const segmentInactive = style([
+  segmentBase,
 ]);
 
-export const statGrid = style({
-  display: "grid",
-  gridTemplateColumns: "repeat(1, 1fr)",
-  gap: "6px",
+// ---- Filter controls ----
+
+export const searchInput = style({
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "6px 8px",
+  fontSize: vars.fontSize.sm,
+  fontFamily: vars.font.main,
+  color: vars.color.ink,
+  backgroundColor: vars.color.parchment,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.sm,
+  ":focus": {
+    outline: "none",
+    borderColor: vars.color.gold,
+  },
+  selectors: {
+    "&::placeholder": {
+      color: vars.color.textMuted,
+    },
+  },
+});
+
+export const numberInput = style({
+  width: 64,
+  boxSizing: "border-box",
+  padding: "6px 8px",
+  fontSize: vars.fontSize.sm,
+  fontFamily: vars.font.main,
+  color: vars.color.ink,
+  backgroundColor: vars.color.parchment,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.sm,
+  ":focus": {
+    outline: "none",
+    borderColor: vars.color.gold,
+  },
+});
+
+export const checkRow = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  fontSize: vars.fontSize.sm,
+  color: vars.color.ink,
+  padding: "2px 0",
+});
+
+export const checkBox = style({
+  accentColor: vars.color.leather,
+});
+
+export const checkDot = style({
+  display: "inline-block",
+  width: "12px",
+  height: "12px",
+  borderRadius: "3px",
+  flexShrink: 0,
+});
+
+export const countRow = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "8px",
+});
+
+export const countPill = style({
+  fontSize: vars.fontSize.xs,
+  color: vars.color.inkSoft,
+});
+
+export const resetTextButton = style({
+  background: "none",
+  border: "none",
+  padding: "2px 4px",
+  cursor: "pointer",
+  fontSize: vars.fontSize.xs,
+  fontWeight: 700,
+  fontFamily: vars.font.display,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: vars.color.gold,
+  textDecoration: "underline",
+  ":hover": {
+    color: vars.color.leather,
+  },
+});
+
+export const densitySlider = style({
+  width: "100%",
+  accentColor: vars.color.leather,
+});
+
+export const sliderLabels = style({
+  display: "flex",
+  justifyContent: "space-between",
+  fontSize: 11,
+  opacity: 0.7,
+  color: vars.color.inkSoft,
+});
+
+export const scrollList = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+  maxHeight: 148,
+  overflowY: "auto",
 });
