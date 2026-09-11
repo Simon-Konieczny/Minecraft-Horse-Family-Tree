@@ -126,6 +126,16 @@ export default function HorseEditModal({
       health: newStats.health,
       jump: newStats.jump,
       variant: newStats.variant,
+      // Pasted CustomName fills blank name fields only — never clobbers
+      // existing values.
+      firstName:
+        (prev.firstName || "").trim() || !newStats.firstName
+          ? prev.firstName
+          : newStats.firstName,
+      familyName:
+        (prev.familyName || "").trim() || !newStats.familyName
+          ? prev.familyName
+          : newStats.familyName,
     }));
   };
 

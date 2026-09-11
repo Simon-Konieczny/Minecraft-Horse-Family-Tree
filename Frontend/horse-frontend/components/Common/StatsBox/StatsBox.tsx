@@ -48,6 +48,16 @@ export default function StatsBox({ onStatsParsed }: StatsBoxProps){
 
             {localStats && (
               <div className={styles.parsedStats}>
+                {(localStats.firstName || localStats.familyName) && (
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>Name</span>
+                    <span className={styles.statValue}>
+                      {[localStats.firstName, localStats.familyName]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </span>
+                  </div>
+                )}
                 <div className={styles.statItem}>
                   <span className={styles.statLabel}>Speed</span>
                   <span className={styles.statValue}>{localStats.speed.toFixed(6)}</span>
