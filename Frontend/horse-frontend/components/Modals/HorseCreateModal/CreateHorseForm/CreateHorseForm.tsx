@@ -14,6 +14,7 @@ import { getHorseFullName } from "@/utils/horseNames";
 import { getSurnameFromDna, mergeDna } from "@/utils/genetics/utils";
 import { ancestryOverlap } from "@/utils/analytics";
 import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvider";
+import FamilyNameBloodlineLink from "@/components/Bloodlines/FamilyNameBloodlineLink";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
 
 export interface CreateHorseFormProps {
@@ -182,6 +183,7 @@ export default function CreateHorseForm({
               DNA suggestion: {dnaSuggestion} — you can overwrite it.
             </div>
           )}
+          <FamilyNameBloodlineLink familyName={formData.familyName} />
 
           {statsView && <StatsBox onStatsParsed={handleImportedStats} />}
 

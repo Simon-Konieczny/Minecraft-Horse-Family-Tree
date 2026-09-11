@@ -46,3 +46,8 @@ export function useHiddenBloodlineSlugs(): string[] {
     return bloodlines.filter((b) => b.hidden).map((b) => bloodlineSlug(b.name));
   }, [ctx]);
 }
+
+/** Full registry entries (name-sorted by the server query). */
+export function useBloodlines(): Bloodline[] {
+  return useContext(BloodlineContext)?.bloodlines ?? [];
+}

@@ -15,6 +15,7 @@ import { getDescendantIds } from "@/utils/lineage";
 import { getHorseFullName } from "@/utils/horseNames";
 import { ancestryOverlap } from "@/utils/analytics";
 import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvider";
+import FamilyNameBloodlineLink from "@/components/Bloodlines/FamilyNameBloodlineLink";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
 
 import * as statRowStyles from "../StatRow/StatRow.css";
@@ -176,6 +177,7 @@ export default function HorseEditModal({
               ))}
             </datalist>
           </div>
+          <FamilyNameBloodlineLink familyName={formData.familyName} />
 
           {rawStatsView && <StatsBox onStatsParsed={handleImportedStats} />}
 
