@@ -76,17 +76,7 @@ describe("sweepRow", () => {
     expect(out.get("c")! - out.get("b")!).toBeGreaterThanOrEqual(300);
   });
 
-  it("leaves already-spaced rows and single nodes untouched", () => {
-    const out = sweepRow(
-      [
-        { id: "a", x: -500 },
-        { id: "b", x: 500 },
-      ],
-      260,
-      40,
-    );
-    expect(out.get("a")).toBe(-500);
-    expect(out.get("b")).toBe(500);
+  it("leaves single nodes untouched", () => {
     expect(sweepRow([{ id: "solo", x: 123 }], 260, 40).get("solo")).toBe(123);
   });
 
@@ -109,6 +99,23 @@ describe("sweepRow", () => {
     );
     expect([...first.entries()]).toEqual([...second.entries()]);
     expect((first.get("a")! + first.get("b")!) / 2).toBeCloseTo(50, 9);
+  });
+
+  it("compacts dagre spread into exact even spacing, order preserved", () => {
+    // Simulates dagre emitting a horse-sized hole between b and c.
+    const out = sweepRow(
+      [
+        { id: "a", x: 0 },
+        { id: "b", x: 300 },
+        { id: "c", x: 2000 },
+      ],
+      260,
+      40,
+    );
+    const xs = ["a", "b", "c"].map((id) => out.get(id)!);
+    expect(xs[1] - xs[0]).toBeCloseTo(300, 9);
+    expect(xs[2] - xs[1]).toBeCloseTo(300, 9);
+    expect((xs[0] + xs[1] + xs[2]) / 3).toBeCloseTo((0 + 300 + 2000) / 3, 9);
   });
 });
 

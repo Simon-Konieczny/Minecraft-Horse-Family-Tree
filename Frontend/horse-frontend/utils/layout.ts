@@ -34,12 +34,11 @@ export const DENSITY_LABELS: Record<NodeDensity, string> = {
 };
 
 /**
- * Sweep-and-push: enforce a minimum step between node centers along one
- * row, preserving the input order, then recenter the row on the input
- * centroid. Guarantees zero overlap by construction. The base layout
- * passes families as groups so bloodlines read as contiguous blocks
- * with dagre order kept inside each family; ties break by id so output
- * is deterministic across runs.
+ * Compact-even row placement: sort (group, dagre-x, id), then space
+ * nodes at exact width+gap intervals centered on the input centroid.
+ * Order and grouping are dagre's; distances are uniform, so gaps are
+ * impossible by construction — dagre spread is never preserved.
+ * Deterministic across runs.
  */
 export function sweepRow(
   centers: { id: string; x: number; group?: string }[],
@@ -55,20 +54,9 @@ export function sweepRow(
   );
   const placed = new Map<string, number>();
   if (sorted.length === 0) return placed;
-  let cursor = sorted[0].x;
-  for (const n of sorted) {
-    const x = Math.max(n.x, cursor);
-    placed.set(n.id, x);
-    cursor = x + step;
-  }
-  const before = sorted.reduce((t, n) => t + n.x, 0) / sorted.length;
-  let after = 0;
-  for (const x of placed.values()) after += x;
-  after /= placed.size;
-  const shift = before - after;
-  if (shift !== 0) {
-    for (const [id, x] of placed) placed.set(id, x + shift);
-  }
+  const centroid = sorted.reduce((t, n) => t + n.x, 0) / sorted.length;
+  const start = centroid - ((sorted.length - 1) * step) / 2;
+  sorted.forEach((n, i) => placed.set(n.id, start + i * step));
   return placed;
 }
 

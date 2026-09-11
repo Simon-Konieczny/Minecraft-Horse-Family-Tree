@@ -256,6 +256,8 @@ function TreeContent({
         fitView
         minZoom={0.05}
         maxZoom={2.0}
+        nodesDraggable={false}
+        nodesConnectable={false}
       >
         <Background key="background" variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls key="controls" showInteractive={false} />
