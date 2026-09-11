@@ -6,6 +6,7 @@ import { translateStat } from "@/utils/translateRawStats";
 import { getHorseVariantImage } from "@/utils/variant";
 import { getHorseFullName } from "@/utils/horseNames";
 import { Cover, Folio } from "@/components/Book/Book";
+import BreedingReference from "@/components/Breeding/BreedingReference";
 import { vars } from "@/styles/theme.css";
 import Link from "next/link";
 import Image from "next/image";
@@ -68,6 +69,10 @@ export default async function DashboardPage() {
             }))}
           />
         </ChartCard>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <BreedingReference />
       </div>
 
       <section className={styles.section}>

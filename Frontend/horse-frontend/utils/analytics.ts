@@ -420,6 +420,48 @@ export function pairOutcomesVsParents<
     .sort((a, b) => b.children - a.children || b.foalAvgSpeed - a.foalAvgSpeed);
 }
 
+/** Raw legal attribute ranges for the breeding roll (vanilla). */
+export const BREEDING_RANGES = {
+  speed: { min: 0.1125, max: 0.3375 },
+  jump: { min: 0.4, max: 1.0 },
+  health: { min: 15, max: 30 },
+} as const;
+
+export interface FoalRange {
+  /** Parent midpoint — the roll's expected value. */
+  midpoint: number;
+  /** Full spread before reflection. */
+  spread: number;
+  /** Possible bounds after the game's mirror-reflection into [min, max]. */
+  lo: number;
+  hi: number;
+}
+
+/**
+ * Possible foal outcomes for one stat from the vanilla breeding formula:
+ * midpoint = (x+y)/2, spread = |x-y| + 0.3*(max-min), roll in
+ * midpoint ± spread/2, reflected back into [min, max] (2*MAX-base /
+ * 2*MIN-base). Feed RAW attributes — the game rolls raw. Bounds are
+ * indicative: real rolls cluster at the midpoint (3 averaged randoms).
+ */
+export function expectedFoalRange(
+  x: number,
+  y: number,
+  min: number,
+  max: number,
+): FoalRange {
+  const midpoint = (x + y) / 2;
+  const spread = Math.abs(x - y) + (max - min) * 0.3;
+  const reflect = (v: number) => {
+    if (v > max) return 2 * max - v;
+    if (v < min) return 2 * min - v;
+    return v;
+  };
+  const lo = reflect(midpoint - spread / 2);
+  const hi = reflect(midpoint + spread / 2);
+  return { midpoint, spread, lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
+}
+
 /**
  * Longest unbroken ancestor chain (depth = horses in chain).
  * Cycle-safe via visited set; ties prefer the first found.

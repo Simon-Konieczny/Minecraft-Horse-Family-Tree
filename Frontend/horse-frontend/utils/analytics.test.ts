@@ -4,6 +4,7 @@ import {
   avgByGeneration,
   bloodlineShares,
   dominantBloodline,
+  expectedFoalRange,
   generationCounts,
   histogramBins,
   longestLineage,
@@ -263,6 +264,35 @@ describe("pairOutcomesVsParents", () => {
       parentsFound: 1,
       parentAvgSpeed: 10,
     });
+  });
+});
+
+describe("expectedFoalRange", () => {
+  it("centers on the parent midpoint with the vanilla spread", () => {
+    // Identical parents: spread is just 30% of the range.
+    const r = expectedFoalRange(0.25, 0.25, 0.1125, 0.3375);
+    expect(r.midpoint).toBeCloseTo(0.25, 12);
+    expect(r.spread).toBeCloseTo(0.3 * 0.225, 12);
+    expect(r.lo).toBeCloseTo(0.25 - r.spread / 2, 12);
+    expect(r.hi).toBeCloseTo(0.25 + r.spread / 2, 12);
+  });
+
+  it("widens with parental difference", () => {
+    const narrow = expectedFoalRange(0.2, 0.22, 0.1125, 0.3375);
+    const wide = expectedFoalRange(0.12, 0.33, 0.1125, 0.3375);
+    expect(wide.hi - wide.lo).toBeGreaterThan(narrow.hi - narrow.lo);
+  });
+
+  it("mirror-reflects out-of-range bounds back inside", () => {
+    // Midpoint at the floor: raw lo escapes below min and reflects up.
+    const r = expectedFoalRange(0.1125, 0.1125, 0.1125, 0.3375);
+    expect(r.lo).toBeGreaterThanOrEqual(0.1125);
+    expect(r.hi).toBeLessThanOrEqual(0.3375);
+    expect(r.lo).toBeLessThanOrEqual(r.hi);
+    // Midpoint at the ceiling: raw hi escapes above max and reflects down.
+    const c = expectedFoalRange(1.0, 1.0, 0.4, 1.0);
+    expect(c.lo).toBeGreaterThanOrEqual(0.4);
+    expect(c.hi).toBeLessThanOrEqual(1.0);
   });
 });
 

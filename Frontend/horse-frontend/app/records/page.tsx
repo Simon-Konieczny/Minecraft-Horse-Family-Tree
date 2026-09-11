@@ -2,7 +2,9 @@ import { getAllHorses } from "@/lib/horses";
 import { getBloodlineColors } from "@/lib/bloodlines";
 import {
   avgByGeneration,
+  BREEDING_RANGES,
   dominantBloodline,
+  expectedFoalRange,
   generationCounts,
   histogramBins,
   longestLineage,
@@ -41,12 +43,16 @@ function DeltaCell({
   parentsFound,
   decimals,
   unit,
+  rangeLo,
+  rangeHi,
 }: {
   foal: number;
   parent: number;
   parentsFound: number;
   decimals: number;
   unit: string;
+  rangeLo: number | null;
+  rangeHi: number | null;
 }) {
   if (parentsFound === 0) {
     return (
@@ -68,6 +74,17 @@ function DeltaCell({
       <span style={{ color, fontWeight: 700 }}>
         {(delta >= 0 ? "+" : "") + delta.toFixed(decimals)} {arrow}
       </span>
+      {rangeLo !== null && rangeHi !== null && (
+        <>
+          <br />
+          <span
+            style={{ opacity: 0.6 }}
+            title="Possible range per the vanilla breeding roll; real foals cluster at the parent midpoint."
+          >
+            possible {rangeLo.toFixed(decimals)}–{rangeHi.toFixed(decimals)} {unit}
+          </span>
+        </>
+      )}
     </td>
   );
 }
@@ -137,6 +154,26 @@ export default async function RecordsPage() {
   const nameOf = (id: string) => {
     const h = horseById.get(id);
     return h ? getHorseFullName(h) : "Unknown";
+  };
+
+  // Possible foal range per pair from the vanilla roll. Runs on RAW
+  // parent stats (the game rolls raw), translated only for display.
+  const rangeFor = (
+    parentId1: string,
+    parentId2: string,
+    field: "speed" | "jump" | "health",
+  ): { lo: number; hi: number } | null => {
+    const range = BREEDING_RANGES[field];
+    const vals = [horseById.get(parentId1), horseById.get(parentId2)]
+      .map((p) => p?.[field])
+      .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+    if (vals.length === 0) return null;
+    const [a, b] = vals.length === 2 ? vals : [vals[0], vals[0]];
+    const r = expectedFoalRange(a, b, range.min, range.max);
+    return {
+      lo: translateStat(field, r.lo),
+      hi: translateStat(field, r.hi),
+    };
   };
 
   const variants = variantDistribution(horses);
@@ -318,7 +355,11 @@ export default async function RecordsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pairs.map((pair) => (
+                  {pairs.map((pair) => {
+                    const speedRange = rangeFor(pair.parentId1, pair.parentId2, "speed");
+                    const jumpRange = rangeFor(pair.parentId1, pair.parentId2, "jump");
+                    const healthRange = rangeFor(pair.parentId1, pair.parentId2, "health");
+                    return (
                     <tr key={`${pair.parentId1}-${pair.parentId2}`}>
                       <td className={chartStyles.ledgerTd}>
                         <Link
@@ -342,6 +383,8 @@ export default async function RecordsPage() {
                         parentsFound={pair.parentsFound}
                         decimals={2}
                         unit="m/s"
+                        rangeLo={speedRange?.lo ?? null}
+                        rangeHi={speedRange?.hi ?? null}
                       />
                       <DeltaCell
                         foal={pair.foalAvgJump}
@@ -349,6 +392,8 @@ export default async function RecordsPage() {
                         parentsFound={pair.parentsFound}
                         decimals={2}
                         unit="blocks"
+                        rangeLo={jumpRange?.lo ?? null}
+                        rangeHi={jumpRange?.hi ?? null}
                       />
                       <DeltaCell
                         foal={pair.foalAvgHealth}
@@ -356,9 +401,12 @@ export default async function RecordsPage() {
                         parentsFound={pair.parentsFound}
                         decimals={1}
                         unit="hp"
+                        rangeLo={healthRange?.lo ?? null}
+                        rangeHi={healthRange?.hi ?? null}
                       />
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
