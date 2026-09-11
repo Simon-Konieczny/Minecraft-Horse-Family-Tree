@@ -26,6 +26,20 @@ export interface createHorseData {
   jump: number;
   variant: number;
 }
+
+/** Fresh defaults so reopening the modal never shows the last horse. */
+const emptyFormData: createHorseData = {
+  firstName: "",
+  familyName: "",
+  parentId1: "",
+  parentId2: "",
+  originBloodline: "",
+  status: "Alive",
+  speed: 0,
+  health: 0,
+  jump: 0,
+  variant: 1,
+};
 export default function HorseCreateModal({
   isOpen,
   setIsOpen,
@@ -33,18 +47,9 @@ export default function HorseCreateModal({
   const router = useRouter();
 
   const [horses, setHorses] = useState<Horse[]>([]);
-  const [formData, setFormData] = useState<createHorseData>({
-    firstName: "",
-    familyName: "",
-    parentId1: "",
-    parentId2: "",
-    originBloodline: "",
-    status: "Alive",
-    speed: 0,
-    health: 0,
-    jump: 0,
-    variant: 1,
-  });
+  const [formData, setFormData] = useState<createHorseData>(() => ({
+    ...emptyFormData,
+  }));
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("An Error Occured");
 
@@ -61,6 +66,8 @@ export default function HorseCreateModal({
   if (!isOpen) return null;
 
   const onClose = () => {
+    setFormData({ ...emptyFormData });
+    setError(false);
     setIsOpen(false);
   };
 
@@ -80,6 +87,7 @@ export default function HorseCreateModal({
       }
 
       setError(false);
+      setFormData({ ...emptyFormData });
 
       // Update local storage for recent activity
       if (typeof window !== "undefined") {
