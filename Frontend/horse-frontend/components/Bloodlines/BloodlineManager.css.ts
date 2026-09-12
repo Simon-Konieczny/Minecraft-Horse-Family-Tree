@@ -25,6 +25,37 @@ export const colorInput = style({
   cursor: "pointer",
 });
 
+export const hexRow = style({
+  display: "flex",
+  gap: "8px",
+  alignItems: "center",
+});
+
+export const hexInput = style({
+  backgroundColor: vars.color.parchment,
+  color: vars.color.ink,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.sm,
+  padding: "8px 12px",
+  fontSize: vars.fontSize.sm,
+  fontFamily: "monospace",
+  textTransform: "uppercase",
+  width: "96px",
+  ":focus": {
+    outline: `2px solid ${vars.color.gold}`,
+    outlineOffset: "1px",
+  },
+});
+
+export const hexHint = style({
+  fontSize: "11px",
+  color: vars.color.danger,
+  fontFamily: vars.font.main,
+  textTransform: "none",
+  letterSpacing: "normal",
+  fontWeight: 400,
+});
+
 const actionButton = style({
   textTransform: "uppercase",
   letterSpacing: "0.08em",

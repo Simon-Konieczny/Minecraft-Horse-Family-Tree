@@ -545,28 +545,31 @@ export function bloodlineDiversity(
   return { shannon, effective: Math.exp(shannon), topShare };
 }
 
-export interface RankedPair {
+export interface PlannedPair {
   sireId: string;
   damId: string;
   /** Predicted foal speed = parent midpoint (same units as input). */
   midSpeed: number;
-  /** Faster parent's speed (tie-break + display). */
-  topSpeed: number;
   /** Shared ancestors within the buffer (each horse itself included). */
   sharedAncestors: number;
   /** True when the close-relative policy would reject this pair. */
   blocked: boolean;
 }
 
-export interface RankPairsOptions {
-  /** Default true: close-relative pairs are ranked, flagged via `blocked`. */
+export interface PlanPairingsOptions {
+  /** Default true: close-relative pairs are planned, flagged via `blocked`. */
   allowCloseRelativeBreeding?: boolean;
   /** Ancestor buffer depth for the overlap check. Default 3. */
   inbreedingGenerations?: number;
-  /** Default false: Retired horses are excluded from candidates. */
-  includeRetired?: boolean;
   /** Max pairs returned. Default 50. */
   limit?: number;
+}
+
+export interface SequentialPlan {
+  /** Exclusive pairs in plan order (fastest midpoint first). */
+  pairs: PlannedPair[];
+  /** Eligible horse left without a partner (slowest of an odd pool). */
+  benched: string | null;
 }
 
 function ancestorIdsPlusSelf(
@@ -594,14 +597,14 @@ function ancestorIdsPlusSelf(
 }
 
 /**
- * Ranks every eligible unordered pair by predicted foal speed (parent
- * midpoint), fastest first. Candidates are non-Deceased horses with a
- * finite speed (Retired only with `includeRetired`). Close-relative
- * pairs are flagged via `blocked` (never dropped) so the planner can
- * show or hide them. Deterministic: ties break by top parent speed,
- * then by pair key.
+ * Builds an exclusive breeding plan: candidates are living (Alive-only —
+ * Retired sit out) horses with a finite speed, sorted fastest first and
+ * paired strictly in order (1st×2nd, 3rd×4th, …). Every horse breeds at
+ * most once; the slowest horse of an odd pool is benched. Close-relative
+ * pairs are still paired (strict order wins) but flagged via `blocked`
+ * so the planner can warn. Deterministic: speed ties break by id.
  */
-export function rankPairsBySpeed<
+export function planSequentialPairings<
   T extends {
     id: string;
     speed?: unknown;
@@ -609,73 +612,61 @@ export function rankPairsBySpeed<
     parentId1?: string | null;
     parentId2?: string | null;
   },
->(horses: T[], options: RankPairsOptions = {}): RankedPair[] {
+>(horses: T[], options: PlanPairingsOptions = {}): SequentialPlan {
   const {
     allowCloseRelativeBreeding = true,
     inbreedingGenerations = 3,
-    includeRetired = false,
     limit = 50,
   } = options;
   const byId = new Map(horses.map((h) => [h.id, h]));
-  const candidates = horses.filter((h) => {
-    if (typeof h.speed !== "number" || !Number.isFinite(h.speed)) return false;
-    if (h.status === "Deceased") return false;
-    if (!includeRetired && h.status === "Retired") return false;
-    return true;
-  });
+  const ranked = horses
+    .filter(
+      (h) =>
+        typeof h.speed === "number" &&
+        Number.isFinite(h.speed) &&
+        h.status !== "Deceased" &&
+        h.status !== "Retired",
+    )
+    .sort(
+      (a, b) =>
+        (b.speed as number) - (a.speed as number) || a.id.localeCompare(b.id),
+    );
 
-  const pairs: RankedPair[] = [];
-  for (let i = 0; i < candidates.length; i++) {
-    for (let j = i + 1; j < candidates.length; j++) {
-      const a = candidates[i];
-      const b = candidates[j];
-      const [sireId, damId] = [a.id, b.id].sort();
-      const midSpeed = (a.speed as number) / 2 + (b.speed as number) / 2;
-      const topSpeed = Math.max(a.speed as number, b.speed as number);
-
-      let sharedAncestors = 0;
-      let blocked = false;
-      if (!allowCloseRelativeBreeding) {
-        // Parent-child in either direction.
-        if (
-          a.parentId1 === b.id ||
-          a.parentId2 === b.id ||
-          b.parentId1 === a.id ||
-          b.parentId2 === a.id
-        ) {
-          blocked = true;
-        } else {
-          // Full siblings: identical recorded parent pairs.
-          const pa = [a.parentId1, a.parentId2].filter(Boolean).sort();
-          const pb = [b.parentId1, b.parentId2].filter(Boolean).sort();
-          if (pa.length === 2 && pa[0] === pb[0] && pa[1] === pb[1]) {
-            blocked = true;
-          } else {
-            const setA = ancestorIdsPlusSelf(byId, a.id, inbreedingGenerations);
-            const setB = ancestorIdsPlusSelf(byId, b.id, inbreedingGenerations);
-            for (const id of setA) {
-              if (setB.has(id)) sharedAncestors++;
-            }
-            blocked = sharedAncestors >= 1;
-          }
-        }
-      } else {
-        const setA = ancestorIdsPlusSelf(byId, a.id, inbreedingGenerations);
-        const setB = ancestorIdsPlusSelf(byId, b.id, inbreedingGenerations);
-        for (const id of setA) {
-          if (setB.has(id)) sharedAncestors++;
-        }
-      }
-      pairs.push({ sireId, damId, midSpeed, topSpeed, sharedAncestors, blocked });
+  const describe = (
+    a: (typeof ranked)[number],
+    b: (typeof ranked)[number],
+  ): PlannedPair => {
+    const [sireId, damId] = [a.id, b.id].sort();
+    const midSpeed = (a.speed as number) / 2 + (b.speed as number) / 2;
+    // Direct kinship (always flagged in the UI; only blocks per policy).
+    const isParentChild =
+      a.parentId1 === b.id ||
+      a.parentId2 === b.id ||
+      b.parentId1 === a.id ||
+      b.parentId2 === a.id;
+    const pa = [a.parentId1, a.parentId2].filter(Boolean).sort();
+    const pb = [b.parentId1, b.parentId2].filter(Boolean).sort();
+    const isSiblings =
+      pa.length === 2 && pa[0] === pb[0] && pa[1] === pb[1];
+    const setA = ancestorIdsPlusSelf(byId, a.id, inbreedingGenerations);
+    const setB = ancestorIdsPlusSelf(byId, b.id, inbreedingGenerations);
+    let sharedAncestors = 0;
+    for (const id of setA) {
+      if (setB.has(id)) sharedAncestors++;
     }
+    const blocked =
+      !allowCloseRelativeBreeding &&
+      (isParentChild || isSiblings || sharedAncestors >= 1);
+    return { sireId, damId, midSpeed, sharedAncestors, blocked };
+  };
+
+  const maxPairs = Math.max(1, Math.floor(limit));
+  const pairs: PlannedPair[] = [];
+  for (let i = 0; i + 1 < ranked.length && pairs.length < maxPairs; i += 2) {
+    pairs.push(describe(ranked[i], ranked[i + 1]));
   }
-  pairs.sort(
-    (x, y) =>
-      y.midSpeed - x.midSpeed ||
-      y.topSpeed - x.topSpeed ||
-      (x.sireId + x.damId).localeCompare(y.sireId + y.damId),
-  );
-  return pairs.slice(0, Math.max(1, Math.floor(limit)));
+  const benched = ranked.length % 2 === 1 ? ranked[ranked.length - 1].id : null;
+  return { pairs, benched };
 }
 
 /** Raw legal attribute ranges for the breeding roll (vanilla). */
@@ -701,6 +692,12 @@ export interface FoalRange {
  * midpoint ± spread/2, reflected back into [min, max] (2*MAX-base /
  * 2*MIN-base). Feed RAW attributes — the game rolls raw. Bounds are
  * indicative: real rolls cluster at the midpoint (3 averaged randoms).
+ *
+ * Bounds are the TRUE achievable interval: when the raw interval
+ * straddles a cap, the cap itself is the bound (a roll landing exactly
+ * on it stays). Reflecting the endpoints instead understates fast
+ * parents — e.g. identical 14.19 m/s parents would display a max BELOW
+ * themselves while slower pairs display higher maxima.
  */
 export function expectedFoalRange(
   x: number,
@@ -710,13 +707,13 @@ export function expectedFoalRange(
 ): FoalRange {
   const midpoint = (x + y) / 2;
   const spread = Math.abs(x - y) + (max - min) * 0.3;
-  const reflect = (v: number) => {
-    if (v > max) return 2 * max - v;
-    if (v < min) return 2 * min - v;
-    return v;
-  };
-  const lo = reflect(midpoint - spread / 2);
-  const hi = reflect(midpoint + spread / 2);
+  const rawLo = midpoint - spread / 2;
+  const rawHi = midpoint + spread / 2;
+  // Clamp both ends into [min, max] so hand-edited out-of-range parents
+  // can't leak a bound outside the legal interval; ordering guard covers
+  // degenerate min > max configs.
+  const lo = Math.min(Math.max(rawLo, min), max);
+  const hi = Math.min(Math.max(rawHi, min), max);
   return { midpoint, spread, lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
 }
 

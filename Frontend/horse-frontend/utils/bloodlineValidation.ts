@@ -17,6 +17,16 @@ export function isValidHex(hex: string): boolean {
 }
 
 /**
+ * Normalizes a typed hex draft for the strict #rrggbb registry format:
+ * trims whitespace and uppercases. Returns the normalized value when it
+ * is submittable, otherwise null (held locally, never saved).
+ */
+export function normalizeHexInput(draft: string): string | null {
+  const normalized = draft.trim().toUpperCase();
+  return isValidHex(normalized) ? normalized : null;
+}
+
+/**
  * Shared add/edit validation (pure, unit-tested). Returns trimmed values.
  * Uniqueness is checked against the DB by the caller.
  */

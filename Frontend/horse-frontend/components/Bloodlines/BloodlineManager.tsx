@@ -9,6 +9,7 @@ import toggleBloodlineVisibilityAction from "@/actions/toggleBloodlineVisibility
 import updateBloodlineColorAction from "@/actions/updateBloodlineColorAction";
 import deleteBloodlineAction from "@/actions/deleteBloodlineAction";
 import getBloodlineReferenceCountsAction from "@/actions/getBloodlineReferenceCountsAction";
+import HexColorField from "./HexColorField";
 import { vars } from "@/styles/theme.css";
 import * as styles from "./BloodlineManager.css";
 import * as modalStyles from "../Modals/Modals.css";
@@ -221,13 +222,12 @@ export default function BloodlineManager({
             disabled={busy}
           />
         </label>
-        <label className={styles.formLabel}>
+        <label className={styles.formLabel} htmlFor="add-bloodline-hex">
           Color
-          <input
-            type="color"
+          <HexColorField
+            id="add-bloodline-hex"
             value={hexColor}
-            className={styles.colorInput}
-            onChange={(e) => setHexColor(e.target.value)}
+            onChange={setHexColor}
             disabled={busy}
           />
         </label>
@@ -274,15 +274,15 @@ export default function BloodlineManager({
                 disabled={busy}
               />
             </label>
-            <label className={styles.formLabel}>
+            <label className={styles.formLabel} htmlFor="edit-bloodline-hex">
               Color
-              <input
-                type="color"
-                value={editHex}
-                className={styles.colorInput}
-                onChange={(e) => setEditHex(e.target.value)}
-                disabled={busy}
-              />
+          <HexColorField
+            key={editing.name}
+            id="edit-bloodline-hex"
+            value={editHex}
+            onChange={setEditHex}
+            disabled={busy}
+          />
             </label>
             <label className={styles.formLabel}>
               Theme (optional)

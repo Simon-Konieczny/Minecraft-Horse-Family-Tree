@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bloodlineSlug,
   isValidHex,
+  normalizeHexInput,
   validateBloodlineInput,
 } from "./bloodlineValidation";
 
@@ -23,6 +24,25 @@ describe("isValidHex", () => {
       expect(isValidHex(hex)).toBe(false);
     },
   );
+});
+
+describe("normalizeHexInput", () => {
+  it("accepts exact values like #7A4E2F and #F5F5F2", () => {
+    expect(normalizeHexInput("#7A4E2F")).toBe("#7A4E2F");
+    expect(normalizeHexInput("#F5F5F2")).toBe("#F5F5F2");
+  });
+
+  it("trims whitespace and uppercases lowercase input", () => {
+    expect(normalizeHexInput("  #7a4e2f  ")).toBe("#7A4E2F");
+  });
+
+  it("rejects incomplete, invalid, and shorthand drafts", () => {
+    expect(normalizeHexInput("#7A4")).toBeNull();
+    expect(normalizeHexInput("#7A4E2")).toBeNull();
+    expect(normalizeHexInput("#GGGGGG")).toBeNull();
+    expect(normalizeHexInput("7A4E2F")).toBeNull();
+    expect(normalizeHexInput("")).toBeNull();
+  });
 });
 
 describe("validateBloodlineInput", () => {

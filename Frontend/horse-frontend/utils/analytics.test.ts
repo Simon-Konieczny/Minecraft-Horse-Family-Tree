@@ -16,7 +16,7 @@ import {
   pairOutcomesVsParents,
   prolificParents,
   purityRanking,
-  rankPairsBySpeed,
+  planSequentialPairings,
   sharesByGeneration,
   statSummary,
   statusBreakdown,
@@ -299,6 +299,24 @@ describe("expectedFoalRange", () => {
     expect(c.lo).toBeGreaterThanOrEqual(0.4);
     expect(c.hi).toBeLessThanOrEqual(1.0);
   });
+
+  it("never shows fast parents a max below themselves (cap is achievable)", () => {
+    // Identical 14.19 m/s parents: the old endpoint reflection displayed
+    // ~13.49 while slower pairs displayed ~14.26.
+    const best = expectedFoalRange(0.3288, 0.3288, 0.1125, 0.3375);
+    expect(best.hi).toBeCloseTo(0.3375, 12);
+    expect(best.hi).toBeGreaterThanOrEqual(0.3288);
+  });
+
+  it("is monotone: faster parents never display a lower max", () => {
+    const speeds = [0.15, 0.2, 0.25, 0.2966, 0.31, 0.3288, 0.3375];
+    const his = speeds.map(
+      (s) => expectedFoalRange(s, s, 0.1125, 0.3375).hi,
+    );
+    for (let i = 1; i < his.length; i++) {
+      expect(his[i]).toBeGreaterThanOrEqual(his[i - 1]);
+    }
+  });
 });
 
 describe("longestLineage", () => {
@@ -361,53 +379,67 @@ describe("ancestryOverlap", () => {
   });
 });
 
-describe("rankPairsBySpeed", () => {
+describe("planSequentialPairings", () => {
   const herd = [
     { id: "a", speed: 0.3, status: "Alive" },
     { id: "b", speed: 0.2, status: "Alive" },
     { id: "c", speed: 0.25, status: "Alive" },
+    { id: "d", speed: 0.28, status: "Alive" },
     { id: "dead", speed: 0.33, status: "Deceased" },
     { id: "retired", speed: 0.33, status: "Retired" },
   ];
 
-  it("orders pairs by parent midpoint, fastest first", () => {
-    const pairs = rankPairsBySpeed(herd);
+  it("pairs strictly in speed order, each horse exactly once", () => {
+    const { pairs, benched } = planSequentialPairings(herd);
+    // Sorted: a(0.3) d(0.28) c(0.25) b(0.2) → (a,d) (b,c), nobody benched.
     expect(pairs.map((p) => [p.sireId, p.damId])).toEqual([
-      ["a", "c"],
-      ["a", "b"],
+      ["a", "d"],
       ["b", "c"],
     ]);
-    expect(pairs[0].midSpeed).toBeCloseTo(0.275, 9);
+    expect(pairs[0].midSpeed).toBeCloseTo(0.29, 9);
+    expect(benched).toBeNull();
+    const used = pairs.flatMap((p) => [p.sireId, p.damId]);
+    expect(new Set(used).size).toBe(used.length);
   });
 
-  it("excludes Deceased always and Retired unless included", () => {
-    expect(rankPairsBySpeed(herd).every((p) => !p.sireId.includes("dead") && !p.damId.includes("dead"))).toBe(true);
-    expect(rankPairsBySpeed(herd).some((p) => p.sireId === "retired" || p.damId === "retired")).toBe(false);
-    expect(
-      rankPairsBySpeed(herd, { includeRetired: true }).some(
-        (p) => p.sireId === "retired" || p.damId === "retired",
-      ),
-    ).toBe(true);
+  it("benches the slowest horse of an odd pool", () => {
+    const { pairs, benched } = planSequentialPairings(
+      herd.filter((h) => h.id !== "d"),
+    );
+    expect(pairs.map((p) => [p.sireId, p.damId])).toEqual([["a", "c"]]);
+    expect(benched).toBe("b");
   });
 
-  it("flags parent-child pairs as blocked when close-relative breeding is off", () => {
+  it("excludes Deceased and Retired from the pool", () => {
+    const { pairs, benched } = planSequentialPairings(herd);
+    const used = pairs.flatMap((p) => [p.sireId, p.damId]);
+    expect(used).not.toContain("dead");
+    expect(used).not.toContain("retired");
+    expect(benched).not.toBe("dead");
+  });
+
+  it("still pairs relatives in strict order but flags them when policy is off", () => {
     const family = [
       { id: "sire", speed: 0.3, status: "Alive" },
-      { id: "dam", speed: 0.3, status: "Alive" },
-      { id: "foal", speed: 0.3, status: "Alive", parentId1: "sire", parentId2: "dam" },
+      { id: "foal", speed: 0.29, status: "Alive", parentId1: "sire", parentId2: "other" },
+      { id: "other", speed: 0.2, status: "Alive" },
+      { id: "slow", speed: 0.1, status: "Alive" },
     ];
-    const pairs = rankPairsBySpeed(family, { allowCloseRelativeBreeding: false });
-    const parentChild = pairs.find(
-      (p) => (p.sireId === "foal" && p.damId === "sire") || (p.sireId === "dam" && p.damId === "foal"),
-    );
-    expect(parentChild?.blocked).toBe(true);
-    expect(pairs.find((p) => p.sireId === "dam" && p.damId === "sire")?.blocked).toBe(false);
+    const strict = planSequentialPairings(family, { allowCloseRelativeBreeding: true });
+    expect(strict.pairs[0]).toMatchObject({ sireId: "foal", damId: "sire", blocked: false });
+    const flagged = planSequentialPairings(family, { allowCloseRelativeBreeding: false });
+    expect(flagged.pairs[0].blocked).toBe(true);
+    // Unrelated pair is never blocked.
+    expect(flagged.pairs[1].blocked).toBe(false);
   });
 
   it("is empty-safe and honors the limit", () => {
-    expect(rankPairsBySpeed([])).toEqual([]);
-    expect(rankPairsBySpeed([{ id: "solo", speed: 0.3 }])).toEqual([]);
-    expect(rankPairsBySpeed(herd, { limit: 1 })).toHaveLength(1);
+    expect(planSequentialPairings([])).toEqual({ pairs: [], benched: null });
+    expect(planSequentialPairings([{ id: "solo", speed: 0.3 }])).toEqual({
+      pairs: [],
+      benched: "solo",
+    });
+    expect(planSequentialPairings(herd, { limit: 1 }).pairs).toHaveLength(1);
   });
 });
 

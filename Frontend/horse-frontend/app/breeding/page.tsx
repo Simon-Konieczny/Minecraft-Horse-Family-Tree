@@ -1,14 +1,11 @@
 import { getAllHorses } from "@/lib/horses";
 import { getBloodlineColors } from "@/lib/bloodlines";
 import { getBreedingSettings } from "@/lib/breedingSettings";
-import { pairOutcomes, rankPairsBySpeed } from "@/utils/analytics";
+import { pairOutcomes, planSequentialPairings } from "@/utils/analytics";
 import { ChapterHeading, Folio } from "@/components/Book/Book";
 import PairingPlanner from "@/components/Breeding/PairingPlanner";
 
 export const dynamic = "force-dynamic";
-
-/** Top-N pairs pre-ranked server-side; the client only filters/slices. */
-const PRE_RANK_LIMIT = 300;
 
 export default async function BreedingPage() {
   const [horses, colors, settings] = await Promise.all([
@@ -17,12 +14,11 @@ export default async function BreedingPage() {
     getBreedingSettings(),
   ]);
 
-  const ranked = rankPairsBySpeed(horses, {
+  // Strict exclusive plan: sort Alive horses fastest-first, pair 1st×2nd,
+  // 3rd×4th, …; slowest is benched when the pool is odd. Deceased and
+  // Retired sit out (Alive-only, no toggle).
+  const { pairs, benched } = planSequentialPairings(horses, {
     allowCloseRelativeBreeding: settings.allowCloseRelativeBreeding,
-    // Rank with Retired included so the client toggle can reveal them
-    // without a round-trip; Deceased are still excluded at the source.
-    includeRetired: true,
-    limit: PRE_RANK_LIMIT,
   });
   const triedKeys = pairOutcomes(horses).map((p) =>
     [p.parentId1, p.parentId2].sort().join("|||"),
@@ -33,12 +29,13 @@ export default async function BreedingPage() {
       <ChapterHeading
         numeral="Chapter V"
         title="Breeding Planner"
-        subtitle="Every eligible pair ranked by predicted foal speed — fastest midpoint first."
+        subtitle="Strict order: fastest × 2nd, 3rd × 4th, … — slowest benched if odd."
       />
       <PairingPlanner
         horses={horses}
         colors={colors}
-        initialPairs={ranked}
+        pairs={pairs}
+        benched={benched}
         triedKeys={triedKeys}
         policyBlocksRelatives={!settings.allowCloseRelativeBreeding}
       />
