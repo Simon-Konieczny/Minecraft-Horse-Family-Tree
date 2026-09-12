@@ -2,16 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   ancestryOverlap,
   avgByGeneration,
+  bloodlineDiversity,
   bloodlineShares,
   dominantBloodline,
   expectedFoalRange,
   generationCounts,
+  heritabilityPoints,
   histogramBins,
+  inbreedingRanking,
+  linearRegression,
   longestLineage,
   pairOutcomes,
   pairOutcomesVsParents,
   prolificParents,
   purityRanking,
+  rankPairsBySpeed,
   sharesByGeneration,
   statSummary,
   statusBreakdown,
@@ -353,5 +358,115 @@ describe("ancestryOverlap", () => {
     expect(
       ancestryOverlap([{ id: "a" }, { id: "z" }], "a", "z"),
     ).toEqual({ shared: 0, total: 0, pct: 0 });
+  });
+});
+
+describe("rankPairsBySpeed", () => {
+  const herd = [
+    { id: "a", speed: 0.3, status: "Alive" },
+    { id: "b", speed: 0.2, status: "Alive" },
+    { id: "c", speed: 0.25, status: "Alive" },
+    { id: "dead", speed: 0.33, status: "Deceased" },
+    { id: "retired", speed: 0.33, status: "Retired" },
+  ];
+
+  it("orders pairs by parent midpoint, fastest first", () => {
+    const pairs = rankPairsBySpeed(herd);
+    expect(pairs.map((p) => [p.sireId, p.damId])).toEqual([
+      ["a", "c"],
+      ["a", "b"],
+      ["b", "c"],
+    ]);
+    expect(pairs[0].midSpeed).toBeCloseTo(0.275, 9);
+  });
+
+  it("excludes Deceased always and Retired unless included", () => {
+    expect(rankPairsBySpeed(herd).every((p) => !p.sireId.includes("dead") && !p.damId.includes("dead"))).toBe(true);
+    expect(rankPairsBySpeed(herd).some((p) => p.sireId === "retired" || p.damId === "retired")).toBe(false);
+    expect(
+      rankPairsBySpeed(herd, { includeRetired: true }).some(
+        (p) => p.sireId === "retired" || p.damId === "retired",
+      ),
+    ).toBe(true);
+  });
+
+  it("flags parent-child pairs as blocked when close-relative breeding is off", () => {
+    const family = [
+      { id: "sire", speed: 0.3, status: "Alive" },
+      { id: "dam", speed: 0.3, status: "Alive" },
+      { id: "foal", speed: 0.3, status: "Alive", parentId1: "sire", parentId2: "dam" },
+    ];
+    const pairs = rankPairsBySpeed(family, { allowCloseRelativeBreeding: false });
+    const parentChild = pairs.find(
+      (p) => (p.sireId === "foal" && p.damId === "sire") || (p.sireId === "dam" && p.damId === "foal"),
+    );
+    expect(parentChild?.blocked).toBe(true);
+    expect(pairs.find((p) => p.sireId === "dam" && p.damId === "sire")?.blocked).toBe(false);
+  });
+
+  it("is empty-safe and honors the limit", () => {
+    expect(rankPairsBySpeed([])).toEqual([]);
+    expect(rankPairsBySpeed([{ id: "solo", speed: 0.3 }])).toEqual([]);
+    expect(rankPairsBySpeed(herd, { limit: 1 })).toHaveLength(1);
+  });
+});
+
+describe("heritabilityPoints / linearRegression", () => {
+  const herd = [
+    { id: "sire", speed: 10 },
+    { id: "dam", speed: 12 },
+    { id: "foal1", parentId1: "sire", parentId2: "dam", speed: 11 },
+    { id: "foal2", parentId1: "sire", parentId2: "dam", speed: 13 },
+    { id: "orphan", speed: 9 },
+  ];
+
+  it("pairs each foal with its mid-parent stat", () => {
+    expect(heritabilityPoints(herd, "speed")).toEqual([
+      { x: 11, y: 11 },
+      { x: 11, y: 13 },
+    ]);
+  });
+
+  it("fits a perfect line with R² = 1", () => {
+    expect(
+      linearRegression([
+        { x: 1, y: 2 },
+        { x: 2, y: 4 },
+        { x: 3, y: 6 },
+      ]),
+    ).toEqual({ slope: 2, intercept: 0, r2: 1, n: 3 });
+  });
+
+  it("is empty-safe", () => {
+    expect(heritabilityPoints([], "speed")).toEqual([]);
+    expect(linearRegression([])).toEqual({ slope: 0, intercept: 0, r2: 0, n: 0 });
+  });
+});
+
+describe("inbreedingRanking / bloodlineDiversity", () => {
+  it("ranks the foal of relatives above the foal of founders", () => {
+    const herd = [
+      { id: "a", parentId1: null, parentId2: null },
+      { id: "b", parentId1: null, parentId2: null },
+      { id: "c", parentId1: "a", parentId2: "b" },
+      { id: "inbred", parentId1: "a", parentId2: "c" },
+      { id: "clean", parentId1: "a", parentId2: "b" },
+    ];
+    const ranks = inbreedingRanking(herd);
+    expect(ranks[0].id).toBe("inbred");
+    expect(ranks[0].shared).toBeGreaterThan(0);
+    expect(ranks.find((r) => r.id === "clean")?.shared).toBe(0);
+  });
+
+  it("measures diversity: pure herd = 1 effective bloodline", () => {
+    expect(bloodlineDiversity([{ total: 5 }])).toEqual({
+      shannon: 0,
+      effective: 1,
+      topShare: 1,
+    });
+    const even = bloodlineDiversity([{ total: 1 }, { total: 1 }]);
+    expect(even.effective).toBeCloseTo(2, 9);
+    expect(even.topShare).toBeCloseTo(0.5, 9);
+    expect(bloodlineDiversity([])).toEqual({ shannon: 0, effective: 0, topShare: 0 });
   });
 });

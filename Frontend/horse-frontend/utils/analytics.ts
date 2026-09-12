@@ -420,6 +420,264 @@ export function pairOutcomesVsParents<
     .sort((a, b) => b.children - a.children || b.foalAvgSpeed - a.foalAvgSpeed);
 }
 
+export interface HeritabilityPoint {
+  /** Mid-parent stat. */
+  x: number;
+  /** Foal stat. */
+  y: number;
+}
+
+/**
+ * Foal-vs-mid-parent points for one stat (feed translated stats so the
+ * nonlinear jump curve is compared correctly). Only foals with both
+ * parents found in the herd are included.
+ */
+export function heritabilityPoints<
+  T extends {
+    id: string;
+    parentId1?: string | null;
+    parentId2?: string | null;
+  },
+>(horses: T[], field: keyof T & string): HeritabilityPoint[] {
+  const byId = new Map(horses.map((h) => [h.id, h]));
+  const points: HeritabilityPoint[] = [];
+  for (const h of horses) {
+    if (!h.parentId1 || !h.parentId2) continue;
+    const p1 = byId.get(h.parentId1)?.[field];
+    const p2 = byId.get(h.parentId2)?.[field];
+    const y: unknown = h[field];
+    if (
+      typeof p1 !== "number" || !Number.isFinite(p1) ||
+      typeof p2 !== "number" || !Number.isFinite(p2) ||
+      typeof y !== "number" || !Number.isFinite(y)
+    ) {
+      continue;
+    }
+    points.push({ x: (p1 + p2) / 2, y });
+  }
+  return points;
+}
+
+export interface Regression {
+  slope: number;
+  intercept: number;
+  /** Coefficient of determination (0 when degenerate). */
+  r2: number;
+  n: number;
+}
+
+/** Ordinary least-squares fit of y on x (empty/degenerate -> zeros). */
+export function linearRegression(points: HeritabilityPoint[]): Regression {
+  const n = points.length;
+  if (n === 0) return { slope: 0, intercept: 0, r2: 0, n: 0 };
+  const meanX = points.reduce((t, p) => t + p.x, 0) / n;
+  const meanY = points.reduce((t, p) => t + p.y, 0) / n;
+  let ssxx = 0;
+  let ssxy = 0;
+  let ssty = 0;
+  for (const p of points) {
+    ssxx += (p.x - meanX) ** 2;
+    ssxy += (p.x - meanX) * (p.y - meanY);
+    ssty += (p.y - meanY) ** 2;
+  }
+  if (!(ssxx > 0)) return { slope: 0, intercept: meanY, r2: 0, n };
+  const slope = ssxy / ssxx;
+  const intercept = meanY - slope * meanX;
+  const r2 = ssxx > 0 && ssty > 0 ? (ssxy * ssxy) / (ssxx * ssty) : 0;
+  return { slope, intercept, r2, n };
+}
+
+export interface InbreedingRank {
+  id: string;
+  /** Shared ancestors between the parents (each parent itself included). */
+  shared: number;
+  total: number;
+}
+
+/**
+ * Foals ranked by parental shared ancestry, most inbred first.
+ * Only horses with both parents recorded are included.
+ */
+export function inbreedingRanking<
+  T extends { id: string; parentId1?: string | null; parentId2?: string | null },
+>(horses: T[], maxDepth = 3): InbreedingRank[] {
+  const byId = new Map(horses.map((h) => [h.id, h]));
+  const ranks: InbreedingRank[] = [];
+  for (const h of horses) {
+    if (!h.parentId1 || !h.parentId2) continue;
+    if (!byId.has(h.parentId1) || !byId.has(h.parentId2)) continue;
+    const setA = ancestorIdsPlusSelf(byId, h.parentId1, maxDepth);
+    const setB = ancestorIdsPlusSelf(byId, h.parentId2, maxDepth);
+    let shared = 0;
+    for (const id of setA) {
+      if (setB.has(id)) shared++;
+    }
+    ranks.push({ id: h.id, shared, total: new Set([...setA, ...setB]).size });
+  }
+  return ranks.sort((a, b) => b.shared - a.shared || a.total - b.total);
+}
+
+export interface DiversityIndex {
+  /** Shannon entropy (nats) of the bloodline distribution. */
+  shannon: number;
+  /** Effective number of bloodlines (exp of Shannon). */
+  effective: number;
+  /** Largest single-bloodline share 0-1 (bottleneck signal). */
+  topShare: number;
+}
+
+/**
+ * Bloodline diversity from summed DNA shares (see bloodlineShares):
+ * effective = 1 means a single-bloodline herd.
+ */
+export function bloodlineDiversity(
+  shares: { total: number }[],
+): DiversityIndex {
+  const sum = shares.reduce((t, s) => t + s.total, 0);
+  if (!(sum > 0)) return { shannon: 0, effective: 0, topShare: 0 };
+  let shannon = 0;
+  let topShare = 0;
+  for (const s of shares) {
+    const p = s.total / sum;
+    if (p > 0) shannon -= p * Math.log(p);
+    if (p > topShare) topShare = p;
+  }
+  return { shannon, effective: Math.exp(shannon), topShare };
+}
+
+export interface RankedPair {
+  sireId: string;
+  damId: string;
+  /** Predicted foal speed = parent midpoint (same units as input). */
+  midSpeed: number;
+  /** Faster parent's speed (tie-break + display). */
+  topSpeed: number;
+  /** Shared ancestors within the buffer (each horse itself included). */
+  sharedAncestors: number;
+  /** True when the close-relative policy would reject this pair. */
+  blocked: boolean;
+}
+
+export interface RankPairsOptions {
+  /** Default true: close-relative pairs are ranked, flagged via `blocked`. */
+  allowCloseRelativeBreeding?: boolean;
+  /** Ancestor buffer depth for the overlap check. Default 3. */
+  inbreedingGenerations?: number;
+  /** Default false: Retired horses are excluded from candidates. */
+  includeRetired?: boolean;
+  /** Max pairs returned. Default 50. */
+  limit?: number;
+}
+
+function ancestorIdsPlusSelf(
+  byId: Map<string, { parentId1?: string | null; parentId2?: string | null }>,
+  id: string,
+  maxDepth: number,
+): Set<string> {
+  const found = new Set<string>([id]);
+  let frontier = [id];
+  for (let depth = 0; depth < maxDepth && frontier.length > 0; depth++) {
+    const next: string[] = [];
+    for (const current of frontier) {
+      const horse = byId.get(current);
+      if (!horse) continue;
+      for (const p of [horse.parentId1, horse.parentId2]) {
+        if (p && !found.has(p)) {
+          found.add(p);
+          next.push(p);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return found;
+}
+
+/**
+ * Ranks every eligible unordered pair by predicted foal speed (parent
+ * midpoint), fastest first. Candidates are non-Deceased horses with a
+ * finite speed (Retired only with `includeRetired`). Close-relative
+ * pairs are flagged via `blocked` (never dropped) so the planner can
+ * show or hide them. Deterministic: ties break by top parent speed,
+ * then by pair key.
+ */
+export function rankPairsBySpeed<
+  T extends {
+    id: string;
+    speed?: unknown;
+    status?: unknown;
+    parentId1?: string | null;
+    parentId2?: string | null;
+  },
+>(horses: T[], options: RankPairsOptions = {}): RankedPair[] {
+  const {
+    allowCloseRelativeBreeding = true,
+    inbreedingGenerations = 3,
+    includeRetired = false,
+    limit = 50,
+  } = options;
+  const byId = new Map(horses.map((h) => [h.id, h]));
+  const candidates = horses.filter((h) => {
+    if (typeof h.speed !== "number" || !Number.isFinite(h.speed)) return false;
+    if (h.status === "Deceased") return false;
+    if (!includeRetired && h.status === "Retired") return false;
+    return true;
+  });
+
+  const pairs: RankedPair[] = [];
+  for (let i = 0; i < candidates.length; i++) {
+    for (let j = i + 1; j < candidates.length; j++) {
+      const a = candidates[i];
+      const b = candidates[j];
+      const [sireId, damId] = [a.id, b.id].sort();
+      const midSpeed = (a.speed as number) / 2 + (b.speed as number) / 2;
+      const topSpeed = Math.max(a.speed as number, b.speed as number);
+
+      let sharedAncestors = 0;
+      let blocked = false;
+      if (!allowCloseRelativeBreeding) {
+        // Parent-child in either direction.
+        if (
+          a.parentId1 === b.id ||
+          a.parentId2 === b.id ||
+          b.parentId1 === a.id ||
+          b.parentId2 === a.id
+        ) {
+          blocked = true;
+        } else {
+          // Full siblings: identical recorded parent pairs.
+          const pa = [a.parentId1, a.parentId2].filter(Boolean).sort();
+          const pb = [b.parentId1, b.parentId2].filter(Boolean).sort();
+          if (pa.length === 2 && pa[0] === pb[0] && pa[1] === pb[1]) {
+            blocked = true;
+          } else {
+            const setA = ancestorIdsPlusSelf(byId, a.id, inbreedingGenerations);
+            const setB = ancestorIdsPlusSelf(byId, b.id, inbreedingGenerations);
+            for (const id of setA) {
+              if (setB.has(id)) sharedAncestors++;
+            }
+            blocked = sharedAncestors >= 1;
+          }
+        }
+      } else {
+        const setA = ancestorIdsPlusSelf(byId, a.id, inbreedingGenerations);
+        const setB = ancestorIdsPlusSelf(byId, b.id, inbreedingGenerations);
+        for (const id of setA) {
+          if (setB.has(id)) sharedAncestors++;
+        }
+      }
+      pairs.push({ sireId, damId, midSpeed, topSpeed, sharedAncestors, blocked });
+    }
+  }
+  pairs.sort(
+    (x, y) =>
+      y.midSpeed - x.midSpeed ||
+      y.topSpeed - x.topSpeed ||
+      (x.sireId + x.damId).localeCompare(y.sireId + y.damId),
+  );
+  return pairs.slice(0, Math.max(1, Math.floor(limit)));
+}
+
 /** Raw legal attribute ranges for the breeding roll (vanilla). */
 export const BREEDING_RANGES = {
   speed: { min: 0.1125, max: 0.3375 },

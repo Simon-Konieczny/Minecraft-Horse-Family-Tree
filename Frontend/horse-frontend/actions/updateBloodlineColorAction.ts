@@ -6,7 +6,8 @@ export default async function updateBloodlineColorAction(
   name: string,
   hexColor: string,
 ) {
-  await updateBloodlineColor(name, hexColor);
+  const affectedHorses = await updateBloodlineColor(name, hexColor);
   revalidatePath("/bloodlines");
   revalidatePath("/", "layout");
+  return { affectedHorses };
 }

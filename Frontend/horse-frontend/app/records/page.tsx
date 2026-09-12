@@ -2,14 +2,20 @@ import { getAllHorses } from "@/lib/horses";
 import { getBloodlineColors } from "@/lib/bloodlines";
 import {
   avgByGeneration,
+  bloodlineDiversity,
+  bloodlineShares,
   BREEDING_RANGES,
   dominantBloodline,
   expectedFoalRange,
   generationCounts,
+  heritabilityPoints,
   histogramBins,
+  inbreedingRanking,
+  linearRegression,
   longestLineage,
   pairOutcomesVsParents,
   prolificParents,
+  purityRanking,
   variantBloodlineCrosstab,
   variantDistribution,
 } from "@/utils/analytics";
@@ -156,6 +162,78 @@ export default async function RecordsPage() {
     return h ? getHorseFullName(h) : "Unknown";
   };
 
+  // Heritability: foal vs mid-parent on translated stats, per stat.
+  const heritability = STATS.map(({ field, label, unit }) => {
+    const points = heritabilityPoints(translatedWithIds, field);
+    return {
+      label,
+      unit,
+      regression: linearRegression(points),
+      scatter: points.map((p, i) => ({
+        x: p.x,
+        y: p.y,
+        color: "#b98a2f",
+        label: `Foal ${i + 1}: parents ${p.x.toFixed(2)}, foal ${p.y.toFixed(2)} ${unit}`,
+      })),
+    };
+  });
+
+  // Inbreeding watch: foals ranked by parental shared ancestry.
+  const inbredRanks = inbreedingRanking(horses);
+  const inbredCount = inbredRanks.filter((r) => r.shared > 0).length;
+
+  // Diversity + generation deltas.
+  const diversity = bloodlineDiversity(bloodlineShares(horses));
+  const avgMaps = new Map(
+    STATS.map(({ field }) => [
+      field,
+      new Map(avgByGeneration(translated, field).map((g) => [g.generation, g.avg])),
+    ]),
+  );
+  const deltaGens = [...new Set([...avgMaps.values()].flatMap((m) => [...m.keys()]))].sort(
+    (a, b) => a - b,
+  );
+  const deltas = deltaGens.slice(1).map((gen) => ({
+    gen,
+    values: STATS.map(({ field }) => {
+      const prev = avgMaps.get(field)?.get(gen - 1);
+      const curr = avgMaps.get(field)?.get(gen);
+      return prev !== undefined && curr !== undefined ? curr - prev : null;
+    }),
+  }));
+
+  // Hall of fame + god-roll chase (translated units, linked names).
+  const display = horses.map((h) => ({
+    horse: h,
+    speed: translateStat("speed", h.speed),
+    jump: translateStat("jump", h.jump),
+    health: translateStat("health", h.health),
+  }));
+  const maxBy = (field: "speed" | "jump" | "health") =>
+    display.reduce((best, d) => (d[field] > best[field] ? d : best), display[0]);
+  const fame =
+    display.length > 0
+      ? {
+          speed: maxBy("speed"),
+          jump: maxBy("jump"),
+          health: maxBy("health"),
+          prolific: prolific.length > 0 ? horseById.get(prolific[0].id) : undefined,
+          prolificCount: prolific[0]?.offspring ?? 0,
+          purest: purityRanking(horses)[0],
+        }
+      : null;
+  const godRoll = (["speed", "jump", "health"] as const).map((field) => {
+    const max = translateStat(field, BREEDING_RANGES[field].max);
+    const best = display.length > 0 ? maxBy(field) : null;
+    return {
+      field,
+      max,
+      horse: best?.horse,
+      value: best?.[field] ?? 0,
+      gap: best ? max - best[field] : 0,
+    };
+  });
+
   // Possible foal range per pair from the vanilla roll. Runs on RAW
   // parent stats (the game rolls raw), translated only for display.
   const rangeFor = (
@@ -224,8 +302,233 @@ export default async function RecordsPage() {
       </ChartCard>
 
       <div style={{ marginTop: 24 }}>
+        <ChartCard title="Heritability — Foal vs Mid-Parent">
+          <p className={chartStyles.mutedNote}>
+            Each dot is a foal plotted against its parents&apos; average.
+            Slope ≈ 1 means the stat breeds true; slope ≈ 0 means the roll dominates.
+          </p>
+          <div className={chartStyles.chartGrid}>
+            {heritability.map((h) => (
+              <div key={h.label}>
+                <h4 style={{ margin: "8px 0" }}>
+                  {h.label}{" "}
+                  <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 12 }}>
+                    slope {h.regression.slope.toFixed(2)} · R²{" "}
+                    {h.regression.r2.toFixed(2)} (n={h.regression.n})
+                  </span>
+                </h4>
+                <ScatterPlot
+                  points={h.scatter}
+                  xLabel={`Parents avg (${h.unit})`}
+                  yLabel={`Foal (${h.unit})`}
+                />
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      </div>
+
+      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
+        <ChartCard title="Bloodline Diversity">
+          {horses.length > 0 ? (
+            <div>
+              <p style={{ margin: "0 0 8px", fontSize: 20, fontFamily: vars.font.display }}>
+                {diversity.effective.toFixed(1)} effective bloodlines
+              </p>
+              <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+                Shannon {diversity.shannon.toFixed(2)} nats · largest share{" "}
+                {(diversity.topShare * 100).toFixed(1)}%
+                {diversity.topShare > 0.6 &&
+                  " — one bloodline dominates; outcross to widen the gene pool."}
+              </p>
+            </div>
+          ) : (
+            <p className={chartStyles.mutedNote}>No horses yet.</p>
+          )}
+        </ChartCard>
+        <ChartCard title="Generation Deltas — Avg Improvement">
+          {deltas.length > 0 ? (
+            <table className={chartStyles.ledgerTable}>
+              <thead>
+                <tr>
+                  <th className={chartStyles.ledgerTh}>Gen</th>
+                  {STATS.map((s) => (
+                    <th key={s.field} className={chartStyles.ledgerTh}>
+                      Δ {s.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {deltas.map((d) => (
+                  <tr key={d.gen}>
+                    <td className={chartStyles.ledgerTd}>{d.gen}</td>
+                    {d.values.map((v, i) => (
+                      <td
+                        key={STATS[i].field}
+                        className={chartStyles.ledgerTd}
+                        style={{
+                          color:
+                            v === null || v === 0
+                              ? "inherit"
+                              : v > 0
+                                ? "#2d4a3e"
+                                : "#8f2d22",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {v === null
+                          ? "—"
+                          : `${(v >= 0 ? "+" : "") + v.toFixed(STATS[i].decimals)}`}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className={chartStyles.mutedNote}>
+              Needs horses across at least two generations.
+            </p>
+          )}
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
         <ChartCard title="Top Performers">
           <TopPerformers horses={horses} />
+        </ChartCard>
+      </div>
+
+      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
+        <ChartCard title="Hall of Fame">
+          {fame ? (
+            <table className={chartStyles.ledgerTable}>
+              <tbody>
+                <tr>
+                  <td className={chartStyles.ledgerTd}>⚡ Fastest</td>
+                  <td className={chartStyles.ledgerTd}>
+                    <Link href={`/horses/${fame.speed.horse.id}`} className={chartStyles.ledgerLink}>
+                      {nameOf(fame.speed.horse.id)}
+                    </Link>{" "}
+                    · {fame.speed.speed.toFixed(2)} m/s
+                  </td>
+                </tr>
+                <tr>
+                  <td className={chartStyles.ledgerTd}>🐎 Highest jump</td>
+                  <td className={chartStyles.ledgerTd}>
+                    <Link href={`/horses/${fame.jump.horse.id}`} className={chartStyles.ledgerLink}>
+                      {nameOf(fame.jump.horse.id)}
+                    </Link>{" "}
+                    · {fame.jump.jump.toFixed(2)} blocks
+                  </td>
+                </tr>
+                <tr>
+                  <td className={chartStyles.ledgerTd}>❤ Toughest</td>
+                  <td className={chartStyles.ledgerTd}>
+                    <Link href={`/horses/${fame.health.horse.id}`} className={chartStyles.ledgerLink}>
+                      {nameOf(fame.health.horse.id)}
+                    </Link>{" "}
+                    · {fame.health.health.toFixed(1)} hp
+                  </td>
+                </tr>
+                {fame.prolific && (
+                  <tr>
+                    <td className={chartStyles.ledgerTd}>👑 Most prolific</td>
+                    <td className={chartStyles.ledgerTd}>
+                      <Link href={`/horses/${fame.prolific.id}`} className={chartStyles.ledgerLink}>
+                        {nameOf(fame.prolific.id)}
+                      </Link>{" "}
+                      · {fame.prolificCount} foals
+                    </td>
+                  </tr>
+                )}
+                {fame.purest && (
+                  <tr>
+                    <td className={chartStyles.ledgerTd}>🧬 Purest</td>
+                    <td className={chartStyles.ledgerTd}>
+                      <Link href={`/horses/${fame.purest.horse.id}`} className={chartStyles.ledgerLink}>
+                        {nameOf(fame.purest.horse.id)}
+                      </Link>{" "}
+                      · {(fame.purest.share * 100).toFixed(1)}% {fame.purest.bloodline}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <p className={chartStyles.mutedNote}>No horses yet.</p>
+          )}
+        </ChartCard>
+        <ChartCard title="God-Roll Tracker — Distance to Max">
+          {horses.length > 0 ? (
+            <table className={chartStyles.ledgerTable}>
+              <thead>
+                <tr>
+                  <th className={chartStyles.ledgerTh}>Stat</th>
+                  <th className={chartStyles.ledgerTh}>Closest</th>
+                  <th className={chartStyles.ledgerTh}>Gap</th>
+                </tr>
+              </thead>
+              <tbody>
+                {godRoll.map((g) => (
+                  <tr key={g.field}>
+                    <td className={chartStyles.ledgerTd}>{g.field}</td>
+                    <td className={chartStyles.ledgerTd}>
+                      {g.horse ? (
+                        <Link href={`/horses/${g.horse.id}`} className={chartStyles.ledgerLink}>
+                          {nameOf(g.horse.id)}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className={chartStyles.ledgerTd}>
+                      {g.gap.toFixed(2)} off {g.max.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className={chartStyles.mutedNote}>No horses yet.</p>
+          )}
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title={`Inbreeding Watch — ${inbredCount} inbred foal${inbredCount === 1 ? "" : "s"}`}>
+          {inbredRanks.length > 0 ? (
+            <table className={chartStyles.ledgerTable}>
+              <thead>
+                <tr>
+                  <th className={chartStyles.ledgerTh}>#</th>
+                  <th className={chartStyles.ledgerTh}>Foal</th>
+                  <th className={chartStyles.ledgerTh}>Shared ancestors</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inbredRanks.slice(0, 10).map((r, i) => (
+                  <tr key={r.id}>
+                    <td className={chartStyles.ledgerTd}>{i + 1}</td>
+                    <td className={chartStyles.ledgerTd}>
+                      <Link href={`/horses/${r.id}`} className={chartStyles.ledgerLink}>
+                        {nameOf(r.id)}
+                      </Link>
+                    </td>
+                    <td
+                      className={chartStyles.ledgerTd}
+                      style={{ color: r.shared > 0 ? "#8f2d22" : "inherit", fontWeight: r.shared > 0 ? 700 : 400 }}
+                    >
+                      {r.shared > 0 ? `${r.shared} ⚠` : "0"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className={chartStyles.mutedNote}>No foals with recorded parents yet.</p>
+          )}
         </ChartCard>
       </div>
 

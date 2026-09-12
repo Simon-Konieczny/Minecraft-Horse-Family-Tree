@@ -8,6 +8,7 @@ import updateBloodlineAction from "@/actions/updateBloodlineAction";
 import toggleBloodlineVisibilityAction from "@/actions/toggleBloodlineVisibilityAction";
 import updateBloodlineColorAction from "@/actions/updateBloodlineColorAction";
 import deleteBloodlineAction from "@/actions/deleteBloodlineAction";
+import getBloodlineReferenceCountsAction from "@/actions/getBloodlineReferenceCountsAction";
 import { vars } from "@/styles/theme.css";
 import * as styles from "./BloodlineManager.css";
 import * as modalStyles from "../Modals/Modals.css";
@@ -27,6 +28,8 @@ export default function BloodlineManager({
   const [editName, setEditName] = useState("");
   const [editHex, setEditHex] = useState("#888888");
   const [editTheme, setEditTheme] = useState("");
+  const [impact, setImpact] = useState<{ pure: number; mixed: number; total: number } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -42,6 +45,14 @@ export default function BloodlineManager({
     }
   };
 
+  const onRecolor = (b: Bloodline, hexColor: string) =>
+    run(async () => {
+      const { affectedHorses } = await updateBloodlineColorAction(b.name, hexColor);
+      setNotice(
+        `Recolored ${b.name}: ${affectedHorses} horse${affectedHorses === 1 ? "" : "s"} updated.`,
+      );
+    });
+
   const onAdd = () =>
     run(async () => {
       await addBloodlineAction({ name: name.trim(), hexColor, theme: theme.trim() });
@@ -55,6 +66,11 @@ export default function BloodlineManager({
     setEditHex(b.hexColor);
     setEditTheme(b.theme || "");
     setError(null);
+    setNotice(null);
+    setImpact(null);
+    void getBloodlineReferenceCountsAction(b.name)
+      .then(setImpact)
+      .catch(() => setImpact(null));
   };
 
   const onSaveEdit = async () => {
@@ -62,13 +78,17 @@ export default function BloodlineManager({
     setBusy(true);
     setError(null);
     try {
-      await updateBloodlineAction({
+      const result = await updateBloodlineAction({
         oldName: editing.name,
         name: editName,
         hexColor: editHex,
         theme: editTheme,
       });
       setEditing(null);
+      setImpact(null);
+      setNotice(
+        `Updated ${result.name}: ${result.affectedHorses} horse${result.affectedHorses === 1 ? "" : "s"} updated (DNA, family names, colors).`,
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -116,10 +136,8 @@ export default function BloodlineManager({
                   value={b.hexColor}
                   disabled={busy}
                   className={styles.colorInput}
-                  onChange={(e) =>
-                    run(() => updateBloodlineColorAction(b.name, e.target.value))
-                  }
-                  title={`Recolor ${b.name}`}
+                  onChange={(e) => void onRecolor(b, e.target.value)}
+                  title={`Recolor ${b.name} (updates every horse carrying it)`}
                 />
               </td>
               <td style={{ whiteSpace: "nowrap" }}>
@@ -228,6 +246,12 @@ export default function BloodlineManager({
         </button>
       </div>
 
+      {notice && (
+        <div role="status" style={{ marginTop: 16, color: vars.color.ink }}>
+          {notice}
+        </div>
+      )}
+
       {error && (
         <div role="alert" style={{ marginTop: 16, color: vars.color.danger }}>
           {error}
@@ -271,8 +295,17 @@ export default function BloodlineManager({
               />
             </label>
             <p style={{ opacity: 0.7, fontSize: 13 }}>
-              Renaming updates every horse&apos;s DNA and family name to match.
+              Renaming updates every horse&apos;s DNA (pure + mixes),
+              hyphenated family-name parts, and recalculated coat colors to
+              match.
             </p>
+            {impact && (
+              <p style={{ opacity: 0.85, fontSize: 13 }}>
+                {impact.total === 0
+                  ? "No horses carry this bloodline yet."
+                  : `${impact.total} horse${impact.total === 1 ? "" : "s"} will update (${impact.pure} pure, ${impact.mixed} mixed).`}
+              </p>
+            )}
             <div className={styles.modalButtons}>
               <button
                 className={styles.cancelButton}

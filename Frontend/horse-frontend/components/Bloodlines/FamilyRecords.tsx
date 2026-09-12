@@ -3,6 +3,7 @@ import type { Bloodline } from "@/lib/bloodlines";
 import type { FamilyRecord } from "@/utils/studbook";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
 import { vars } from "@/styles/theme.css";
+import * as chartStyles from "@/components/Charts/Charts.css";
 
 function formatDate(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "date unknown";
@@ -74,116 +75,138 @@ function FamilyCard({
   record: FamilyRecord;
   meta: Bloodline | undefined;
 }) {
+  const stats = [
+    {
+      label: "Speed",
+      unit: "m/s",
+      decimals: 2,
+      record: r.records.speed,
+      average: r.averages.speed,
+    },
+    {
+      label: "Jump",
+      unit: "blocks",
+      decimals: 2,
+      record: r.records.jump,
+      average: r.averages.jump,
+    },
+    {
+      label: "Health",
+      unit: "hp",
+      decimals: 1,
+      record: r.records.health,
+      average: r.averages.health,
+    },
+  ] as const;
   return (
-          <article
-            style={{
-              border: `1px solid ${vars.color.goldSoft}`,
-              borderLeft: `4px solid ${vars.color.gold}`,
-              backgroundColor: vars.color.secondary,
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 16,
-            }}
-          >
-            <header
-              style={{ display: "flex", alignItems: "center", gap: 8 }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 20,
-                  height: 20,
-                  borderRadius: 6,
-                  backgroundColor: meta?.hexColor || vars.color.textMuted,
-                  border: `1px solid ${vars.color.border}`,
-                }}
-              />
-              <h3 style={{ margin: 0, fontFamily: vars.font.display, color: vars.color.ink }}>
-                {r.family}{" "}
-                <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 14 }}>
-                  · {r.count} horse{r.count === 1 ? "" : "s"}
-                </span>
-              </h3>
-            </header>
-            {meta?.theme && (
-              <p style={{ opacity: 0.7, margin: "8px 0 0" }}>
-                Naming theme: {meta.theme}
-              </p>
-            )}
+    <article
+      style={{
+        border: `1px solid ${vars.color.goldSoft}`,
+        borderLeft: `4px solid ${vars.color.gold}`,
+        backgroundColor: vars.color.secondary,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+      }}
+    >
+      <header
+        style={{ display: "flex", alignItems: "center", gap: 8 }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            width: 20,
+            height: 20,
+            borderRadius: 6,
+            backgroundColor: meta?.hexColor || vars.color.textMuted,
+            border: `1px solid ${vars.color.border}`,
+          }}
+        />
+        <h3 style={{ margin: 0, fontFamily: vars.font.display, color: vars.color.ink }}>
+          {r.family}{" "}
+          <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 14 }}>
+            · {r.count} horse{r.count === 1 ? "" : "s"}
+            {meta?.theme ? ` · ${meta.theme}` : ""}
+          </span>
+        </h3>
+      </header>
 
-            {r.count === 0 ? (
-              <p style={{ opacity: 0.5 }}>No horses recorded yet.</p>
-            ) : (
-              <>
-                {r.lastPurebred && (
-                  <p style={{ margin: "8px 0 0" }}>
-                    Last {r.lastPurebred.tierLabel}:{" "}
-                    <Link href={`/horses/${r.lastPurebred.id}`}>
-                      {r.lastPurebred.name}
-                    </Link>
-                    , Gen {r.lastPurebred.generation},{" "}
-                    {r.lastPurebred.status} ·{" "}
-                    {formatShare(r.lastPurebred.share)}
-                  </p>
-                )}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 24,
-                    flexWrap: "wrap",
-                    marginTop: 8,
-                  }}
-                >
-                  {(
-                    [
-                      ["Fastest", r.records.speed, "m/s"],
-                      ["Highest jump", r.records.jump, "blocks"],
-                      ["Tankiest", r.records.health, "hp"],
-                    ] as const
-                  ).map(([label, record, unit]) =>
-                    record ? (
-                      <span key={label}>
-                        {label}: {record.value} {unit} —{" "}
-                        <Link href={`/horses/${record.horseId}`}>
-                          {record.horseName}
+      {r.count === 0 ? (
+        <p style={{ opacity: 0.5, margin: "12px 0 0" }}>No horses recorded yet.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+          <table className={chartStyles.ledgerTable}>
+            <thead>
+              <tr>
+                <th className={chartStyles.ledgerTh}>Stat</th>
+                <th className={chartStyles.ledgerTh}>Record</th>
+                <th className={chartStyles.ledgerTh}>
+                  Living avg{r.averages.aliveCount > 0 ? ` (${r.averages.aliveCount} alive)` : ""}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((s) => (
+                <tr key={s.label}>
+                  <td className={chartStyles.ledgerTd}>{s.label}</td>
+                  <td className={chartStyles.ledgerTd}>
+                    {s.record ? (
+                      <>
+                        {s.record.value.toFixed(s.decimals)} {s.unit} —{" "}
+                        <Link
+                          href={`/horses/${s.record.horseId}`}
+                          className={chartStyles.ledgerLink}
+                        >
+                          {s.record.horseName}
                         </Link>
-                      </span>
-                    ) : null,
-                  )}
-                </div>
-                {r.averages.aliveCount > 0 &&
-                r.averages.speed !== null &&
-                r.averages.jump !== null &&
-                r.averages.health !== null ? (
-                  <p style={{ margin: "8px 0 0" }}>
-                    Living averages ({r.averages.aliveCount} alive): speed{" "}
-                    {r.averages.speed.toFixed(2)} m/s · jump{" "}
-                    {r.averages.jump.toFixed(2)} blocks · health{" "}
-                    {r.averages.health.toFixed(1)} hp
-                  </p>
-                ) : (
-                  <p style={{ margin: "8px 0 0", opacity: 0.5 }}>
-                    No living horses — averages unavailable.
-                  </p>
-                )}
-                {r.founders.length > 0 && (
-                  <details style={{ marginTop: 8 }}>
-                    <summary>
-                      Founders ({r.founders.length})
-                    </summary>
-                    <ul>
-                      {r.founders.map((f) => (
-                        <li key={f.id}>
-                          <Link href={`/horses/${f.id}`}>{f.name}</Link> — founded{" "}
-                          {formatDate(f.foundedAt)} · speed {f.speed} · jump{" "}
-                          {f.jump} · health {f.health}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-              </>
-            )}
-          </article>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className={chartStyles.ledgerTd}>
+                    {s.average !== null ? (
+                      <>
+                        {s.average.toFixed(s.decimals)} {s.unit}
+                      </>
+                    ) : (
+                      <span style={{ opacity: 0.5 }}>No living horses</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {r.lastPurebred && (
+            <p style={{ margin: 0 }}>
+              Last {r.lastPurebred.tierLabel}:{" "}
+              <Link href={`/horses/${r.lastPurebred.id}`}>
+                {r.lastPurebred.name}
+              </Link>
+              , Gen {r.lastPurebred.generation},{" "}
+              {r.lastPurebred.status} ·{" "}
+              {formatShare(r.lastPurebred.share)}
+            </p>
+          )}
+          {r.founders.length > 0 && (
+            <details style={{ margin: 0 }}>
+              <summary>
+                Founders ({r.founders.length})
+              </summary>
+              <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
+                {r.founders.map((f) => (
+                  <li key={f.id}>
+                    <Link href={`/horses/${f.id}`}>{f.name}</Link> — founded{" "}
+                    {formatDate(f.foundedAt)} · speed {f.speed.toFixed(2)} m/s · jump{" "}
+                    {f.jump.toFixed(2)} blocks · health {f.health.toFixed(1)} hp
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </article>
   );
 }

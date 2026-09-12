@@ -1,6 +1,12 @@
 import { Collection } from "mongodb";
 import { getMongoClient } from "./mongodb";
-import { getAllHorses, renameBloodlineInHorses } from "./horses";
+import {
+  countBloodlineReferencesInList,
+  getAllHorses,
+  recalcColorsForBloodline,
+  renameBloodlineInHorses,
+  type BloodlineReferenceCounts,
+} from "./horses";
 import { BLOODLINE_COLORS } from "@/utils/genetics/utils";
 import {
   bloodlineSlug,
@@ -101,15 +107,23 @@ export interface UpdateBloodlineInput {
   theme?: string;
 }
 
+export interface UpdateBloodlineResult extends Bloodline {
+  /** Horses whose DNA/familyName/color followed the edit. */
+  affectedHorses: number;
+}
+
 /**
  * Edits a bloodline (name, color, theme). A rename propagates to every
- * horse: matching DNA keys and familyName values follow the new name.
+ * horse: matching DNA keys (pure + mixes) and familyName values
+ * (including hyphen parts) follow the new name, and affected horses get
+ * `hexColor` recalculated against the updated registry colors. A
+ * color-only edit likewise recalculates every referencing horse.
  * Ordered writes (horses first, old registry doc deleted last) because
  * standalone Mongo has no transactions.
  */
 export async function updateBloodline(
   input: UpdateBloodlineInput,
-): Promise<Bloodline> {
+): Promise<UpdateBloodlineResult> {
   noStore();
   const collection = await getBloodlinesCollection();
   const doc = await collection.findOne({ _id: bloodlineSlug(input.oldName) });
@@ -119,10 +133,15 @@ export async function updateBloodline(
   const theme = cleanTheme(input.theme);
   const renamed = bloodlineSlug(name) !== doc._id;
 
+  let affectedHorses = 0;
   if (renamed) {
     const clash = await collection.findOne({ _id: bloodlineSlug(name) });
     if (clash) throw new Error(`Bloodline "${name}" already exists.`);
-    await renameBloodlineInHorses(doc.name, name);
+    // Colors for recalc: current registry with the edited entry swapped in.
+    const colors = await getBloodlineColors();
+    colors[name] = hexColor;
+    delete colors[doc.name];
+    affectedHorses = await renameBloodlineInHorses(doc.name, name, colors);
     await collection.insertOne({
       _id: bloodlineSlug(name),
       name,
@@ -141,8 +160,10 @@ export async function updateBloodline(
         ...(theme === undefined ? { $unset: { theme: "" } } : {}),
       },
     );
+    const colors = await getBloodlineColors();
+    affectedHorses = await recalcColorsForBloodline(name, colors);
   }
-  return { name, hexColor, ...(theme ? { theme } : {}) };
+  return { name, hexColor, ...(theme ? { theme } : {}), affectedHorses };
 }
 
 /** Flips visibility only — edits never touch this flag implicitly. */
@@ -161,10 +182,15 @@ export async function setBloodlineVisibility(
   }
 }
 
+/**
+ * Recolors a bloodline and recalculates every referencing horse's stored
+ * `hexColor` (pure founders → flat color, mixes → re-blended).
+ * Returns the number of horses updated.
+ */
 export async function updateBloodlineColor(
   name: string,
   hexColor: string,
-): Promise<void> {
+): Promise<number> {
   noStore();
   if (!isValidHex(hexColor || "")) {
     throw new Error(`"${hexColor}" is not a valid #rrggbb color.`);
@@ -177,6 +203,17 @@ export async function updateBloodlineColor(
   if (result.matchedCount === 0) {
     throw new Error(`Bloodline "${name}" not found.`);
   }
+  const colors = await getBloodlineColors();
+  return recalcColorsForBloodline(name, colors);
+}
+
+/** Pure/mixed/total horse counts referencing a bloodline (for previews). */
+export async function getBloodlineReferenceCounts(
+  name: string,
+): Promise<BloodlineReferenceCounts> {
+  noStore();
+  const horses = await getAllHorses();
+  return countBloodlineReferencesInList(horses, name);
 }
 
 export async function deleteBloodline(name: string): Promise<void> {
@@ -198,10 +235,7 @@ export async function deleteBloodline(name: string): Promise<void> {
 
 async function countReferences(id: string): Promise<number> {
   const horses = await getAllHorses();
-  return horses.filter((h) => {
-    const dna = h.dna || {};
-    return Object.keys(dna).some((k) => bloodlineSlug(k) === id);
-  }).length;
+  return countBloodlineReferencesInList(horses, id).total;
 }
 
 async function getBloodlinesCollection(): Promise<Collection<BloodlineDoc>> {

@@ -14,8 +14,13 @@ import {
 } from "@xyflow/react";
 import { useState, useCallback, useDeferredValue, useEffect, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getCookie, setCookie } from "cookies-next";
 import { getBaseLayout, getSortLayout, NodeDensity } from "@/utils/layout";
+import { getAncestorIds, getDescendantIds } from "@/utils/lineage";
+import { calculateColorFromDna } from "@/utils/genetics/utils";
+import { dominantBloodline } from "@/utils/analytics";
+import { getHorseFullName } from "@/utils/horseNames";
 import { disambiguatedFirstNames, familiesWithCounts } from "@/utils/studbook";
 import {
   applyTreeFilters,
@@ -33,6 +38,12 @@ import ViewMenu from "./ViewMenu/ViewMenu";
 
 const nodeTypes = { horseNode: CustomHorseNode };
 export type ViewMode = "base" | "speed" | "jump" | "health";
+/** Node fill source: stored snapshot, live registry blend, or dominant-bloodline flat. */
+export type ColorMode = "stored" | "live" | "dominant";
+/** Node click behavior: open the horse page, or focus its lineage in place. */
+export type ClickAction = "open" | "focus";
+/** How outsiders render while focused: translucent in place, or removed. */
+export type FocusDisplay = "dim" | "isolate";
 
 interface HorseTreeViewProps {
   initialNodes: HorseNode[];
@@ -50,6 +61,10 @@ function TreeContent({
   const [view, setView] = useState<ViewMode>("base");
   const [statusView, setStatusView] = useState<boolean>(false);
   const [density, setDensity] = useState<NodeDensity>("full");
+  const [colorMode, setColorMode] = useState<ColorMode>("stored");
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [clickAction, setClickAction] = useState<ClickAction>("open");
+  const [focusDisplay, setFocusDisplay] = useState<FocusDisplay>("dim");
 
   const [nodes, setNodes] = useState<HorseNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
@@ -76,20 +91,74 @@ function TreeContent({
   // Search stays instant in the input; the expensive dagre re-layout
   // follows the deferred query so rapid typing doesn't jank large herds.
   const deferredSearch = useDeferredValue(activeFilters.search);
+  // Focus set: the focused horse plus its full ancestor/descendant cone.
+  const focusSet = useMemo(() => {
+    if (!focusId) return null;
+    const set = new Set<string>([focusId]);
+    for (const id of getAncestorIds(horses, focusId, 25)) set.add(id);
+    for (const id of getDescendantIds(horses, focusId)) set.add(id);
+    return set;
+  }, [horses, focusId]);
+  const focusHorse = useMemo(
+    () => (focusId ? horses.find((h) => h.id === focusId) : undefined),
+    [horses, focusId],
+  );
   const visibleIds = useMemo(
     () => applyTreeFilters(horses, { ...activeFilters, search: deferredSearch }),
     [horses, activeFilters, deferredSearch],
   );
+  // Isolate hides outsiders; dim keeps the full layout and fades them.
+  const effectiveIds = useMemo(() => {
+    if (focusDisplay !== "isolate" || !focusSet) return visibleIds;
+    return new Set([...visibleIds].filter((id) => focusSet.has(id)));
+  }, [visibleIds, focusSet, focusDisplay]);
+  const dimmedIds = useMemo(() => {
+    if (focusDisplay !== "dim" || !focusSet) return null;
+    const dimmed = new Set<string>();
+    for (const id of visibleIds) {
+      if (!focusSet.has(id)) dimmed.add(id);
+    }
+    return dimmed;
+  }, [visibleIds, focusSet, focusDisplay]);
+  // Live tints per color mode (stored = no override).
+  const tints = useMemo(() => {
+    if (colorMode === "stored") return null;
+    const map = new Map<string, string>();
+    for (const h of horses) {
+      if (colorMode === "live") {
+        map.set(h.id, calculateColorFromDna(h.dna || {}, colors));
+      } else {
+        const dom = dominantBloodline(h.dna);
+        map.set(h.id, (dom && colors[dom]) || "#94a3b8");
+      }
+    }
+    return map;
+  }, [horses, colors, colorMode]);
   const visibleNodes = useMemo(
-    () => initialNodes.filter((n) => visibleIds.has(n.id)),
-    [initialNodes, visibleIds],
+    () =>
+      initialNodes
+        .filter((n) => effectiveIds.has(n.id))
+        .map((n) => {
+          const tint = tints?.get(n.id);
+          return tint && tint !== n.data.horse.hexColor
+            ? { ...n, data: { ...n.data, tint } }
+            : n;
+        }),
+    [initialNodes, effectiveIds, tints],
   );
   const visibleEdges = useMemo(
     () =>
-      initialEdges.filter(
-        (e) => visibleIds.has(e.source) && visibleIds.has(e.target),
-      ),
-    [initialEdges, visibleIds],
+      initialEdges
+        .filter(
+          (e) => effectiveIds.has(e.source) && effectiveIds.has(e.target),
+        )
+        .map((e) => {
+          const dimmed =
+            dimmedIds !== null &&
+            (dimmedIds.has(e.source) || dimmedIds.has(e.target));
+          return dimmed ? { ...e, style: { ...e.style, opacity: 0.12 } } : e;
+        }),
+    [initialEdges, effectiveIds, dimmedIds],
   );
 
   const updateFilters = useCallback(
@@ -102,6 +171,16 @@ function TreeContent({
     setFilters(defaultTreeFilters(horses));
   }, [horses]);
 
+  const handleClickActionChange = useCallback((mode: ClickAction) => {
+    setClickAction(mode);
+    setCookie("horse-tree-click", mode, { maxAge: 60 * 60 * 24 * 30 });
+  }, []);
+
+  const handleFocusDisplayChange = useCallback((mode: FocusDisplay) => {
+    setFocusDisplay(mode);
+    setCookie("horse-tree-focus-display", mode, { maxAge: 60 * 60 * 24 * 30 });
+  }, []);
+
   // Initial cookie sync (mount only): restores persisted view choices.
   // Suppression justified below: one-shot external-store hydration,
   // not a render loop.
@@ -109,6 +188,21 @@ function TreeContent({
   useEffect(() => {
     const savedView = getCookie("horse-tree-view") as ViewMode;
     if (savedView) setView(savedView);
+
+    const savedColor = getCookie("horse-tree-color") as ColorMode;
+    if (savedColor === "stored" || savedColor === "live" || savedColor === "dominant") {
+      setColorMode(savedColor);
+    }
+
+    const savedClick = getCookie("horse-tree-click") as ClickAction;
+    if (savedClick === "open" || savedClick === "focus") {
+      setClickAction(savedClick);
+    }
+
+    const savedFocusDisplay = getCookie("horse-tree-focus-display") as FocusDisplay;
+    if (savedFocusDisplay === "dim" || savedFocusDisplay === "isolate") {
+      setFocusDisplay(savedFocusDisplay);
+    }
 
     const savedStatus = getCookie("horse-status-view");
     if (savedStatus !== undefined) setStatusView(savedStatus === "true");
@@ -160,21 +254,26 @@ function TreeContent({
         ? getBaseLayout(visibleNodes, visibleEdges, density)
         : getSortLayout(visibleNodes, view, density);
 
-    // Update nodes with statusView, density, and short-name data
+    // Update nodes with statusView, density, short-name, focus dim/ring data
     const newNodes = layoutNodes.map(node => ({
       ...node,
+      style: {
+        ...node.style,
+        ...(dimmedIds?.has(node.id) ? { opacity: 0.15 } : {}),
+      },
       data: {
         ...node.data,
         activeView: view,
         statusView: statusView,
         density: density,
         shortName: shortNames.get(node.id) ?? node.data.horse.firstName,
+        focused: node.id === focusId,
       }
     }));
 
     setNodes(newNodes);
     setEdges(visibleEdges);
-  }, [view, statusView, density, shortNames, visibleNodes, visibleEdges]);
+  }, [view, statusView, density, shortNames, visibleNodes, visibleEdges, dimmedIds, focusId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const onNodesChange: OnNodesChange = useCallback(
@@ -188,24 +287,104 @@ function TreeContent({
     [],
   );
 
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: HorseNode) => {
+      if (clickAction === "focus") {
+        // Re-clicking the focused horse clears the highlight.
+        setFocusId((prev) => (prev === node.id ? null : node.id));
+      } else {
+        router.push(`/horses/${node.id}`);
+      }
+    },
+    [clickAction, router],
+  );
+
+  // Escape clears the focus highlight.
+  useEffect(() => {
+    if (!focusId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFocusId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusId]);
+
   return (
     <div className={styles.container}>
-      <ViewMenu 
-        setView={setView} 
-        view={view} 
-        statusView={statusView} 
-        setStatusView={setStatusView} 
+      <ViewMenu
+        setView={setView}
+        view={view}
+        statusView={statusView}
+        setStatusView={setStatusView}
         density={density}
         setDensity={setDensity}
+        colorMode={colorMode}
+        setColorMode={setColorMode}
+        clickAction={clickAction}
+        setClickAction={handleClickActionChange}
+        focusDisplay={focusDisplay}
+        setFocusDisplay={handleFocusDisplayChange}
+        horses={horses}
+        focusId={focusId}
+        setFocusId={setFocusId}
         filters={activeFilters}
         updateFilters={updateFilters}
         resetFilters={resetFilters}
         families={families}
         colors={colors}
         genBounds={genBounds}
-        visibleCount={visibleIds.size}
+        visibleCount={effectiveIds.size}
         totalCount={horses.length}
       />
+      {focusHorse && (
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100,
+            backgroundColor: vars.color.parchment,
+            border: `1px solid ${vars.color.goldSoft}`,
+            borderRadius: vars.borderRadius.md,
+            boxShadow: vars.shadow.md,
+            padding: `${vars.spacing.sm} ${vars.spacing.md}`,
+            fontFamily: vars.font.display,
+            color: vars.color.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span>
+            Focused on {getHorseFullName(focusHorse)} · {focusSet?.size ?? 0} horse{(focusSet?.size ?? 0) === 1 ? "" : "s"}
+            {focusDisplay === "dim" && " (others faded)"}
+          </span>
+          <Link
+            href={`/horses/${focusHorse.id}`}
+            style={{ fontWeight: 700, color: "inherit" }}
+          >
+            Open page →
+          </Link>
+          <button
+            type="button"
+            onClick={() =>
+              handleFocusDisplayChange(focusDisplay === "dim" ? "isolate" : "dim")
+            }
+            style={{ cursor: "pointer" }}
+            title="Toggle between fading and hiding outsiders"
+          >
+            {focusDisplay === "dim" ? "Isolate" : "Show all faded"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFocusId(null)}
+            style={{ cursor: "pointer", fontWeight: 700 }}
+          >
+            × Clear
+          </button>
+        </div>
+      )}
 
       <div className={styles.legend} aria-hidden="true">
         <span className={styles.legendTitle}>Legend</span>
@@ -218,6 +397,15 @@ function TreeContent({
         <span className={styles.legendRow}>
           <span className={styles.legendLine} /> Line — parent to foal
         </span>
+        {focusHorse && (
+          <span className={styles.legendRow}>
+            <span
+              className={styles.legendSwatch}
+              style={{ backgroundColor: "#FFD700" }}
+            />{" "}
+            Halo — focused horse
+          </span>
+        )}
         {density === "minimal" && families.length > 0 && (
           <>
             <span className={styles.legendTitle} style={{ marginTop: 4 }}>
@@ -252,7 +440,7 @@ function TreeContent({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
-        onNodeClick={(_event, node) => router.push(`/horses/${node.id}`)}
+        onNodeClick={onNodeClick}
         fitView
         minZoom={0.05}
         maxZoom={2.0}
@@ -270,7 +458,7 @@ function TreeContent({
           style={{ height: 120, width: 200 }}
         />
       </ReactFlow>
-      {visibleIds.size === 0 && (
+      {effectiveIds.size === 0 && (
         <div
           style={{
             position: "absolute",

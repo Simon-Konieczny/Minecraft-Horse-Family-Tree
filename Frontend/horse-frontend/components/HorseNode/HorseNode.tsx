@@ -16,6 +16,10 @@ export type HorseNodeData = {
   density?: NodeDensity;
   /** Disambiguated first name for minimal chips (duplicates gain II/III). */
   shortName?: string;
+  /** Live color override (color-by-bloodline modes); falls back to stored hexColor. */
+  tint?: string;
+  /** Gold halo marking the focused horse. */
+  focused?: boolean;
 };
 
 // 2. Define the specialized Node type for this component
@@ -45,13 +49,13 @@ function darkenColor(hex: string, amount: number): string {
 }
 
 export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
-  const { horse, activeView, statusView } = data;
+  const { horse, activeView, statusView, focused } = data;
   const density: NodeDensity = data.density ?? 'full';
   const maxWidth = DENSITY_CONFIG[density].nodeWidth;
   const fullName = getHorseFullName(horse);
   const {jump, health, speed, variant} = horse;
   const processedStats = translateStatsForDisplay({jump, health, speed, variant})
-  const dnaColor = horse.hexColor || '#444444';
+  const dnaColor = data.tint || horse.hexColor || '#444444';
 
   const isDead = horse.status === "Deceased";
   const useShade = statusView && isDead;
@@ -64,13 +68,14 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
 
   const containerStyle: CSSProperties = {
     backgroundColor: backgroundColor,
-    borderColor: borderColor,
+    borderColor: focused ? '#FFD700' : borderColor,
     borderStyle: 'solid',
     borderTopWidth: '2px',
     borderRightWidth: '2px',
     borderBottomWidth: '2px',
     borderLeftWidth: density === 'full' ? '6px' : '2px',
     maxWidth: maxWidth,
+    ...(focused ? { boxShadow: '0 0 0 3px #FFD700, 0 0 18px rgba(255, 215, 0, 0.6)' } : {}),
   };
 
   // Ellipsis keeps rendered names within the layout's assumed width;

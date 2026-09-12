@@ -91,6 +91,77 @@ export function calculateColorFromDna(
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+/**
+ * Renames a bloodline inside a DNA map (slug-compared, so legacy casing
+ * variants follow). Weights merge when `newName` already exists in the
+ * same map. Returns the next map, or null when nothing matched.
+ */
+export function renameBloodlineInDna(
+  dna: BloodlineMap,
+  oldName: string,
+  newName: string,
+): BloodlineMap | null {
+  const oldSlug = bloodlineSlug(oldName);
+  let next: BloodlineMap | null = null;
+  for (const key of Object.keys(dna || {})) {
+    if (bloodlineSlug(key) === oldSlug && key !== newName) {
+      next = next || { ...(dna || {}) };
+      next[newName] = (next[newName] || 0) + next[key];
+      delete next[key];
+    }
+  }
+  return next;
+}
+
+/**
+ * Renames a bloodline inside a family name (slug-compared per hyphen
+ * part, so "Emberhoof-Frostmane" follows an "Emberhoof" rename while
+ * preserving part order). Returns the next name, or undefined when
+ * nothing matched.
+ */
+export function renameBloodlineInFamilyName(
+  familyName: string | undefined | null,
+  oldName: string,
+  newName: string,
+): string | undefined {
+  if (typeof familyName !== "string") return undefined;
+  const trimmed = familyName.trim();
+  if (!trimmed) return undefined;
+  const oldSlug = bloodlineSlug(oldName);
+  const parts = trimmed.split("-").map((p) => p.trim());
+  let changed = false;
+  const nextParts = parts.map((part) =>
+    bloodlineSlug(part) === oldSlug && part !== newName
+      ? ((changed = true), newName)
+      : part,
+  );
+  if (!changed) return undefined;
+  return nextParts.join("-");
+}
+
+/** Pure/mixed/total reference counts for a bloodline (slug-compared). */
+export interface BloodlineReferenceCounts {
+  pure: number;
+  mixed: number;
+  total: number;
+}
+
+export function countBloodlineReferencesInList(
+  horses: { dna?: BloodlineMap }[],
+  name: string,
+): BloodlineReferenceCounts {
+  const slug = bloodlineSlug(name);
+  let pure = 0;
+  let mixed = 0;
+  for (const h of horses) {
+    const dnaKeys = Object.keys(h.dna || {});
+    if (!dnaKeys.some((k) => bloodlineSlug(k) === slug)) continue;
+    if (dnaKeys.length === 1) pure += 1;
+    else mixed += 1;
+  }
+  return { pure, mixed, total: pure + mixed };
+}
+
 /** Minimum DNA weight for a bloodline to appear in a surname. */
 export const SURNAME_INCLUSION_THRESHOLD = 0.15;
 

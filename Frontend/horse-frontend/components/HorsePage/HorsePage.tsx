@@ -7,6 +7,7 @@ import { ChartCard, Donut, Radar } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 import Button from "../Common/Button/Button";
 import HorsePageHeader from "./HorsePageHeader/HorsePageHeader";
+import PedigreeFan from "./PedigreeFan";
 import StatsShapeGrid from "./StatsShapeGrid/StatsShapeGrid";
 import DetailsCard from "./DetailsCard/DetailsCard";
 import { useState, useEffect } from "react";
@@ -228,6 +229,14 @@ export default function HorsePage({
           )}
         </ChartCard>
       </div>
+
+      {(horse.parentId1 || horse.parentId2) && (
+        <div style={{ marginTop: 24 }}>
+          <ChartCard title="Pedigree Fan — 3 Generations">
+            <PedigreeFan horse={horse} horses={horses} />
+          </ChartCard>
+        </div>
+      )}
 
       <div style={{ marginTop: 24 }}>
         <ChartCard title="Ancestor Comparison — vs Sire & Dam">

@@ -1,9 +1,10 @@
 import { Dispatch, SetStateAction, useState } from "react";
-import { ViewMode } from "../HorseTreeView";
+import { ClickAction, ColorMode, FocusDisplay, ViewMode } from "../HorseTreeView";
 import { DENSITY_LABELS, DENSITY_LEVELS, NodeDensity } from "@/utils/layout";
 import { ALL_STATUSES, type TreeFilters } from "@/utils/treeFilters";
 import type { FamilyCount } from "@/utils/studbook";
-import type { HorseStatus } from "@/types/horse";
+import type { Horse, HorseStatus } from "@/types/horse";
+import { getHorseFullName } from "@/utils/horseNames";
 import * as styles from "./ViewMenu.css";
 import { setCookie } from "cookies-next";
 import { useReactFlow } from "@xyflow/react";
@@ -17,6 +18,15 @@ interface ViewMenuProps {
   setStatusView: Dispatch<SetStateAction<boolean>>;
   density: NodeDensity;
   setDensity: Dispatch<SetStateAction<NodeDensity>>;
+  colorMode: ColorMode;
+  setColorMode: (mode: ColorMode) => void;
+  clickAction: ClickAction;
+  setClickAction: (mode: ClickAction) => void;
+  focusDisplay: FocusDisplay;
+  setFocusDisplay: (mode: FocusDisplay) => void;
+  horses: Horse[];
+  focusId: string | null;
+  setFocusId: Dispatch<SetStateAction<string | null>>;
   filters: TreeFilters;
   updateFilters: (patch: Partial<TreeFilters>) => void;
   resetFilters: () => void;
@@ -34,6 +44,22 @@ const LAYOUT_MODES = [
   { mode: "health", label: "Health" },
 ] as const;
 
+const COLOR_MODES: { mode: ColorMode; label: string; hint: string }[] = [
+  { mode: "stored", label: "Stored", hint: "Snapshot saved with each horse." },
+  { mode: "live", label: "Blended", hint: "Live blend from the current registry colors." },
+  { mode: "dominant", label: "Dominant", hint: "Flat dominant-bloodline color." },
+];
+
+const CLICK_ACTIONS: { mode: ClickAction; label: string; hint: string }[] = [
+  { mode: "open", label: "Open", hint: "Clicking a horse opens its page." },
+  { mode: "focus", label: "Focus", hint: "Clicking a horse highlights its ancestors and descendants in place." },
+];
+
+const FOCUS_DISPLAYS: { mode: FocusDisplay; label: string; hint: string }[] = [
+  { mode: "dim", label: "Fade others", hint: "Outsiders stay in the tree, translucent." },
+  { mode: "isolate", label: "Hide others", hint: "Outsiders are removed from the layout." },
+];
+
 export default function ViewMenu({
   setView,
   view,
@@ -41,6 +67,15 @@ export default function ViewMenu({
   setStatusView,
   density,
   setDensity,
+  colorMode,
+  setColorMode,
+  clickAction,
+  setClickAction,
+  focusDisplay,
+  setFocusDisplay,
+  horses,
+  focusId,
+  setFocusId,
   filters,
   updateFilters,
   resetFilters,
@@ -69,6 +104,15 @@ export default function ViewMenu({
     setDensity(level);
     setCookie("horse-node-density", level, { maxAge: 60 * 60 * 24 * 30 });
   };
+
+  const handleColorChange = (mode: ColorMode) => {
+    setColorMode(mode);
+    setCookie("horse-tree-color", mode, { maxAge: 60 * 60 * 24 * 30 });
+  };
+
+  const focusOptions = [...horses]
+    .map((h) => ({ id: h.id, name: getHorseFullName(h) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const refit = () => setTimeout(() => fitView({ duration: 800 }), 50);
 
@@ -143,6 +187,94 @@ export default function ViewMenu({
             Traditional draws the pedigree; stat modes reorder each
             generation row left to right.
           </p>
+        </section>
+
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Click action</p>
+          <div className={styles.segmentGrid}>
+            {CLICK_ACTIONS.map(({ mode, label, hint }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setClickAction(mode)}
+                title={hint}
+                className={clickAction === mode ? styles.segmentActive : styles.segmentInactive}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className={styles.sectionCaption} style={{ marginTop: 6 }}>
+            {clickAction === "focus"
+              ? "Click a horse to highlight its lineage. Click it again (or press Esc) to clear."
+              : "Click a horse to open its page."}
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Focused outsiders</p>
+          <div className={styles.segmentGrid}>
+            {FOCUS_DISPLAYS.map(({ mode, label, hint }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setFocusDisplay(mode)}
+                title={hint}
+                className={focusDisplay === mode ? styles.segmentActive : styles.segmentInactive}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Focus horse</p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <select
+              value={focusId ?? ""}
+              onChange={(e) => { setFocusId(e.target.value || null); refit(); }}
+              aria-label="Focus lineage on a horse"
+              className={styles.searchInput}
+              style={{ flex: 1 }}
+            >
+              <option value="">Whole herd…</option>
+              {focusOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+            {focusId && (
+              <button
+                type="button"
+                className={styles.resetTextButton}
+                onClick={() => { setFocusId(null); refit(); }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <p className={styles.sectionCaption} style={{ marginTop: 6 }}>
+            Isolates the focused horse plus its ancestors and descendants.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Node color</p>
+          <div className={styles.segmentGrid}>
+            {COLOR_MODES.map(({ mode, label, hint }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => handleColorChange(mode)}
+                title={hint}
+                className={colorMode === mode ? styles.segmentActive : styles.segmentInactive}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className={styles.section}>

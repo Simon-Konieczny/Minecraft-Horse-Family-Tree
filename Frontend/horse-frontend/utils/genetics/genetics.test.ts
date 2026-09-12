@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   assertDnaSum,
   calculateColorFromDna,
+  countBloodlineReferencesInList,
   mergeDna,
   normalizeDna,
+  renameBloodlineInDna,
+  renameBloodlineInFamilyName,
   resolveOriginBlood,
 } from "./utils";
 import { processNewHorseGenetics } from "./service";
@@ -173,5 +176,59 @@ describe("calculateColorFromDna", () => {
     expect(calculateColorFromDna({ Stormmane: 1.0 }, registry)).toBe("#123456");
     // Entries absent from the injected map fall back to its Unknown.
     expect(calculateColorFromDna({ Emberhoof: 1.0 }, registry)).toBe("#444444");
+  });
+});
+
+describe("renameBloodlineInDna", () => {
+  it("renames pure and mixed maps, merging weights on collision", () => {
+    expect(renameBloodlineInDna({ Emberhoof: 1.0 }, "Emberhoof", "Inferno")).toEqual({
+      Inferno: 1.0,
+    });
+    expect(
+      renameBloodlineInDna({ Emberhoof: 0.5, Frostmane: 0.5 }, "Emberhoof", "Inferno"),
+    ).toEqual({ Inferno: 0.5, Frostmane: 0.5 });
+    expect(
+      renameBloodlineInDna({ Emberhoof: 0.25, Inferno: 0.25, Frostmane: 0.5 }, "Emberhoof", "Inferno"),
+    ).toEqual({ Inferno: 0.5, Frostmane: 0.5 });
+  });
+
+  it("matches slugs case-insensitively and returns null when untouched", () => {
+    expect(renameBloodlineInDna({ emberhoof: 1.0 }, "Emberhoof", "Inferno")).toEqual({
+      Inferno: 1.0,
+    });
+    expect(renameBloodlineInDna({ Frostmane: 1.0 }, "Emberhoof", "Inferno")).toBeNull();
+  });
+});
+
+describe("renameBloodlineInFamilyName", () => {
+  it("renames exact and hyphenated surnames, preserving order", () => {
+    expect(renameBloodlineInFamilyName("Emberhoof", "Emberhoof", "Inferno")).toBe("Inferno");
+    expect(
+      renameBloodlineInFamilyName("Emberhoof-Frostmane", "Emberhoof", "Inferno"),
+    ).toBe("Inferno-Frostmane");
+    expect(
+      renameBloodlineInFamilyName("Frostmane-Emberhoof", "emberhoof", "Inferno"),
+    ).toBe("Frostmane-Inferno");
+  });
+
+  it("returns undefined when nothing matches or the name is blank", () => {
+    expect(renameBloodlineInFamilyName("Frostmane", "Emberhoof", "Inferno")).toBeUndefined();
+    expect(renameBloodlineInFamilyName("", "Emberhoof", "Inferno")).toBeUndefined();
+    expect(renameBloodlineInFamilyName(undefined, "Emberhoof", "Inferno")).toBeUndefined();
+  });
+});
+
+describe("countBloodlineReferencesInList", () => {
+  it("splits pure founders from mixes", () => {
+    const horses: { dna: Record<string, number> }[] = [
+      { dna: { Emberhoof: 1.0 } },
+      { dna: { Emberhoof: 0.5, Frostmane: 0.5 } },
+      { dna: { Frostmane: 1.0 } },
+    ];
+    expect(countBloodlineReferencesInList(horses, "Emberhoof")).toEqual({
+      pure: 1,
+      mixed: 1,
+      total: 2,
+    });
   });
 });

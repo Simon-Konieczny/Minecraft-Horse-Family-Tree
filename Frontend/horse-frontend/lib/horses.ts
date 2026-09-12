@@ -2,7 +2,14 @@ import { Collection, Document, ObjectId, WithId } from "mongodb";
 import { getMongoClient } from "./mongodb";
 import { createHorseRequest, editHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
-import { getSurnameFromDna } from "@/utils/genetics/utils";
+import {
+  calculateColorFromDna,
+  countBloodlineReferencesInList,
+  getSurnameFromDna,
+  renameBloodlineInDna,
+  renameBloodlineInFamilyName,
+  type BloodlineReferenceCounts,
+} from "@/utils/genetics/utils";
 import { splitLegacyName } from "@/utils/horseNames";
 import { unstable_noStore as noStore } from "next/cache";
 
@@ -273,36 +280,32 @@ export async function getDistinctFamilyNames(): Promise<string[]> {
 
 /**
  * Renames a bloodline across all horses: DNA keys whose slug matches
- * `oldName` become `newName`, and exact-slug `familyName` values follow.
+ * `oldName` become `newName` (mixes included — any map holding the key),
+ * and `familyName` values follow per hyphen part ("Emberhoof-Frostmane"
+ * becomes "Inferno-Frostmane"). When `colors` is supplied, affected
+ * horses also get `hexColor` recalculated via calculateColorFromDna.
  * Returns the number of horses changed.
  */
 export async function renameBloodlineInHorses(
   oldName: string,
   newName: string,
+  colors?: Record<string, string>,
 ): Promise<number> {
   noStore();
-  const oldSlug = bloodlineSlug(oldName);
   const horses = await getCollection();
   const docs = await horses.find({}).toArray();
 
   const ops = [];
   for (const doc of docs) {
     const dna = (doc.dna || {}) as Record<string, number>;
-    let nextDna: Record<string, number> | null = null;
-    for (const key of Object.keys(dna)) {
-      if (bloodlineSlug(key) === oldSlug && key !== newName) {
-        nextDna = nextDna || { ...dna };
-        nextDna[newName] = (nextDna[newName] || 0) + nextDna[key];
-        delete nextDna[key];
-      }
-    }
-    const family =
-      typeof doc.familyName === "string" &&
-      bloodlineSlug(doc.familyName) === oldSlug &&
-      doc.familyName !== newName
-        ? newName
-        : undefined;
+    const nextDna = renameBloodlineInDna(dna, oldName, newName);
+    const family = renameBloodlineInFamilyName(
+      doc.familyName,
+      oldName,
+      newName,
+    );
     if (nextDna || family !== undefined) {
+      const effectiveDna = nextDna || dna;
       ops.push({
         updateOne: {
           filter: { _id: doc._id },
@@ -310,6 +313,7 @@ export async function renameBloodlineInHorses(
             $set: {
               ...(nextDna ? { dna: nextDna } : {}),
               ...(family !== undefined ? { familyName: family } : {}),
+              ...(colors ? { hexColor: calculateColorFromDna(effectiveDna, colors) } : {}),
             },
           },
         },
@@ -325,6 +329,45 @@ export async function renameBloodlineInHorses(
     throw new Error("Could not rename bloodline in horse records.");
   }
 }
+
+/**
+ * Recalculates stored `hexColor` for every horse whose DNA references
+ * `bloodlineName` (slug-compared): pure founders resolve to the flat
+ * registry color, mixes re-blend via calculateColorFromDna.
+ * Returns the number of horses changed.
+ */
+export async function recalcColorsForBloodline(
+  bloodlineName: string,
+  colors: Record<string, string>,
+): Promise<number> {
+  noStore();
+  const slug = bloodlineSlug(bloodlineName);
+  const horses = await getCollection();
+  const docs = await horses.find({}).toArray();
+
+  const ops = [];
+  for (const doc of docs) {
+    const dna = (doc.dna || {}) as Record<string, number>;
+    if (!Object.keys(dna).some((k) => bloodlineSlug(k) === slug)) continue;
+    ops.push({
+      updateOne: {
+        filter: { _id: doc._id },
+        update: { $set: { hexColor: calculateColorFromDna(dna, colors) } },
+      },
+    });
+  }
+  if (ops.length === 0) return 0;
+  try {
+    const result = await horses.bulkWrite(ops);
+    return result.modifiedCount;
+  } catch (error) {
+    console.error("Error recalculating horse colors", error);
+    throw new Error("Could not update horse colors in horse records.");
+  }
+}
+
+export type { BloodlineReferenceCounts };
+export { countBloodlineReferencesInList };
 
 async function getCollection(): Promise<Collection<Document>> {
   const db_name = process.env.DB_NAME;
