@@ -14,6 +14,7 @@ import { translateStat } from "@/utils/translateRawStats";
 import { getHorseFullName } from "@/utils/horseNames";
 import { ChartCard } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
+import Button from "@/components/Common/Button/Button";
 
 const pairKey = (a: string, b: string) => [a, b].sort().join("|||");
 
@@ -24,6 +25,7 @@ export default function PairingPlanner({
   benched,
   triedKeys,
   policyBlocksRelatives,
+  onSnapshot,
 }: {
   horses: Horse[];
   colors: Record<string, string>;
@@ -31,6 +33,7 @@ export default function PairingPlanner({
   benched: string | null;
   triedKeys: string[];
   policyBlocksRelatives: boolean;
+  onSnapshot?: () => void;
 }) {
   const byId = useMemo(() => new Map(horses.map((h) => [h.id, h])), [horses]);
   const tried = useMemo(() => new Set(triedKeys), [triedKeys]);
@@ -43,6 +46,14 @@ export default function PairingPlanner({
 
   return (
     <ChartCard title={`Strict breeding plan (${rows.length} pair${rows.length === 1 ? "" : "s"})`}>
+      {onSnapshot && rows.length > 0 && (
+        <div>
+          <Button
+            text="☑ Snapshot plan into checklist"
+            onClick={onSnapshot}
+          />
+        </div>
+      )}
       {rows.length > 0 ? (
         <div style={{ overflowX: "auto" }}>
           <table className={chartStyles.ledgerTable}>

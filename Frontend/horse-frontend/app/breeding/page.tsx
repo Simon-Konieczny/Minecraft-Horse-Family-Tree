@@ -3,7 +3,7 @@ import { getBloodlineColors } from "@/lib/bloodlines";
 import { getBreedingSettings } from "@/lib/breedingSettings";
 import { pairOutcomes, planSequentialPairings } from "@/utils/analytics";
 import { ChapterHeading, Folio } from "@/components/Book/Book";
-import PairingPlanner from "@/components/Breeding/PairingPlanner";
+import BreedingBoard from "@/components/Breeding/BreedingBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function BreedingPage() {
         title="Breeding Planner"
         subtitle="Strict order: fastest × 2nd, 3rd × 4th, … — slowest benched if odd."
       />
-      <PairingPlanner
+      <BreedingBoard
         horses={horses}
         colors={colors}
         pairs={pairs}

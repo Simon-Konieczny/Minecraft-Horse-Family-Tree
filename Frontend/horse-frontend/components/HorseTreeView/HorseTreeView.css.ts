@@ -8,6 +8,7 @@ export const container = style({
   position: "relative",
   border: `10px solid ${vars.color.leather}`,
   boxSizing: "border-box",
+  overflow: "hidden",
 });
 
 export const loadingFallback = style({

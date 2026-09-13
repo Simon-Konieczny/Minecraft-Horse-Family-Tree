@@ -16,6 +16,9 @@ export const menuWrapper = style({
   border: `1px solid ${vars.color.goldSoft}`,
   transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease",
   width: "264px",
+  boxSizing: "border-box",
+  maxHeight: "calc(100vh - 32px)",
+  overflow: "hidden",
   "@media": {
     print: {
       display: "none",
@@ -80,6 +83,46 @@ export const menuHeader = style({
   marginBottom: vars.spacing.sm,
   borderBottom: `1px solid ${vars.color.goldSoft}`,
   paddingBottom: vars.spacing.sm,
+  flexShrink: 0,
+});
+
+// ---- Paged menu: tab bar + scrollable body + pager footer ----
+
+export const tabBar = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: "6px",
+  flexShrink: 0,
+});
+
+export const menuBody = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  minHeight: 0,
+  overflowY: "auto",
+  paddingRight: "2px",
+  marginRight: "-2px",
+});
+
+export const pagerFooter = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "8px",
+  flexShrink: 0,
+  borderTop: `1px solid ${vars.color.goldSoft}`,
+  paddingTop: vars.spacing.sm,
+  marginTop: vars.spacing.sm,
+});
+
+export const pageIndicator = style({
+  fontSize: "11px",
+  fontWeight: 700,
+  fontFamily: vars.font.display,
+  letterSpacing: "0.08em",
+  color: vars.color.inkSoft,
+  whiteSpace: "nowrap",
 });
 
 export const menuLabel = style({

@@ -87,6 +87,7 @@ export default function ViewMenu({
 }: ViewMenuProps) {
   const { fitView } = useReactFlow();
   const [isOpen, setIsOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<"view" | "filters">("view");
 
   const toggleView = (mode: ViewMode) => {
     setView(mode);
@@ -169,6 +170,30 @@ export default function ViewMenu({
           <button className={styles.closeButton} onClick={() => setIsOpen(false)}>×</button>
         </div>
 
+        <div className={styles.tabBar} role="tablist" aria-label="View menu pages">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "view"}
+            onClick={() => setActiveTab("view")}
+            className={activeTab === "view" ? styles.segmentActive : styles.segmentInactive}
+          >
+            View
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "filters"}
+            onClick={() => setActiveTab("filters")}
+            className={activeTab === "filters" ? styles.segmentActive : styles.segmentInactive}
+          >
+            Filters
+          </button>
+        </div>
+
+        <div className={styles.menuBody}>
+          {activeTab === "view" ? (
+          <>
         <section className={styles.section} style={{ marginTop: 0 }}>
           <p className={styles.menuLabel}>Layout Mode</p>
           <div className={styles.segmentGrid}>
@@ -310,6 +335,15 @@ export default function ViewMenu({
         </section>
 
         <section className={styles.section}>
+          <Button
+            onClick={() => fitView({ duration: 800, padding: 0.2 })}
+            className={styles.resetButton}
+            text="🔍 Reset Zoom"
+          />
+        </section>
+          </>
+          ) : (
+        <section className={styles.section} style={{ marginTop: 0 }}>
           <p className={styles.menuLabel}>Tree Filters</p>
           <div className={styles.sectionBody}>
             <div className={styles.countRow}>
@@ -392,14 +426,22 @@ export default function ViewMenu({
             </div>
           </div>
         </section>
+          )}
+        </div>
 
-        <section className={styles.section}>
-          <Button
-            onClick={() => fitView({ duration: 800, padding: 0.2 })}
-            className={styles.resetButton}
-            text="🔍 Reset Zoom"
-          />
-        </section>
+        <div className={styles.pagerFooter}>
+          <button
+            type="button"
+            onClick={() => setActiveTab(activeTab === "view" ? "filters" : "view")}
+            className={styles.segmentInactive}
+            style={{ width: "auto", padding: "7px 12px" }}
+          >
+            {activeTab === "view" ? "Filters →" : "← View"}
+          </button>
+          <span className={styles.pageIndicator} aria-live="polite">
+            {activeTab === "view" ? "1 / 2" : "2 / 2"}
+          </span>
+        </div>
       </div>
     </>
   );
