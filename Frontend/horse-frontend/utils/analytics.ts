@@ -62,6 +62,38 @@ export function generationCounts(
     .sort((a, b) => a.generation - b.generation);
 }
 
+export interface GenerationScope {
+  /** Inclusive lower bound; horses with generation >= from are kept. */
+  from: number;
+  /** Inclusive upper bound; horses with generation <= to are kept. */
+  to: number;
+  /** Status filter; "All" keeps every status. */
+  status?: string;
+}
+
+/**
+ * Narrows a herd to a generation range (inclusive on both ends) plus an
+ * optional status. Missing generations count as 0 (same convention as
+ * generationCounts). Bounds are normalized so `from > to` still matches
+ * the range between them — the scope bar clamps, this is the safety net.
+ *
+ * Cumulative history up to Gen N is just `{ from: <earliest>, to: N }`.
+ */
+export function filterHorsesByScope<T extends { generation?: number; status?: string }>(
+  horses: T[],
+  scope: GenerationScope,
+): T[] {
+  const lo = Math.min(scope.from, scope.to);
+  const hi = Math.max(scope.from, scope.to);
+  const status = scope.status ?? "All";
+  return horses.filter((h) => {
+    const gen = h.generation || 0;
+    if (gen < lo || gen > hi) return false;
+    if (status !== "All" && h.status !== status) return false;
+    return true;
+  });
+}
+
 /** Avg/min/max of a numeric field (empty input -> zeros). */
 export function statSummary(
   horses: Record<string, unknown>[],

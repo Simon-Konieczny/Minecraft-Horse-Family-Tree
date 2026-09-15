@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import type { Horse } from "@/types/horse";
 import { getHorseFullName } from "@/utils/horseNames";
 import { translateStat } from "@/utils/translateRawStats";
@@ -16,66 +15,24 @@ const STATS: { field: StatField; label: string; unit: string }[] = [
   { field: "health", label: "Health", unit: "hp" },
 ];
 
+/**
+ * Top-10 tables per stat. Horses arrive pre-filtered by the
+ * GenerationScopeBar in the parent view — no local filters here so the
+ * whole page always reflects a single scope.
+ */
 export default function TopPerformers({ horses }: { horses: Horse[] }) {
-  const [status, setStatus] = useState("All");
-  const [generation, setGeneration] = useState("All");
-
-  const generations = useMemo(
-    () =>
-      [...new Set(horses.map((h) => h.generation || 0))].sort((a, b) => a - b),
-    [horses],
-  );
-
-  const filtered = useMemo(
-    () =>
-      horses.filter(
-        (h) =>
-          (status === "All" || h.status === status) &&
-          (generation === "All" || (h.generation || 0) === Number(generation)),
-      ),
-    [horses, status, generation],
-  );
+  if (horses.length === 0) {
+    return (
+      <p className={chartStyles.mutedNote}>
+        No horses match these filters.
+      </p>
+    );
+  }
 
   return (
     <div>
-      <div className={chartStyles.filterRow}>
-        <label className={chartStyles.filterLabel}>
-          Status
-          <select
-            className={chartStyles.formSelect}
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            {["All", "Alive", "Deceased", "Retired"].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={chartStyles.filterLabel}>
-          Generation
-          <select
-            className={chartStyles.formSelect}
-            value={generation}
-            onChange={(e) => setGeneration(e.target.value)}
-          >
-            <option value="All">All</option>
-            {generations.map((g) => (
-              <option key={g} value={g}>
-                Gen {g}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {filtered.length === 0 ? (
-        <p className={chartStyles.mutedNote}>
-          No horses match these filters.
-        </p>
-      ) : (
-      STATS.map(({ field, label, unit }) => {
-        const top = [...filtered]
+      {STATS.map(({ field, label, unit }) => {
+        const top = [...horses]
           .sort((a, b) => b[field] - a[field])
           .slice(0, 10);
         return (
@@ -122,7 +79,7 @@ export default function TopPerformers({ horses }: { horses: Horse[] }) {
             )}
           </div>
         );
-      }))}
+      })}
     </div>
   );
 }

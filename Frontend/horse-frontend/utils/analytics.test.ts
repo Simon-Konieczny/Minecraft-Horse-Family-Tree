@@ -6,6 +6,7 @@ import {
   bloodlineShares,
   dominantBloodline,
   expectedFoalRange,
+  filterHorsesByScope,
   generationCounts,
   heritabilityPoints,
   histogramBins,
@@ -500,5 +501,49 @@ describe("inbreedingRanking / bloodlineDiversity", () => {
     expect(even.effective).toBeCloseTo(2, 9);
     expect(even.topShare).toBeCloseTo(0.5, 9);
     expect(bloodlineDiversity([])).toEqual({ shannon: 0, effective: 0, topShare: 0 });
+  });
+});
+
+describe("filterHorsesByScope", () => {
+  const herd = [
+    { generation: 0, status: "Alive" },
+    { generation: 1, status: "Alive" },
+    { generation: 2, status: "Deceased" },
+    { generation: 3, status: "Alive" },
+    { generation: 4, status: "Retired" },
+  ];
+
+  it("keeps an inclusive generation range", () => {
+    expect(filterHorsesByScope(herd, { from: 1, to: 3 })).toEqual([
+      { generation: 1, status: "Alive" },
+      { generation: 2, status: "Deceased" },
+      { generation: 3, status: "Alive" },
+    ]);
+  });
+
+  it("covers cumulative history when from is the earliest generation", () => {
+    expect(filterHorsesByScope(herd, { from: 0, to: 2 })).toHaveLength(3);
+  });
+
+  it("treats missing generations as 0", () => {
+    expect(filterHorsesByScope([{}], { from: 0, to: 0 })).toEqual([{}]);
+    expect(filterHorsesByScope([{}], { from: 1, to: 2 })).toEqual([]);
+  });
+
+  it("normalizes swapped bounds", () => {
+    expect(filterHorsesByScope(herd, { from: 3, to: 1 })).toEqual(
+      filterHorsesByScope(herd, { from: 1, to: 3 }),
+    );
+  });
+
+  it("applies the status filter and defaults to All", () => {
+    expect(
+      filterHorsesByScope(herd, { from: 0, to: 4, status: "Alive" }),
+    ).toHaveLength(3);
+    expect(filterHorsesByScope(herd, { from: 0, to: 4 })).toHaveLength(5);
+  });
+
+  it("is empty-safe", () => {
+    expect(filterHorsesByScope([], { from: 0, to: 4 })).toEqual([]);
   });
 });
