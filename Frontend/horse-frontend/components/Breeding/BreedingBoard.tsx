@@ -26,6 +26,13 @@ interface BreedingBoardProps {
   benched: string | null;
   triedKeys: string[];
   policyBlocksRelatives: boolean;
+  herdSummary?: {
+    active: number;
+    pastured: number;
+    cuts: { speed: number | null; jump: number | null; health: number | null };
+    keeperCount: number;
+  };
+  keeperIds?: string[];
 }
 
 export default function BreedingBoard({
@@ -35,6 +42,8 @@ export default function BreedingBoard({
   benched,
   triedKeys,
   policyBlocksRelatives,
+  herdSummary,
+  keeperIds = [],
 }: BreedingBoardProps) {
   const [runs, setRuns] = useState<BreedingRun[]>([]);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
@@ -136,6 +145,13 @@ export default function BreedingBoard({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {herdSummary && (
+        <p style={{ margin: 0, fontSize: 12, opacity: 0.75, fontFamily: "monospace" }}>
+          Active {herdSummary.active} · Pastured {herdSummary.pastured} ·{" "}
+          {herdSummary.keeperCount} jump/health keeper
+          {herdSummary.keeperCount === 1 ? "" : "s"} saved past the speed cut
+        </p>
+      )}
       <PairingPlanner
         horses={horses}
         colors={colors}
@@ -143,6 +159,7 @@ export default function BreedingBoard({
         benched={benched}
         triedKeys={triedKeys}
         policyBlocksRelatives={policyBlocksRelatives}
+        keeperIds={keeperIds}
         onSnapshot={handleSnapshot}
       />
       <BreedingChecklist

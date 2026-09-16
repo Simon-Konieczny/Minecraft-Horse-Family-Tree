@@ -16,6 +16,8 @@ import editHorseAction from "@/actions/editHorseAction";
 import HorseDeleteModal from "@/components/Modals/HorseDeleteModal/HorseDeleteModal";
 import deleteHorseAction from "@/actions/deleteHorseAction";
 import { getHorseFullName } from "@/utils/horseNames";
+import { getActiveHerd, getSuggestedHousing } from "@/utils/activeHerd";
+import { useMemo } from "react";
 import { Folio } from "@/components/Book/Book";
 
 export default function HorsePage({
@@ -148,6 +150,18 @@ export default function HorsePage({
     { label: "Health", mine: myHealth, parent: parentAvg("health"), decimals: 1, unit: "hp" },
   ];
 
+  // Stable assignment: active pens sort by speed tier of 7, pastures
+  // group by dominant bloodline. Slow jump/health keepers stay active.
+  const housing = useMemo(() => {
+    const herd = getActiveHerd(horses);
+    return getSuggestedHousing(horse, herd);
+  }, [horse, horses]);
+  const housingLabel =
+    housing.zone === "deceased"
+      ? "No stall — deceased"
+      : housing.zone === "active"
+        ? `Active Pen ${housing.pen}${housing.overflow ? " (overflow)" : ""}${housing.reasons && !housing.reasons.speed ? " · 🛡️ keeper" : ""}`
+        : `Pasture: ${housing.pastureGroup}`;
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("recently-viewed-horses");
@@ -213,6 +227,17 @@ export default function HorsePage({
         parent1Name={parent1Name}
         parent2Name={parent2Name}
       />
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Stable Assignment">
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{housingLabel}</p>
+          <p className={chartStyles.mutedNote} style={{ marginBottom: 0 }}>
+            Active pens sort by speed (7 per pen, Pen 1 = fastest); pastures
+            group by dominant bloodline. Slow jump/health keepers stay active
+            and never auto-retire on speed alone.
+          </p>
+        </ChartCard>
+      </div>
 
       <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
         <ChartCard title="Stat Radar — vs Herd">

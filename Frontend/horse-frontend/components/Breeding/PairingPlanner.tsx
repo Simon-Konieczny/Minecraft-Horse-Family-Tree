@@ -25,6 +25,7 @@ export default function PairingPlanner({
   benched,
   triedKeys,
   policyBlocksRelatives,
+  keeperIds = [],
   onSnapshot,
 }: {
   horses: Horse[];
@@ -33,10 +34,12 @@ export default function PairingPlanner({
   benched: string | null;
   triedKeys: string[];
   policyBlocksRelatives: boolean;
+  keeperIds?: string[];
   onSnapshot?: () => void;
 }) {
   const byId = useMemo(() => new Map(horses.map((h) => [h.id, h])), [horses]);
   const tried = useMemo(() => new Set(triedKeys), [triedKeys]);
+  const keepers = useMemo(() => new Set(keeperIds), [keeperIds]);
 
   const rows = useMemo(
     () => pairs.filter((p) => byId.has(p.sireId) && byId.has(p.damId)),
@@ -82,6 +85,10 @@ export default function PairingPlanner({
                 const surname = getSurnameFromDna(dna);
                 const isTried = tried.has(pairKey(p.sireId, p.damId));
                 const related = p.blocked || p.sharedAncestors > 0;
+                const keeperNote =
+                  keepers.has(p.sireId) || keepers.has(p.damId)
+                    ? "🛡️ keeper"
+                    : null;
                 return (
                   <tr key={pairKey(p.sireId, p.damId)}>
                     <td className={chartStyles.ledgerTd}>{i + 1}</td>
@@ -91,6 +98,7 @@ export default function PairingPlanner({
                         className={chartStyles.ledgerLink}
                       >
                         {getHorseFullName(sire)}
+                        {keepers.has(sire.id) ? " 🛡️" : ""}
                       </Link>{" "}
                       ×{" "}
                       <Link
@@ -98,6 +106,7 @@ export default function PairingPlanner({
                         className={chartStyles.ledgerLink}
                       >
                         {getHorseFullName(dam)}
+                        {keepers.has(dam.id) ? " 🛡️" : ""}
                       </Link>
                     </td>
                     <td className={chartStyles.ledgerTd}>
@@ -129,9 +138,15 @@ export default function PairingPlanner({
                           🧬 related
                         </span>
                       )}
-                      {related && isTried && " · "}
+                      {related && (isTried || keeperNote) && " · "}
+                      {keeperNote && (
+                        <span title="Top-16 jump/health keeper saved past the speed cut">
+                          {keeperNote}
+                        </span>
+                      )}
+                      {keeperNote && isTried && " · "}
                       {isTried && <span title="This pair already has foals">✓ tried</span>}
-                      {!related && !isTried && "—"}
+                      {!related && !isTried && !keeperNote && "—"}
                     </td>
                   </tr>
                 );
@@ -154,8 +169,10 @@ export default function PairingPlanner({
         </p>
       )}
       <p className={chartStyles.mutedNote} style={{ marginBottom: 0 }}>
-        Strict order: fastest × 2nd, 3rd × 4th, … — each Alive horse breeds at
-        most once (Deceased and Retired sit out). Predicted avg is the
+        Active-herd order: top-63 speed ∪ top-16 jump/health, fastest × 2nd,
+        3rd × 4th, … — each Active horse breeds at most once (Deceased,
+        Retired, and pastured horses sit out). 🛡️ marks jump/health keepers
+        saved past the speed cut. Predicted avg is the
         parents&apos; midpoint — the roll&apos;s expected value. The range is
         midpoint ± spread/2 clamped to the legal range, where spread = |x−y| +
         0.3·(max−min); real foals cluster at the midpoint. Related flags never

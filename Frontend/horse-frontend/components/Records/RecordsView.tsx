@@ -24,6 +24,7 @@ import {
 } from "@/utils/analytics";
 import Link from "next/link";
 import { getHorseFullName } from "@/utils/horseNames";
+import { getActiveHerd } from "@/utils/activeHerd";
 import { vars } from "@/styles/theme.css";
 import { getVariantName } from "@/utils/variant";
 import { translateStat } from "@/utils/translateRawStats";
@@ -133,6 +134,9 @@ export default function RecordsView({
     [horses, scope],
   );
   const filteredIds = useMemo(() => new Set(filtered.map((h) => h.id)), [filtered]);
+  // Active-herd cuts within the current scope: top-63 speed ∪ top-16
+  // jump/health. Jump/health keepers survive missing the speed cut.
+  const activeHerd = useMemo(() => getActiveHerd(filtered), [filtered]);
 
   // Full-herd lookups so names and foal-range estimates still resolve when
   // a parent falls outside the selected generations.
@@ -450,7 +454,38 @@ export default function RecordsView({
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <ChartCard title="Top Performers">
+        <ChartCard title={`Active Herd — ${activeHerd.counts.active} active · ${activeHerd.counts.pastured} pastured`}>
+          <p style={{ margin: "0 0 8px", fontSize: 14 }}>
+            Speed cut #{Math.min(63, activeHerd.counts.active)}:{" "}
+            <strong>
+              {activeHerd.cuts.speed !== null
+                ? `${translateStat("speed", activeHerd.cuts.speed).toFixed(2)} m/s`
+                : "—"}
+            </strong>{" "}
+            · Jump cut #16:{" "}
+            <strong>
+              {activeHerd.cuts.jump !== null
+                ? `${translateStat("jump", activeHerd.cuts.jump).toFixed(2)} blocks`
+                : "—"}
+            </strong>{" "}
+            · Health cut #16:{" "}
+            <strong>
+              {activeHerd.cuts.health !== null
+                ? `${translateStat("health", activeHerd.cuts.health).toFixed(1)} hp`
+                : "—"}
+            </strong>
+          </p>
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            A horse is active when it makes ANY cut — slow jump/health
+            keepers (🛡️) are never auto-retired for missing speed. Everything
+            living outside all three cuts belongs in a heritage pasture
+            grouped by dominant bloodline.
+          </p>
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Top Performers — Top 63 Speed · Top 16 Jump/Health">
           <TopPerformers horses={filtered} />
         </ChartCard>
       </div>
