@@ -41,6 +41,12 @@ export const textDetails = style({
   display: "flex",
   flexDirection: "column",
   gap: "2px",
+  // Flex children default to min-width: auto and refuse to shrink below
+  // their nowrap content — without this the name spills past the node
+  // border and the inner ellipsis never engages.
+  minWidth: 0,
+  flex: 1,
+  overflow: "hidden",
 });
 
 export const horseName = style({
@@ -48,6 +54,19 @@ export const horseName = style({
   fontWeight: vars.fontWeight.extrabold,
   color: vars.color.textMain,
   whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+export const familyName = style({
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
+  color: vars.color.textMuted,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 });
 
 export const statText = style({

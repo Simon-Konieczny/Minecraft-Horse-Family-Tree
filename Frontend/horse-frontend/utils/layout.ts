@@ -9,7 +9,9 @@ import { translateStat } from './translateRawStats';
 import { effectiveFamily } from './studbook';
 
 const VERTICAL_SPACING = 200;
-const NODE_HEIGHT = 80;
+// Stacked first/family name lines (plus the stat line) render ~100px
+// tall; rows are pitched at 200px so there is no overlap risk.
+const NODE_HEIGHT = 100;
 
 export type NodeDensity = 'full' | 'compact' | 'minimal';
 

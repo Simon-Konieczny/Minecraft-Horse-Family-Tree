@@ -102,6 +102,10 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
 
   const display = getDisplayStat();
   const horseImage = getHorseVariantImage(horse.variant);
+  // Stacked lines: first name above family name so hybrids fit inside
+  // the node width. Each line ellipsizes independently as a backstop.
+  const firstNameLine = (horse.firstName || "").trim() || "Unknown";
+  const familyNameLine = (horse.familyName || "").trim();
 
   if (density === 'minimal') {
     return (
@@ -121,8 +125,13 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
         <Handle type="target" position={Position.Top} className={styles.handleStyle} />
         <div className={styles.contentWrapper} style={{ flexDirection: 'column', gap: '2px' }}>
           <div className={styles.horseName} title={fullName} style={{ color: textColor, fontSize: '13px', ...ellipsisStyle }}>
-            {fullName}
+            {firstNameLine}
           </div>
+          {familyNameLine && (
+            <div className={styles.familyName} title={fullName} style={{ color: textColor, opacity: 0.75, fontSize: '11px', ...ellipsisStyle }}>
+              {familyNameLine}
+            </div>
+          )}
           <div className={styles.statText} style={{ color: textColor, opacity: 0.9 }}>
             {display.label}: {display.value}
           </div>
@@ -152,8 +161,13 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
         </div>
         <div className={styles.textDetails}>
           <div className={styles.horseName} title={fullName} style={{ color: textColor, ...ellipsisStyle }}>
-            {fullName}
+            {firstNameLine}
           </div>
+          {familyNameLine && (
+            <div className={styles.familyName} title={fullName} style={{ color: textColor, opacity: 0.75, ...ellipsisStyle }}>
+              {familyNameLine}
+            </div>
+          )}
           <div className={styles.statText} style={{ color: textColor, opacity: 0.8 }}>
             <span className={styles.statLabel} style={{ color: 'inherit' }}>{display.label}:</span>
             <span className={styles.statValue} style={{ color: 'inherit' }}>{display.value}</span>
