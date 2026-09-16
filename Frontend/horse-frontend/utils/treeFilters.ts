@@ -1,6 +1,6 @@
 import type { Horse, HorseStatus } from "@/types/horse";
-import { effectiveFamily, familiesWithCounts } from "./studbook";
-import { getHorseFullName } from "./horseNames";
+import { effectiveFamilies, familiesWithCounts } from "./studbook";
+import { matchesHorse, parseSearchQuery } from "./horseSearch";
 
 export interface TreeFilters {
   /** Enabled families (effective names). Empty hides every horse. */
@@ -37,17 +37,20 @@ export function defaultTreeFilters(horses: Horse[]): TreeFilters {
 
 /**
  * Visible horse ids under AND-combined filters. Unknown families or
- * statuses in the filter never match (stale-cookie safe).
+ * statuses in the filter never match (stale-cookie safe). Hyphenated
+ * horses stay visible when ANY of their families is enabled. The text
+ * query shares the find-box matcher (name, family, generation, status,
+ * stat operators) so both search surfaces agree.
  */
 export function applyTreeFilters(horses: Horse[], filters: TreeFilters): Set<string> {
-  const query = filters.search.trim().toLowerCase();
+  const tokens = parseSearchQuery(filters.search);
   const visible = new Set<string>();
   for (const h of horses) {
-    if (!filters.families.includes(effectiveFamily(h))) continue;
+    if (!effectiveFamilies(h).some((f) => filters.families.includes(f))) continue;
     if (!filters.statuses.includes(h.status)) continue;
     const gen = h.generation || 0;
     if (gen < filters.genMin || gen > filters.genMax) continue;
-    if (query && !getHorseFullName(h).toLowerCase().includes(query)) continue;
+    if (tokens.length > 0 && !matchesHorse(h, filters.search)) continue;
     visible.add(h.id);
   }
   return visible;

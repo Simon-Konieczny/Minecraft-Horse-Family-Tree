@@ -15,13 +15,14 @@ import {
 import { useState, useCallback, useDeferredValue, useEffect, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useReactFlow } from "@xyflow/react";
 import { getCookie, setCookie } from "cookies-next";
 import { getBaseLayout, getSortLayout, NodeDensity } from "@/utils/layout";
 import { getAncestorIds, getDescendantIds } from "@/utils/lineage";
 import { calculateColorFromDna } from "@/utils/genetics/utils";
 import { dominantBloodline } from "@/utils/analytics";
 import { getHorseFullName } from "@/utils/horseNames";
-import { disambiguatedFirstNames, familiesWithCounts } from "@/utils/studbook";
+import { disambiguatedFirstNames, effectiveFamilies, familiesWithCounts } from "@/utils/studbook";
 import {
   applyTreeFilters,
   defaultTreeFilters,
@@ -35,6 +36,7 @@ import CustomHorseNode, { HorseNode } from "../HorseNode/HorseNode";
 import * as styles from "./HorseTreeView.css";
 import { Horse } from "@/types/horse";
 import ViewMenu from "./ViewMenu/ViewMenu";
+import SearchBar from "./HorseSearch/SearchBar";
 
 const nodeTypes = { horseNode: CustomHorseNode };
 export type ViewMode = "base" | "speed" | "jump" | "health";
@@ -71,6 +73,9 @@ function TreeContent({
   // Null until the filter cookie is restored (or skipped when absent);
   // null renders the all-on defaults without writing a cookie.
   const [filters, setFilters] = useState<TreeFilters | null>(null);
+  // Quick-find pick hidden by the active filters — offers a Reveal action.
+  const [hiddenPickId, setHiddenPickId] = useState<string | null>(null);
+  const { fitView } = useReactFlow();
 
   const colors = useBloodlineColors();
   const families = useMemo(() => familiesWithCounts(horses), [horses]);
@@ -169,7 +174,57 @@ function TreeContent({
   );
   const resetFilters = useCallback(() => {
     setFilters(defaultTreeFilters(horses));
+    setHiddenPickId(null);
   }, [horses]);
+
+  const flyToHorse = useCallback(
+    (horseId: string) => {
+      setTimeout(() => fitView({ nodes: [{ id: horseId }], duration: 600, padding: 0.3 }), 50);
+    },
+    [fitView],
+  );
+
+  // Quick-find pick: highlight lineage + fly to the node. When the horse
+  // is hidden by the active filters, keep the pick pending and offer a
+  // Reveal action instead of silently resetting the herd's filters.
+  const handleSearchPick = useCallback(
+    (horseId: string) => {
+      if (visibleIds.has(horseId)) {
+        setHiddenPickId(null);
+        setFocusId(horseId);
+        flyToHorse(horseId);
+      } else {
+        setHiddenPickId(horseId);
+      }
+    },
+    [visibleIds, flyToHorse],
+  );
+
+  // Reveal widens only the blocking dimensions (family, status, gen).
+  const handleRevealPick = useCallback(() => {
+    if (!hiddenPickId) return;
+    const horse = horses.find((h) => h.id === hiddenPickId);
+    if (!horse) {
+      setHiddenPickId(null);
+      return;
+    }
+    const base = filters ?? defaultTreeFilters(horses);
+    const families = [...new Set([...base.families, ...effectiveFamilies(horse)])];
+    const statuses = base.statuses.includes(horse.status)
+      ? base.statuses
+      : [...base.statuses, horse.status];
+    const gen = horse.generation || 0;
+    setFilters({
+      ...base,
+      families,
+      statuses,
+      genMin: Math.min(base.genMin, gen),
+      genMax: Math.max(base.genMax, gen),
+    });
+    setHiddenPickId(null);
+    setFocusId(horse.id);
+    flyToHorse(horse.id);
+  }, [hiddenPickId, horses, filters, flyToHorse]);
 
   const handleClickActionChange = useCallback((mode: ClickAction) => {
     setClickAction(mode);
@@ -311,6 +366,46 @@ function TreeContent({
 
   return (
     <div className={styles.container}>
+      <SearchBar horses={horses} colors={colors} onPick={handleSearchPick} />
+      {hiddenPickId && (
+        <div
+          style={{
+            position: "absolute",
+            top: 64,
+            left: 16,
+            zIndex: 120,
+            backgroundColor: vars.color.parchment,
+            border: `1px solid ${vars.color.goldSoft}`,
+            borderRadius: vars.borderRadius.md,
+            boxShadow: vars.shadow.md,
+            padding: `${vars.spacing.sm} ${vars.spacing.md}`,
+            fontFamily: vars.font.display,
+            color: vars.color.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            maxWidth: "calc(100vw - 360px)",
+          }}
+        >
+          <span>
+            {(() => {
+              const h = horses.find((x) => x.id === hiddenPickId);
+              return h ? `${getHorseFullName(h)} is hidden by the active filters.` : "That horse is hidden by the active filters.";
+            })()}
+          </span>
+          <button type="button" onClick={handleRevealPick} style={{ cursor: "pointer", fontWeight: 700 }}>
+            Reveal
+          </button>
+          <button
+            type="button"
+            onClick={() => setHiddenPickId(null)}
+            style={{ cursor: "pointer" }}
+            aria-label="Dismiss hidden horse notice"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <ViewMenu
         setView={setView}
         view={view}

@@ -1,7 +1,8 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import { ClickAction, ColorMode, FocusDisplay, ViewMode } from "../HorseTreeView";
 import { DENSITY_LABELS, DENSITY_LEVELS, NodeDensity } from "@/utils/layout";
-import { ALL_STATUSES, type TreeFilters } from "@/utils/treeFilters";
+import { ALL_STATUSES, applyTreeFilters, type TreeFilters } from "@/utils/treeFilters";
+import { searchHorses } from "@/utils/horseSearch";
 import type { FamilyCount } from "@/utils/studbook";
 import type { Horse, HorseStatus } from "@/types/horse";
 import { getHorseFullName } from "@/utils/horseNames";
@@ -116,6 +117,28 @@ export default function ViewMenu({
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const refit = () => setTimeout(() => fitView({ duration: 800 }), 50);
+
+  // Ranked search hits among the currently visible horses (other filter
+  // dimensions still apply) for the match count + focus-first action.
+  const searchHits = useMemo(
+    () => searchHorses(horses, filters.search, 50),
+    [horses, filters.search],
+  );
+  const visibleSearchHits = useMemo(() => {
+    const visible = applyTreeFilters(horses, { ...filters, search: "" });
+    return searchHits.filter((hit) => visible.has(String(hit.horse.id)));
+  }, [horses, filters, searchHits]);
+  const hasSearchQuery = filters.search.trim().length > 0;
+
+  const focusFirstSearchHit = () => {
+    const first = visibleSearchHits[0];
+    if (!first) return;
+    setFocusId(String(first.horse.id));
+    setTimeout(
+      () => fitView({ nodes: [{ id: String(first.horse.id) }], duration: 600, padding: 0.3 }),
+      50,
+    );
+  };
 
   const toggleFamily = (family: string) => {
     const has = filters.families.includes(family);
@@ -360,12 +383,37 @@ export default function ViewMenu({
             </div>
             <input
               type="search"
-              placeholder="Search names…"
+              placeholder="Search names, families, gen:2, speed>12…"
               value={filters.search}
               onChange={(e) => updateFilters({ search: e.target.value })}
-              aria-label="Search horses by name"
+              aria-label="Search horses by name, family, generation, or stats"
               className={styles.searchInput}
             />
+            {hasSearchQuery && (
+              <div className={styles.countRow}>
+                <span className={styles.countPill}>
+                  {visibleSearchHits.length} search match{visibleSearchHits.length === 1 ? "" : "es"}
+                </span>
+                <span style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={styles.resetTextButton}
+                    onClick={() => updateFilters({ search: "" })}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.resetTextButton}
+                    onClick={focusFirstSearchHit}
+                    disabled={visibleSearchHits.length === 0}
+                    title={visibleSearchHits.length === 0 ? "No visible matches to focus" : "Highlight the lineage of the top match and fly to it"}
+                  >
+                    Focus first
+                  </button>
+                </span>
+              </div>
+            )}
             <div>
               <p className={styles.menuLabel} style={{ margin: "4px 0" }}>Bloodlines</p>
               <div className={styles.scrollList}>

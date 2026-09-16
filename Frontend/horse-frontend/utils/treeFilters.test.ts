@@ -79,6 +79,30 @@ describe("applyTreeFilters", () => {
     expect(applyTreeFilters(herd, { ...all, families: [] }).size).toBe(0);
     expect(applyTreeFilters(herd, { ...all, statuses: [] }).size).toBe(0);
   });
+
+  it("keeps hyphenated horses visible when any constituent family is enabled", () => {
+    const withHybrid = [
+      ...herd,
+      horse({ id: "d", firstName: "Dawn", familyName: "Emberhoof-Frostmane", generation: 1 }),
+    ];
+    const filters = {
+      ...defaultTreeFilters(withHybrid),
+      families: ["Emberhoof"],
+    };
+    expect([...applyTreeFilters(withHybrid, filters)]).toEqual(["a", "b", "d"]);
+  });
+
+  it("searches families, generations, and stat operators", () => {
+    expect([...applyTreeFilters(herd, { ...all, search: "frostmane" })]).toEqual(["c"]);
+    expect([...applyTreeFilters(herd, { ...all, search: "gen:2" })]).toEqual(["b"]);
+    // Speeds are raw (0.2 -> ~8.6 m/s, 0.3 implied none here); use a loose bound.
+    expect([...applyTreeFilters(herd, { ...all, search: "speed>1" })].sort()).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    expect([...applyTreeFilters(herd, { ...all, search: "speed>100" })]).toEqual([]);
+  });
 });
 
 describe("sanitizeTreeFilters", () => {
