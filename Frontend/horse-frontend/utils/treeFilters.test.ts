@@ -4,6 +4,7 @@ import {
   applyTreeFilters,
   defaultTreeFilters,
   sanitizeTreeFilters,
+  TREE_FILTERS_VERSION,
   type TreeFilters,
 } from "./treeFilters";
 
@@ -36,6 +37,8 @@ describe("defaultTreeFilters", () => {
       statuses: ["Alive", "Deceased", "Retired"],
       genMin: 0,
       genMax: 2,
+      knownGenMin: 0,
+      knownGenMax: 2,
       search: "",
     });
   });
@@ -47,6 +50,8 @@ describe("defaultTreeFilters", () => {
       statuses: ["Alive", "Deceased", "Retired"],
       genMin: 0,
       genMax: 0,
+      knownGenMin: 0,
+      knownGenMax: 0,
       search: "",
     });
   });
@@ -111,15 +116,52 @@ describe("sanitizeTreeFilters", () => {
     expect(sanitizeTreeFilters("nope", herd)).toEqual(defaultTreeFilters(herd));
   });
 
+  it("resets unversioned (pre-v2) cookies to defaults", () => {
+    expect(
+      sanitizeTreeFilters(
+        {
+          families: ["Emberhoof"],
+          knownFamilies: ["Emberhoof", "Frostmane"],
+          statuses: ["Alive"],
+          genMin: 0,
+          genMax: 0,
+          search: "",
+        },
+        herd,
+      ),
+    ).toEqual(defaultTreeFilters(herd));
+  });
+
+  it("never restores a persisted search query", () => {
+    const restored = sanitizeTreeFilters(
+      {
+        version: TREE_FILTERS_VERSION,
+        families: ["Emberhoof", "Frostmane"],
+        knownFamilies: ["Emberhoof", "Frostmane"],
+        statuses: ["Alive", "Deceased", "Retired"],
+        genMin: 0,
+        genMax: 2,
+        knownGenMin: 0,
+        knownGenMax: 2,
+        search: "ash speed>100",
+      },
+      herd,
+    );
+    expect(restored.search).toBe("");
+  });
+
   it("drops unknown families and statuses, swaps and clamps generations", () => {
     expect(
       sanitizeTreeFilters(
         {
+          version: TREE_FILTERS_VERSION,
           families: ["Emberhoof", "Ghost"],
           knownFamilies: ["Emberhoof", "Frostmane"],
           statuses: ["Alive", "Zombie"],
           genMin: 5,
           genMax: 1,
+          knownGenMin: 0,
+          knownGenMax: 2,
           search: 42,
         },
         herd,
@@ -130,6 +172,8 @@ describe("sanitizeTreeFilters", () => {
       statuses: ["Alive"],
       genMin: 1,
       genMax: 2,
+      knownGenMin: 0,
+      knownGenMax: 2,
       search: "",
     });
   });
@@ -142,11 +186,14 @@ describe("sanitizeTreeFilters", () => {
     expect(
       sanitizeTreeFilters(
         {
+          version: TREE_FILTERS_VERSION,
           families: ["Emberhoof"],
           knownFamilies: ["Emberhoof", "Frostmane"],
           statuses: ["Alive", "Deceased", "Retired"],
           genMin: 0,
           genMax: 2,
+          knownGenMin: 0,
+          knownGenMax: 2,
           search: "",
         },
         withNewcomer,
@@ -156,5 +203,78 @@ describe("sanitizeTreeFilters", () => {
       families: ["Emberhoof", "Stormmane"],
       knownFamilies: ["Emberhoof", "Frostmane", "Stormmane"],
     });
+  });
+
+  it("auto-expands bounds for newcomer generations (Sunbeam scenario)", () => {
+    // Cookie saved when the herd topped out at Gen 0; a Gen 1 foal
+    // arrives since. The foal must stay visible without a Reset.
+    const withFoal = [
+      horse({ id: "a", firstName: "Solaris", familyName: "Aurelian", generation: 0 }),
+      horse({
+        id: "s",
+        firstName: "Sunbeam",
+        familyName: "Aurelian-Baguette",
+        dna: { Aurelian: 0.5, Baguette: 0.5 },
+        generation: 1,
+      }),
+    ];
+    const restored = sanitizeTreeFilters(
+      {
+        version: TREE_FILTERS_VERSION,
+        families: ["Aurelian", "Baguette"],
+        knownFamilies: ["Aurelian", "Baguette"],
+        statuses: ["Alive", "Deceased", "Retired"],
+        genMin: 0,
+        genMax: 0,
+        knownGenMin: 0,
+        knownGenMax: 0,
+        search: "",
+      },
+      withFoal,
+    );
+    expect(restored.genMax).toBe(1);
+    expect([...applyTreeFilters(withFoal, restored)].sort()).toEqual(["a", "s"]);
+  });
+
+  it("preserves deliberate narrowing inside the saved span", () => {
+    const restored = sanitizeTreeFilters(
+      {
+        version: TREE_FILTERS_VERSION,
+        families: ["Emberhoof", "Frostmane"],
+        knownFamilies: ["Emberhoof", "Frostmane"],
+        statuses: ["Alive", "Deceased", "Retired"],
+        genMin: 1,
+        genMax: 1,
+        knownGenMin: 0,
+        knownGenMax: 2,
+        search: "",
+      },
+      herd,
+    );
+    expect(restored.genMin).toBe(1);
+    expect(restored.genMax).toBe(1);
+  });
+
+  it("keeps a narrowed cap when the herd grows beyond it", () => {
+    const grown = [
+      ...herd,
+      horse({ id: "d", firstName: "Gale", familyName: "Stormmane", generation: 7 }),
+    ];
+    const restored = sanitizeTreeFilters(
+      {
+        version: TREE_FILTERS_VERSION,
+        families: ["Emberhoof", "Frostmane", "Stormmane"],
+        knownFamilies: ["Emberhoof", "Frostmane"],
+        statuses: ["Alive", "Deceased", "Retired"],
+        genMin: 0,
+        genMax: 3,
+        knownGenMin: 0,
+        knownGenMax: 5,
+        search: "",
+      },
+      grown,
+    );
+    // genMax 3 < saved span top 5: deliberate, stays put.
+    expect(restored.genMax).toBe(3);
   });
 });

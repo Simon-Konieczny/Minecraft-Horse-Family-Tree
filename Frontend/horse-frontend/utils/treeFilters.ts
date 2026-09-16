@@ -16,8 +16,20 @@ export interface TreeFilters {
   statuses: HorseStatus[];
   genMin: number;
   genMax: number;
+  /**
+   * Herd generation span when the filter was saved. Generations that
+   * appeared since (newcomers) auto-expand the restored bounds so a
+   * foal born into a new generation is never hidden by a stale cookie.
+   * Narrowing chosen inside the saved span is preserved as deliberate.
+   */
+  knownGenMin: number;
+  knownGenMax: number;
+  /** Session-only text query. Never restored from the cookie. */
   search: string;
 }
+
+/** Persisted filter schema version (v1 had no version field). */
+export const TREE_FILTERS_VERSION = 2;
 
 export const ALL_STATUSES: HorseStatus[] = ["Alive", "Deceased", "Retired"];
 
@@ -25,12 +37,16 @@ export const ALL_STATUSES: HorseStatus[] = ["Alive", "Deceased", "Retired"];
 export function defaultTreeFilters(horses: Horse[]): TreeFilters {
   const gens = horses.map((h) => h.generation || 0);
   const families = familiesWithCounts(horses).map((f) => f.family);
+  const genMin = gens.length > 0 ? Math.min(...gens) : 0;
+  const genMax = gens.length > 0 ? Math.max(...gens) : 0;
   return {
     families,
     knownFamilies: [...families],
     statuses: [...ALL_STATUSES],
-    genMin: gens.length > 0 ? Math.min(...gens) : 0,
-    genMax: gens.length > 0 ? Math.max(...gens) : 0,
+    genMin,
+    genMax,
+    knownGenMin: genMin,
+    knownGenMax: genMax,
     search: "",
   };
 }
@@ -60,11 +76,17 @@ export function applyTreeFilters(horses: Horse[], filters: TreeFilters): Set<str
  * Forgiving cookie restore: unknown families/statuses are dropped,
  * non-finite generations fall back, min/max swaps and clamps into the
  * herd span. Explicit empty lists are respected (they hide everything).
+ * Unversioned (pre-v2) cookies reset to defaults once — their family
+ * keys predate split-family grouping and can't be trusted.
+ * The text search is session-only and never restored. Generation
+ * bounds auto-expand for newcomer generations beyond the saved span;
+ * narrowing inside the saved span is kept as deliberate.
  */
 export function sanitizeTreeFilters(saved: unknown, horses: Horse[]): TreeFilters {
   const def = defaultTreeFilters(horses);
   if (!saved || typeof saved !== "object") return def;
-  const s = saved as Partial<TreeFilters>;
+  const s = saved as Partial<TreeFilters> & { version?: unknown };
+  if (s.version !== TREE_FILTERS_VERSION) return def;
   const present = new Set(def.families);
   const known = Array.isArray(s.knownFamilies)
     ? s.knownFamilies.filter((f): f is string => typeof f === "string")
@@ -90,8 +112,29 @@ export function sanitizeTreeFilters(saved: unknown, horses: Horse[]): TreeFilter
   let genMax =
     typeof s.genMax === "number" && Number.isFinite(s.genMax) ? s.genMax : def.genMax;
   if (genMin > genMax) [genMin, genMax] = [genMax, genMin];
+  const knownGenMin =
+    typeof s.knownGenMin === "number" && Number.isFinite(s.knownGenMin)
+      ? s.knownGenMin
+      : genMin;
+  const knownGenMax =
+    typeof s.knownGenMax === "number" && Number.isFinite(s.knownGenMax)
+      ? s.knownGenMax
+      : genMax;
+  // Newcomer generations beyond the saved span stay visible — but only
+  // when the saved bound sat at the old edge (a narrowed bound is
+  // deliberate and stays put).
+  if (genMax >= knownGenMax && def.genMax > knownGenMax) genMax = def.genMax;
+  if (genMin <= knownGenMin && def.genMin < knownGenMin) genMin = def.genMin;
   genMin = Math.min(Math.max(genMin, def.genMin), def.genMax);
   genMax = Math.max(Math.min(genMax, def.genMax), def.genMin);
-  const search = typeof s.search === "string" ? s.search : "";
-  return { families, knownFamilies: def.families, statuses, genMin, genMax, search };
+  return {
+    families,
+    knownFamilies: def.families,
+    statuses,
+    genMin,
+    genMax,
+    knownGenMin: def.genMin,
+    knownGenMax: def.genMax,
+    search: "",
+  };
 }

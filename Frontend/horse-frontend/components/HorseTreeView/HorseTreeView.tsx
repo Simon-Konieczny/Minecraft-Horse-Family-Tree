@@ -27,6 +27,7 @@ import {
   applyTreeFilters,
   defaultTreeFilters,
   sanitizeTreeFilters,
+  TREE_FILTERS_VERSION,
   type TreeFilters,
 } from "@/utils/treeFilters";
 import { useBloodlineColors } from "@/components/Bloodlines/BloodlineProvider";
@@ -290,13 +291,28 @@ function TreeContent({
   }, [horses]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Persist filter choices (snapshot the current family set alongside).
+  // Persist filter choices (snapshot the current family set and gen span
+  // alongside). The text search is session-only and never persisted.
   useEffect(() => {
     if (!filters) return;
     const present = familiesWithCounts(horses).map((f) => f.family);
-    setCookie("horse-tree-filters", JSON.stringify({ ...filters, knownFamilies: present }), {
-      maxAge: 60 * 60 * 24 * 30,
-    });
+    const gens = horses.map((h) => h.generation || 0);
+    const spanMin = gens.length > 0 ? Math.min(...gens) : 0;
+    const spanMax = gens.length > 0 ? Math.max(...gens) : 0;
+    setCookie(
+      "horse-tree-filters",
+      JSON.stringify({
+        ...filters,
+        search: "",
+        knownFamilies: present,
+        knownGenMin: spanMin,
+        knownGenMax: spanMax,
+        version: TREE_FILTERS_VERSION,
+      }),
+      {
+        maxAge: 60 * 60 * 24 * 30,
+      },
+    );
   }, [filters, horses]);
 
   // Re-layout on view/filter/herd changes and push the result into the
