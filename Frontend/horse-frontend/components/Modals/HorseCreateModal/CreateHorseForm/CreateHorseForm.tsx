@@ -125,9 +125,7 @@ export default function CreateHorseForm({
     const sire = horses.find((h) => h.id.toString() === formData.parentId1);
     const dam = horses.find((h) => h.id.toString() === formData.parentId2);
     if (!sire || !dam) return "";
-    return getSurnameFromDna(mergeDna(sire.dna, dam.dna), {
-      sireDna: sire.dna,
-    });
+    return getSurnameFromDna(mergeDna(sire.dna, dam.dna));
   }, [horses, formData.parentId1, formData.parentId2]);
 
   const prevSuggestion = useRef("");

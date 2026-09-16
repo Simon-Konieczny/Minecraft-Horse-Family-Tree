@@ -79,10 +79,7 @@ export default function PairingPlanner({
                 );
                 const dna = mergeDna(sire.dna || {}, dam.dna || {});
                 const color = calculateColorFromDna(dna, colors);
-                const surname = getSurnameFromDna(dna, {
-                  sireDna: sire.dna,
-                  damDna: dam.dna,
-                });
+                const surname = getSurnameFromDna(dna);
                 const isTried = tried.has(pairKey(p.sireId, p.damId));
                 const related = p.blocked || p.sharedAncestors > 0;
                 return (

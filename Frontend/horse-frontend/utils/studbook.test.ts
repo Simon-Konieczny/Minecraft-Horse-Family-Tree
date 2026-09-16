@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFamilyRecords,
   disambiguatedFirstNames,
+  effectiveFamilies,
   effectiveFamily,
   familiesWithCounts,
   getFoundingDate,
@@ -41,6 +42,23 @@ describe("effectiveFamily", () => {
   });
 });
 
+describe("effectiveFamilies", () => {
+  it("splits hyphenated names into constituent families", () => {
+    expect(
+      effectiveFamilies({
+        familyName: "Aurelian-Baguette",
+        dna: { Aurelian: 0.5, Baguette: 0.5 },
+      }),
+    ).toEqual(["Aurelian", "Baguette"]);
+  });
+
+  it("returns a single family for pure names", () => {
+    expect(
+      effectiveFamilies({ familyName: "Emberhoof", dna: { Emberhoof: 1.0 } }),
+    ).toEqual(["Emberhoof"]);
+  });
+});
+
 describe("getFoundingDate", () => {
   it("prefers createdAt", () => {
     expect(
@@ -75,6 +93,21 @@ describe("familiesWithCounts", () => {
 
   it("is empty-safe", () => {
     expect(familiesWithCounts([])).toEqual([]);
+  });
+
+  it("dual-counts hyphenated horses in both families, no hybrid key", () => {
+    expect(
+      familiesWithCounts([
+        { familyName: "Aurelian", dna: { Aurelian: 1.0 } },
+        {
+          familyName: "Aurelian-Baguette",
+          dna: { Aurelian: 0.5, Baguette: 0.5 },
+        },
+      ]),
+    ).toEqual([
+      { family: "Aurelian", count: 2 },
+      { family: "Baguette", count: 1 },
+    ]);
   });
 });
 
@@ -188,6 +221,35 @@ describe("buildFamilyRecords", () => {
       health: null,
       aliveCount: 0,
     });
+  });
+
+  it("counts a 50/50 hybrid toward both parents with no hybrid card", () => {
+    const records = buildFamilyRecords([
+      horse({
+        id: "h1",
+        firstName: "Solaris",
+        familyName: "Aurelian",
+        dna: { Aurelian: 1.0 },
+        generation: 0,
+      }),
+      horse({
+        id: "h2",
+        firstName: "Dusk",
+        familyName: "Baguette",
+        dna: { Baguette: 1.0 },
+        generation: 0,
+      }),
+      horse({
+        id: "h3",
+        firstName: "Foal",
+        familyName: "Aurelian-Baguette",
+        dna: { Aurelian: 0.5, Baguette: 0.5 },
+        generation: 1,
+      }),
+    ]);
+    expect(records.map((r) => r.family)).toEqual(["Aurelian", "Baguette"]);
+    expect(records.find((r) => r.family === "Aurelian")!.count).toBe(2);
+    expect(records.find((r) => r.family === "Baguette")!.count).toBe(2);
   });
 });
 

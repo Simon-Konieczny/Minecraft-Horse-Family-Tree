@@ -55,6 +55,23 @@ export function effectiveFamily(horse: Pick<Horse, "familyName" | "dna">): strin
   return getSurnameFromDna(horse.dna || {});
 }
 
+/**
+ * Families a horse counts toward in records: the hyphen parts of its
+ * effective family name (e.g. "Aurelian-Baguette" counts toward both
+ * "Aurelian" and "Baguette"). Single names return one entry. Hybrids
+ * never form their own family card — they dual-count instead.
+ */
+export function effectiveFamilies(
+  horse: Pick<Horse, "familyName" | "dna">,
+): string[] {
+  const parts = effectiveFamily(horse)
+    .split("-")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (parts.length === 0) return ["Unknown"];
+  return [...new Set(parts)];
+}
+
 export interface FamilyCount {
   family: string;
   count: number;
@@ -66,8 +83,9 @@ export function familiesWithCounts(
 ): FamilyCount[] {
   const counts = new Map<string, number>();
   for (const h of horses) {
-    const family = effectiveFamily(h);
-    counts.set(family, (counts.get(family) || 0) + 1);
+    for (const family of effectiveFamilies(h)) {
+      counts.set(family, (counts.get(family) || 0) + 1);
+    }
   }
   return [...counts.entries()]
     .map(([family, count]) => ({ family, count }))
@@ -147,15 +165,18 @@ function dominantShare(dna: Horse["dna"]): number {
 /**
  * Builds per-family records live from the herd: founders (generation 0),
  * the highest-share ("last purebred") representative, and stat records.
- * Includes deceased horses (history); deleted horses are simply gone.
+ * Hyphenated horses (e.g. "Aurelian-Baguette") count toward EACH
+ * constituent family — no hybrid cards are created. Includes deceased
+ * horses (history); deleted horses are simply gone.
  */
 export function buildFamilyRecords(horses: Horse[]): FamilyRecord[] {
   const groups = new Map<string, Horse[]>();
   for (const h of horses) {
-    const family = effectiveFamily(h);
-    const list = groups.get(family);
-    if (list) list.push(h);
-    else groups.set(family, [h]);
+    for (const family of effectiveFamilies(h)) {
+      const list = groups.get(family);
+      if (list) list.push(h);
+      else groups.set(family, [h]);
+    }
   }
 
   const records: FamilyRecord[] = [];

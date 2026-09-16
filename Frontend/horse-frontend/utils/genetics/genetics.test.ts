@@ -3,6 +3,7 @@ import {
   assertDnaSum,
   calculateColorFromDna,
   countBloodlineReferencesInList,
+  getSurnameFromDna,
   mergeDna,
   normalizeDna,
   renameBloodlineInDna,
@@ -230,5 +231,25 @@ describe("countBloodlineReferencesInList", () => {
       mixed: 1,
       total: 2,
     });
+  });
+});
+
+describe("getSurnameFromDna", () => {
+  it("orders equal weights alphabetically regardless of sire slot", () => {
+    expect(getSurnameFromDna({ Baguette: 0.5, Aurelian: 0.5 })).toBe(
+      "Aurelian-Baguette",
+    );
+    expect(getSurnameFromDna({ Aurelian: 0.5, Baguette: 0.5 })).toBe(
+      "Aurelian-Baguette",
+    );
+  });
+
+  it("orders by weight first, alphabetically on ties", () => {
+    expect(getSurnameFromDna({ Emberhoof: 0.6, Frostmane: 0.4 })).toBe(
+      "Emberhoof-Frostmane",
+    );
+    expect(getSurnameFromDna({ Frostmane: 0.6, Emberhoof: 0.4 })).toBe(
+      "Frostmane-Emberhoof",
+    );
   });
 });

@@ -59,10 +59,9 @@ export default async function createHorseAction(formData: createHorseData) {
   );
 
   // Family name is overwritable: a typed value wins, otherwise derive it
-  // from the foal's DNA (sire line breaks near-ties).
+  // from the foal's DNA (equal weights order alphabetically).
   const familyName =
-    typedFamily ||
-    getSurnameFromDna(dna, { sireDna: parent1?.dna, damDna: parent2?.dna });
+    typedFamily || getSurnameFromDna(dna);
 
   const data: createHorseRequest = {
     firstName,
