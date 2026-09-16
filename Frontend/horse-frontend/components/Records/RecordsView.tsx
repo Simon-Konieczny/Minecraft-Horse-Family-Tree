@@ -19,13 +19,27 @@ import {
   pairOutcomesVsParents,
   prolificParents,
   purityRanking,
+  sharesByGeneration,
   variantBloodlineCrosstab,
   variantBloodlineShares,
   variantDistribution,
 } from "@/utils/analytics";
 import Link from "next/link";
 import { getHorseFullName } from "@/utils/horseNames";
-import { getActiveHerd } from "@/utils/activeHerd";
+import { getActiveHerd, ACTIVE_SPEED_COUNT, ACTIVE_JUMP_COUNT, ACTIVE_HEALTH_COUNT } from "@/utils/activeHerd";
+import {
+  bubbleWatch,
+  deceasedVsLiving,
+  founderLegacy,
+  inbreedingSplit,
+  parentReliability,
+  purityTrend,
+  recordByGeneration,
+  statCorrelations,
+  untriedBloodlineCrosses,
+  varianceByGeneration,
+  variantUnlockHints,
+} from "@/utils/herdInsights";
 import { vars } from "@/styles/theme.css";
 import { getVariantName } from "@/utils/variant";
 import { translateStat } from "@/utils/translateRawStats";
@@ -34,12 +48,26 @@ import {
   Bars,
   ChartCard,
   ScatterPlot,
+  StackedArea,
   TrendLine,
   VerticalHistogram,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 import TopPerformers from "@/components/Records/TopPerformers";
 import VariantGrid from "@/components/Records/VariantGrid";
+import CollapsibleSection from "@/components/Records/CollapsibleSection";
+import {
+  BubbleWatchCard,
+  CullListCard,
+  DeadAliveCard,
+  FounderCard,
+  InbreedSplitCard,
+  PurityCard,
+  RecordGenCard,
+  ReliabilityCard,
+  UntriedCrossesCard,
+  VariantUnlockCard,
+} from "@/components/Records/InsightSections";
 import GenerationScopeBar, {
   type GenerationScopeValue,
 } from "@/components/Common/GenerationScopeBar/GenerationScopeBar";
@@ -172,6 +200,7 @@ export default function RecordsView({
   });
 
   const trends = STATS.map(({ field, label, unit, decimals }) => ({
+    field,
     label,
     unit,
     decimals,
@@ -200,7 +229,6 @@ export default function RecordsView({
         }
       : null;
 
-  const growth = generationCounts(filtered);
   const prolific = prolificParents(filtered).slice(0, 10);
   // Translate first (jump is nonlinear), then compare foal averages
   // against the parents' own average — "are pairings improving?".
@@ -351,6 +379,202 @@ export default function RecordsView({
     row.set(c.bloodline, c);
   }
 
+  // ---- Insight engine (all translated units; no dates anywhere) ----
+  const tById = useMemo(
+    () => new Map(translatedWithIds.map((h) => [h.id, h])),
+    [translatedWithIds],
+  );
+  const finiteOrNull = (v: number) => (Number.isFinite(v) ? v : null);
+  const translatedCuts = {
+    speed: activeHerd.cuts.speed !== null ? translateStat("speed", activeHerd.cuts.speed) : null,
+    jump: activeHerd.cuts.jump !== null ? translateStat("jump", activeHerd.cuts.jump) : null,
+    health: activeHerd.cuts.health !== null ? translateStat("health", activeHerd.cuts.health) : null,
+  };
+  const bubble = useMemo(
+    () =>
+      bubbleWatch(
+        activeHerd.ranked,
+        (id) => {
+          const t = tById.get(id);
+          return t
+            ? { speed: finiteOrNull(t.speed), jump: finiteOrNull(t.jump), health: finiteOrNull(t.health) }
+            : { speed: null, jump: null, health: null };
+        },
+        translatedCuts,
+        { speed: ACTIVE_SPEED_COUNT, jump: ACTIVE_JUMP_COUNT, health: ACTIVE_HEALTH_COUNT },
+      ),
+    // translatedCuts derives from activeHerd; tById covers value lookups.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeHerd, tById],
+  );
+  const reliability = useMemo(
+    () =>
+      parentReliability(
+        translatedWithIds.filter((h) => h.parentId1 || h.parentId2),
+        (id) => {
+          const t = tById.get(id);
+          return t
+            ? { speed: finiteOrNull(t.speed), jump: finiteOrNull(t.jump), health: finiteOrNull(t.health) }
+            : { speed: null, jump: null, health: null };
+        },
+      ),
+    [translatedWithIds, tById],
+  );
+  const crosses = useMemo(
+    () =>
+      untriedBloodlineCrosses(
+        activeHerd.active.map((h) => ({
+          id: h.id,
+          dna: h.dna,
+          speed: tById.get(h.id)?.speed ?? 0,
+        })),
+        pairs,
+        (id) => dominantBloodline(horseById.get(id)?.dna) || "Unknown",
+      ),
+    [activeHerd, tById, horseById, pairs],
+  );
+  const unlockHints = useMemo(
+    () =>
+      variantUnlockHints(
+        variants.map((v) => v.variant),
+        activeHerd.active
+          .map((h) => h.variant)
+          .filter((v): v is number => typeof v === "number" && Number.isFinite(v)),
+      ),
+    [variants, activeHerd],
+  );
+  const genShares = useMemo(() => sharesByGeneration(filtered), [filtered]);
+  const legacy = useMemo(() => founderLegacy(filtered, activeHerd.activeIds), [filtered, activeHerd]);
+  const purityPts = useMemo(
+    () =>
+      purityTrend(filtered).map((p) => ({
+        label: `Gen ${p.generation}`,
+        value: Math.round(p.avgShare * 1000) / 10,
+      })),
+    [filtered],
+  );
+  const correlations = useMemo(() => statCorrelations(translated), [translated]);
+  const corrPoints = useMemo(() => {
+    const mk = (xf: "speed" | "jump", yf: "jump" | "health") =>
+      filtered.map((h) => {
+        const dominant = dominantBloodline(h.dna);
+        return {
+          x: translateStat(xf, h[xf]),
+          y: translateStat(yf, h[yf]),
+          color: (dominant && colors[dominant]) || "#94a3b8",
+          label: getHorseFullName(h),
+        };
+      });
+    return { speedHealth: mk("speed", "health"), jumpHealth: mk("jump", "health") };
+  }, [filtered, colors]);
+  // Per-generation best (ceiling) aligned to the avg trend order.
+  const bestByGen = useMemo(() => {
+    const out = new Map<string, { label: string; value: number }[]>();
+    for (const { field, decimals } of STATS) {
+      const groups = new Map<number, number>();
+      for (const h of translated) {
+        const v = h[field];
+        if (!Number.isFinite(v)) continue;
+        groups.set(h.generation, Math.max(groups.get(h.generation) ?? -Infinity, v));
+      }
+      out.set(
+        field,
+        [...groups.entries()]
+          .sort((a, b) => a[0] - b[0])
+          .map(([gen, v]) => ({ label: `Gen ${gen}`, value: Math.round(v * 10 ** decimals) / 10 ** decimals })),
+      );
+    }
+    return out;
+  }, [translated]);
+  const variancePts = useMemo(() => {
+    const out = new Map<string, { label: string; value: number }[]>();
+    for (const { field, decimals } of STATS) {
+      const rows = translated.map((h) => ({ generation: h.generation, value: h[field] }));
+      out.set(
+        field,
+        varianceByGeneration(rows).map((p) => ({
+          label: `Gen ${p.generation}`,
+          value: Math.round(p.std * 10 ** decimals) / 10 ** decimals,
+        })),
+      );
+    }
+    return out;
+  }, [translated]);
+  const recByGen = useMemo(
+    () =>
+      recordByGeneration(
+        filtered.map((h) => {
+          const t = tById.get(h.id);
+          return {
+            id: h.id,
+            generation: h.generation || 0,
+            speed: t?.speed ?? NaN,
+            jump: t?.jump ?? NaN,
+            health: t?.health ?? NaN,
+          };
+        }),
+      ),
+    [filtered, tById],
+  );
+  const inbreedShared = useMemo(() => new Map(inbredRanks.map((r) => [r.id, r.shared])), [inbredRanks]);
+  const inbreedSplit = useMemo(
+    () =>
+      inbreedingSplit(
+        translatedWithIds.filter((h) => h.parentId1 || h.parentId2),
+        (id) => inbreedShared.get(id) ?? 0,
+      ),
+    [translatedWithIds, inbreedShared],
+  );
+  const pyramid = useMemo(
+    () => generationCounts(filtered.filter((h) => h.status !== "Deceased")),
+    [filtered],
+  );
+  const deadAlive = useMemo(
+    () =>
+      deceasedVsLiving(
+        filtered.map((h) => {
+          const t = tById.get(h.id);
+          return {
+            status: h.status,
+            speed: t?.speed ?? NaN,
+            jump: t?.jump ?? NaN,
+            health: t?.health ?? NaN,
+          };
+        }),
+      ),
+    [filtered, tById],
+  );
+  const rarest = useMemo(() => [...variants].sort((a, b) => a.count - b.count).slice(0, 5), [variants]);
+  const champions = useMemo(() => {
+    const table = new Map<
+      string,
+      {
+        speed: { id: string; value: number } | null;
+        jump: { id: string; value: number } | null;
+        health: { id: string; value: number } | null;
+      }
+    >();
+    for (const h of filtered) {
+      const t = tById.get(h.id);
+      if (!t) continue;
+      const bloodline = dominantBloodline(h.dna) || "Unknown";
+      let row = table.get(bloodline);
+      if (!row) {
+        row = { speed: null, jump: null, health: null };
+        table.set(bloodline, row);
+      }
+      (["speed", "jump", "health"] as const).forEach((field) => {
+        const v = t[field];
+        if (Number.isFinite(v) && (!row[field] || v > (row[field]?.value ?? -Infinity))) {
+          row[field] = { id: h.id, value: v };
+        }
+      });
+    }
+    return [...table.entries()]
+      .map(([bloodline, row]) => ({ bloodline, ...row }))
+      .sort((a, b) => a.bloodline.localeCompare(b.bloodline));
+  }, [filtered, tById]);
+
   return (
     <main style={{ padding: 24, maxWidth: 960 }}>
       <ChapterHeading
@@ -368,6 +592,7 @@ export default function RecordsView({
         onReset={() => setScope(defaultScope)}
       />
 
+      <CollapsibleSection title="Distributions" count={histograms.length + 3} defaultOpen>
       <div className={chartStyles.chartGrid}>
         {histograms.map((h) => (
           <ChartCard key={h.label} title={`${h.label} Distribution`}>
@@ -375,14 +600,6 @@ export default function RecordsView({
               {h.label} ({h.unit}) along the bottom, horse count going up.
             </p>
             <VerticalHistogram bins={h.bins} />
-          </ChartCard>
-        ))}
-      </div>
-
-      <div className={chartStyles.chartGrid}>
-        {trends.map((t) => (
-          <ChartCard key={t.label} title={`Avg ${t.label} by Generation`}>
-            <TrendLine points={t.points} unit={t.unit} decimals={t.decimals} />
           </ChartCard>
         ))}
       </div>
@@ -403,35 +620,110 @@ export default function RecordsView({
         />
       </ChartCard>
 
-      <div style={{ marginTop: 24 }}>
-        <ChartCard title="Heritability — Foal vs Mid-Parent">
-          <p className={chartStyles.mutedNote}>
-            Each dot is a foal plotted against its parents&apos; average.
-            Slope ≈ 1 means the stat breeds true; slope ≈ 0 means the roll dominates.
+      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
+        <ChartCard title={`Speed × Health — r = ${correlations.speedHealth.toFixed(2)} (n=${correlations.n})`}>
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            {correlations.speedHealth > 0.5
+              ? "Strong positive — fast horses tend to be tough too."
+              : correlations.speedHealth < -0.5
+                ? "Strong trade-off — selecting for speed costs health."
+                : "Weak link — speed and health breed mostly independently."}
           </p>
-          <div className={chartStyles.chartGrid}>
-            {heritability.map((h) => (
-              <div key={h.label}>
-                <h4 style={{ margin: "8px 0" }}>
-                  {h.label}{" "}
-                  <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 12 }}>
-                    slope {h.regression.slope.toFixed(2)} · R²{" "}
-                    {h.regression.r2.toFixed(2)} (n={h.regression.n})
-                  </span>
-                </h4>
-                <ScatterPlot
-                  points={h.scatter}
-                  xLabel={`Parents avg (${h.unit})`}
-                  yLabel={`Foal (${h.unit})`}
-                  xDecimals={h.label === "Health" ? 1 : 2}
-                  yDecimals={h.label === "Health" ? 1 : 2}
-                />
-              </div>
-            ))}
-          </div>
+          <ScatterPlot points={corrPoints.speedHealth} xLabel="Speed (m/s)" yLabel="Health (hp)" xDecimals={2} yDecimals={1} />
+        </ChartCard>
+        <ChartCard title={`Jump × Health — r = ${correlations.jumpHealth.toFixed(2)} (n=${correlations.n})`}>
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            Speed × Jump r = {correlations.speedJump.toFixed(2)} (see chart above).{" "}
+            {correlations.jumpHealth > 0.5
+              ? "Strong positive — springy horses tend to be tough too."
+              : correlations.jumpHealth < -0.5
+                ? "Strong trade-off — selecting for jump costs health."
+                : "Weak link — jump and health breed mostly independently."}
+          </p>
+          <ScatterPlot points={corrPoints.jumpHealth} xLabel="Jump (blocks)" yLabel="Health (hp)" xDecimals={2} yDecimals={1} />
         </ChartCard>
       </div>
+      </CollapsibleSection>
 
+      <CollapsibleSection title="Progression" count={trends.length * 2 + deltas.length + recByGen.length} defaultOpen>
+      <div className={chartStyles.chartGrid}>
+        {trends.map((t) => (
+          <ChartCard key={t.label} title={`Avg ${t.label} by Generation`}>
+            <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+              Solid line = herd average, dashed gray = best of the generation (the ceiling).
+            </p>
+            <TrendLine
+              points={t.points}
+              unit={t.unit}
+              decimals={t.decimals}
+              compare={{ points: bestByGen.get(t.field) ?? [], label: `Best ${t.label} per generation` }}
+            />
+          </ChartCard>
+        ))}
+      </div>
+
+      <div className={chartStyles.chartGrid}>
+        {trends.map((t) => (
+          <ChartCard key={`${t.label}-spread`} title={`${t.label} Spread (std-dev) by Generation`}>
+            <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+              Shrinking spread means the line is stabilizing; a jump means fresh blood entered.
+            </p>
+            <TrendLine points={variancePts.get(t.field) ?? []} unit={t.unit} decimals={t.decimals} />
+          </ChartCard>
+        ))}
+      </div>
+
+      <ChartCard title="Generation Deltas — Avg Improvement">
+        {deltas.length > 0 ? (
+          <table className={chartStyles.ledgerTable}>
+            <thead>
+              <tr>
+                <th className={chartStyles.ledgerTh}>Gen</th>
+                {STATS.map((s) => (
+                  <th key={s.field} className={chartStyles.ledgerTh}>
+                    Δ {s.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {deltas.map((d) => (
+                <tr key={d.gen}>
+                  <td className={chartStyles.ledgerTd}>{d.gen}</td>
+                  {d.values.map((v, i) => (
+                    <td
+                      key={STATS[i].field}
+                      className={chartStyles.ledgerTd}
+                      style={{
+                        color:
+                          v === null || v === 0
+                            ? "inherit"
+                            : v > 0
+                              ? "#2d4a3e"
+                              : "#8f2d22",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {v === null
+                        ? "—"
+                        : `${(v >= 0 ? "+" : "") + v.toFixed(STATS[i].decimals)}`}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className={chartStyles.mutedNote}>
+            Needs horses across at least two generations.
+          </p>
+        )}
+      </ChartCard>
+
+      <RecordGenCard rows={recByGen} nameOf={nameOf} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Bloodlines" count={herdShares.length + genShares.length + legacy.length + champions.length} defaultOpen>
       <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
         <ChartCard title="Bloodline Diversity">
           {filtered.length > 0 ? (
@@ -503,85 +795,76 @@ export default function RecordsView({
             <p className={chartStyles.mutedNote}>No horses yet.</p>
           )}
         </ChartCard>
-        <ChartCard title="Generation Deltas — Avg Improvement">
-          {deltas.length > 0 ? (
+        <ChartCard title="Market Share by Generation">
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            Which bloodlines own each generation — watch lines rise toward
+            dominance or fade out over time.
+          </p>
+          <StackedArea data={genShares} colors={colors} />
+        </ChartCard>
+      </div>
+
+      <div className={chartStyles.chartGrid}>
+        <FounderCard rows={legacy} nameOf={nameOf} />
+        <PurityCard points={purityPts} />
+      </div>
+
+      <ChartCard title="Bloodline Champions — best of each line">
+        <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+          Which line owns which trait — your outcrossing guide.
+        </p>
+        {champions.length > 0 ? (
+          <div style={{ overflowX: "auto" }}>
             <table className={chartStyles.ledgerTable}>
               <thead>
                 <tr>
-                  <th className={chartStyles.ledgerTh}>Gen</th>
-                  {STATS.map((s) => (
-                    <th key={s.field} className={chartStyles.ledgerTh}>
-                      Δ {s.label}
-                    </th>
-                  ))}
+                  <th className={chartStyles.ledgerTh}>Bloodline</th>
+                  <th className={chartStyles.ledgerTh}>⚡ Speed</th>
+                  <th className={chartStyles.ledgerTh}>🐎 Jump</th>
+                  <th className={chartStyles.ledgerTh}>❤ Health</th>
                 </tr>
               </thead>
               <tbody>
-                {deltas.map((d) => (
-                  <tr key={d.gen}>
-                    <td className={chartStyles.ledgerTd}>{d.gen}</td>
-                    {d.values.map((v, i) => (
-                      <td
-                        key={STATS[i].field}
-                        className={chartStyles.ledgerTd}
+                {champions.map((c) => (
+                  <tr key={c.bloodline}>
+                    <td className={chartStyles.ledgerTd}>
+                      <span
                         style={{
-                          color:
-                            v === null || v === 0
-                              ? "inherit"
-                              : v > 0
-                                ? "#2d4a3e"
-                                : "#8f2d22",
-                          fontWeight: 700,
+                          display: "inline-block",
+                          width: 10,
+                          height: 10,
+                          borderRadius: 3,
+                          backgroundColor: colors[c.bloodline] || "#94a3b8",
+                          marginRight: 6,
                         }}
-                      >
-                        {v === null
-                          ? "—"
-                          : `${(v >= 0 ? "+" : "") + v.toFixed(STATS[i].decimals)}`}
-                      </td>
-                    ))}
+                      />
+                      {c.bloodline}
+                    </td>
+                    <td className={chartStyles.ledgerTd}>
+                      {c.speed ? <><Link href={`/horses/${c.speed.id}`} className={chartStyles.ledgerLink}>{nameOf(c.speed.id)}</Link> · {c.speed.value.toFixed(2)}</> : "—"}
+                    </td>
+                    <td className={chartStyles.ledgerTd}>
+                      {c.jump ? <><Link href={`/horses/${c.jump.id}`} className={chartStyles.ledgerLink}>{nameOf(c.jump.id)}</Link> · {c.jump.value.toFixed(2)}</> : "—"}
+                    </td>
+                    <td className={chartStyles.ledgerTd}>
+                      {c.health ? <><Link href={`/horses/${c.health.id}`} className={chartStyles.ledgerLink}>{nameOf(c.health.id)}</Link> · {c.health.value.toFixed(1)}</> : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <p className={chartStyles.mutedNote}>
-              Needs horses across at least two generations.
-            </p>
-          )}
-        </ChartCard>
-      </div>
+          </div>
+        ) : (
+          <p className={chartStyles.mutedNote}>No horses yet.</p>
+        )}
+      </ChartCard>
+      </CollapsibleSection>
 
-      <div style={{ marginTop: 24 }}>
-        <ChartCard title={`Active Herd — ${activeHerd.counts.active} active · ${activeHerd.counts.pastured} pastured`}>
-          <p style={{ margin: "0 0 8px", fontSize: 14 }}>
-            Speed cut #{Math.min(63, activeHerd.counts.active)}:{" "}
-            <strong>
-              {activeHerd.cuts.speed !== null
-                ? `${translateStat("speed", activeHerd.cuts.speed).toFixed(2)} m/s`
-                : "—"}
-            </strong>{" "}
-            · Jump cut #16:{" "}
-            <strong>
-              {activeHerd.cuts.jump !== null
-                ? `${translateStat("jump", activeHerd.cuts.jump).toFixed(2)} blocks`
-                : "—"}
-            </strong>{" "}
-            · Health cut #16:{" "}
-            <strong>
-              {activeHerd.cuts.health !== null
-                ? `${translateStat("health", activeHerd.cuts.health).toFixed(1)} hp`
-                : "—"}
-            </strong>
-          </p>
-          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
-            A horse is active when it makes ANY cut — slow jump/health
-            keepers (🛡️) are never auto-retired for missing speed. Everything
-            living outside all three cuts belongs in a heritage pasture
-            grouped by dominant bloodline.
-          </p>
-        </ChartCard>
-      </div>
-
+      <CollapsibleSection
+        title="Top performers"
+        count={filtered.length}
+        defaultOpen={false}
+      >
       <div style={{ marginTop: 24 }}>
         <ChartCard title="Top Performers — Top 63 Speed · Top 16 Jump/Health">
           <TopPerformers horses={filtered} />
@@ -683,6 +966,94 @@ export default function RecordsView({
           )}
         </ChartCard>
       </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Breeding insight"
+        count={activeHerd.counts.active + bubble.speed.length + bubble.jump.length + bubble.health.length}
+        defaultOpen
+      >
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title={`Active Herd — ${activeHerd.counts.active} active · ${activeHerd.counts.pastured} pastured`}>
+          <p style={{ margin: "0 0 8px", fontSize: 14 }}>
+            Speed cut #{Math.min(63, activeHerd.counts.active)}:{" "}
+            <strong>
+              {activeHerd.cuts.speed !== null
+                ? `${translateStat("speed", activeHerd.cuts.speed).toFixed(2)} m/s`
+                : "—"}
+            </strong>{" "}
+            · Jump cut #16:{" "}
+            <strong>
+              {activeHerd.cuts.jump !== null
+                ? `${translateStat("jump", activeHerd.cuts.jump).toFixed(2)} blocks`
+                : "—"}
+            </strong>{" "}
+            · Health cut #16:{" "}
+            <strong>
+              {activeHerd.cuts.health !== null
+                ? `${translateStat("health", activeHerd.cuts.health).toFixed(1)} hp`
+                : "—"}
+            </strong>
+          </p>
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            A horse is active when it makes ANY cut — slow jump/health
+            keepers (🛡️) are never auto-retired for missing speed. Everything
+            living outside all three cuts belongs in a heritage pasture
+            grouped by dominant bloodline.
+          </p>
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <BubbleWatchCard bubble={bubble} nameOf={nameOf} />
+      </div>
+
+      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
+        <CullListCard
+          pastured={activeHerd.pastured}
+          nameOf={nameOf}
+          pastureGroupOf={(id) => dominantBloodline(horseById.get(id)?.dna) || "Unknown"}
+          speedOf={(id) => tById.get(id)?.speed ?? null}
+        />
+        <UntriedCrossesCard cells={crosses} colors={colors} />
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ReliabilityCard rows={reliability} nameOf={nameOf} />
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <VariantUnlockCard hints={unlockHints} />
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Heritability — Foal vs Mid-Parent">
+          <p className={chartStyles.mutedNote}>
+            Each dot is a foal plotted against its parents&apos; average.
+            Slope ≈ 1 means the stat breeds true; slope ≈ 0 means the roll dominates.
+          </p>
+          <div className={chartStyles.chartGrid}>
+            {heritability.map((h) => (
+              <div key={h.label}>
+                <h4 style={{ margin: "8px 0" }}>
+                  {h.label}{" "}
+                  <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 12 }}>
+                    slope {h.regression.slope.toFixed(2)} · R²{" "}
+                    {h.regression.r2.toFixed(2)} (n={h.regression.n})
+                  </span>
+                </h4>
+                <ScatterPlot
+                  points={h.scatter}
+                  xLabel={`Parents avg (${h.unit})`}
+                  yLabel={`Foal (${h.unit})`}
+                  xDecimals={h.label === "Health" ? 1 : 2}
+                  yDecimals={h.label === "Health" ? 1 : 2}
+                />
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      </div>
 
       <div style={{ marginTop: 24 }}>
         <ChartCard title={`Inbreeding Watch — ${inbredCount} inbred foal${inbredCount === 1 ? "" : "s"}`}>
@@ -721,84 +1092,10 @@ export default function RecordsView({
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <ChartCard title="Variant Distribution">
-          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
-            Which coats the herd wears — same pictures as the create/edit
-            form. Sorted most common first.
-          </p>
-          <VariantGrid counts={variants} total={filtered.length} />
-        </ChartCard>
+        <InbreedSplitCard split={inbreedSplit} />
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <ChartCard title="Variant × Bloodline">
-          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
-            {crosstabMode === "split"
-              ? "DNA-split shares: a 50/50 hybrid adds 0.5 to each bloodline, so mixed horses are never misattributed. Hover a cell for the horse count."
-              : "Dominant-only counts: each horse sits in a single column by its top bloodline."}{" "}
-            <button
-              type="button"
-              onClick={() => setCrosstabMode(crosstabMode === "split" ? "dominant" : "split")}
-              style={{ textDecoration: "underline", cursor: "pointer", background: "none", border: "none", padding: 0, font: "inherit", color: "inherit" }}
-            >
-              Show {crosstabMode === "split" ? "dominant-only" : "DNA-split"} instead
-            </button>
-          </p>
-          {crosstabSource.length > 0 ? (
-            <div style={{ overflowX: "auto" }}>
-              <table className={chartStyles.ledgerTable} style={{ minWidth: Math.max(400, crosstabBloodlines.length * 90) }}>
-                <thead>
-                  <tr>
-                    <th className={chartStyles.ledgerTh} style={{ position: "sticky", left: 0 }}>Variant</th>
-                    {crosstabBloodlines.map((b) => (
-                      <th key={b} className={chartStyles.ledgerTh}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            width: 10,
-                            height: 10,
-                            borderRadius: 3,
-                            backgroundColor: colors[b] || "#94a3b8",
-                            marginRight: 6,
-                          }}
-                        />
-                        {b}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...crosstabByVariant.entries()].map(([variant, row]) => (
-                    <tr key={variant}>
-                      <td className={chartStyles.ledgerTd} style={{ position: "sticky", left: 0 }}>
-                        {getVariantName(variant)}
-                      </td>
-                      {crosstabBloodlines.map((b) => {
-                        const cell = row.get(b);
-                        const intensity = crosstabMax > 0 && cell ? cell.raw / crosstabMax : 0;
-                        return (
-                          <td
-                            key={b}
-                            className={chartStyles.ledgerTd}
-                            title={cell?.title}
-                            style={cell ? { backgroundColor: `rgba(185,138,47,${(intensity * 0.35).toFixed(2)})`, fontWeight: 700 } : undefined}
-                          >
-                            {cell ? cell.display : "—"}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className={chartStyles.mutedNote}>No variants recorded yet.</p>
-          )}
-        </ChartCard>
-      </div>
-
-      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
         <ChartCard title="Most Prolific Parents">
           {prolific.length > 0 ? (
             <table className={chartStyles.ledgerTable}>
@@ -828,49 +1125,6 @@ export default function RecordsView({
             </table>
           ) : (
             <p className={chartStyles.mutedNote}>No foals recorded yet.</p>
-          )}
-        </ChartCard>
-        <ChartCard title="Generation Growth">
-          <Bars
-            rows={growth.map((g) => ({
-              label: `Gen ${g.generation}`,
-              value: g.count,
-            }))}
-          />
-        </ChartCard>
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <ChartCard title="Longest Lineage">
-          {lineage.depth > 0 ? (
-            <p style={{ margin: 0 }}>
-              <strong style={{ fontFamily: vars.font.display, fontSize: 20 }}>
-                {lineage.depth} generation{lineage.depth === 1 ? "" : "s"}
-              </strong>
-              <br />
-              {lineage.chainIds.map((id, i) => {
-                const inScope = filteredIds.has(id);
-                return (
-                  <span key={`${id}-${i}`}>
-                    {i > 0 && " → "}
-                    <Link
-                      href={`/horses/${id}`}
-                      className={chartStyles.ledgerLink}
-                      style={
-                        inScope
-                          ? undefined
-                          : { opacity: 0.45 }
-                      }
-                      title={inScope ? undefined : "Outside selected generations"}
-                    >
-                      {nameOf(id)}
-                    </Link>
-                  </span>
-                );
-              })}
-            </p>
-          ) : (
-            <p className={chartStyles.mutedNote}>No horses yet.</p>
           )}
         </ChartCard>
       </div>
@@ -950,6 +1204,149 @@ export default function RecordsView({
           )}
         </ChartCard>
       </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Census" count={filtered.length} defaultOpen={false}>
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Variant Distribution">
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            Which coats the herd wears — same pictures as the create/edit
+            form. Sorted most common first. {variants.length} of 35
+            combinations present
+            {rarest.length > 0 && (
+              <>
+                {" "}— rarest:{" "}
+                {rarest.map((v) => `${getVariantName(v.variant)} (${v.count})`).join(", ")}
+              </>
+            )}
+            .
+          </p>
+          <VariantGrid counts={variants} total={filtered.length} />
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Variant × Bloodline">
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            {crosstabMode === "split"
+              ? "DNA-split shares: a 50/50 hybrid adds 0.5 to each bloodline, so mixed horses are never misattributed. Hover a cell for the horse count."
+              : "Dominant-only counts: each horse sits in a single column by its top bloodline."}{" "}
+            <button
+              type="button"
+              onClick={() => setCrosstabMode(crosstabMode === "split" ? "dominant" : "split")}
+              style={{ textDecoration: "underline", cursor: "pointer", background: "none", border: "none", padding: 0, font: "inherit", color: "inherit" }}
+            >
+              Show {crosstabMode === "split" ? "dominant-only" : "DNA-split"} instead
+            </button>
+          </p>
+          {crosstabSource.length > 0 ? (
+            <div style={{ overflowX: "auto" }}>
+              <table className={chartStyles.ledgerTable} style={{ minWidth: Math.max(400, crosstabBloodlines.length * 90) }}>
+                <thead>
+                  <tr>
+                    <th className={chartStyles.ledgerTh} style={{ position: "sticky", left: 0 }}>Variant</th>
+                    {crosstabBloodlines.map((b) => (
+                      <th key={b} className={chartStyles.ledgerTh}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: 3,
+                            backgroundColor: colors[b] || "#94a3b8",
+                            marginRight: 6,
+                          }}
+                        />
+                        {b}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...crosstabByVariant.entries()].map(([variant, row]) => (
+                    <tr key={variant}>
+                      <td className={chartStyles.ledgerTd} style={{ position: "sticky", left: 0 }}>
+                        {getVariantName(variant)}
+                      </td>
+                      {crosstabBloodlines.map((b) => {
+                        const cell = row.get(b);
+                        const intensity = crosstabMax > 0 && cell ? cell.raw / crosstabMax : 0;
+                        return (
+                          <td
+                            key={b}
+                            className={chartStyles.ledgerTd}
+                            title={cell?.title}
+                            style={cell ? { backgroundColor: `rgba(185,138,47,${(intensity * 0.35).toFixed(2)})`, fontWeight: 700 } : undefined}
+                          >
+                            {cell ? cell.display : "—"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className={chartStyles.mutedNote}>No variants recorded yet.</p>
+          )}
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Generation Pyramid — living horses per generation">
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            Top-heavy means an aging herd; a wide base means a healthy foal
+            pipeline coming up behind the active stable.
+          </p>
+          <Bars
+            rows={pyramid.map((g) => ({
+              label: `Gen ${g.generation}`,
+              value: g.count,
+            }))}
+          />
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChartCard title="Longest Lineage">
+          {lineage.depth > 0 ? (
+            <p style={{ margin: 0 }}>
+              <strong style={{ fontFamily: vars.font.display, fontSize: 20 }}>
+                {lineage.depth} generation{lineage.depth === 1 ? "" : "s"}
+              </strong>
+              <br />
+              {lineage.chainIds.map((id, i) => {
+                const inScope = filteredIds.has(id);
+                return (
+                  <span key={`${id}-${i}`}>
+                    {i > 0 && " → "}
+                    <Link
+                      href={`/horses/${id}`}
+                      className={chartStyles.ledgerLink}
+                      style={
+                        inScope
+                          ? undefined
+                          : { opacity: 0.45 }
+                      }
+                      title={inScope ? undefined : "Outside selected generations"}
+                    >
+                      {nameOf(id)}
+                    </Link>
+                  </span>
+                );
+              })}
+            </p>
+          ) : (
+            <p className={chartStyles.mutedNote}>No horses yet.</p>
+          )}
+        </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <DeadAliveCard split={deadAlive} />
+      </div>
+      </CollapsibleSection>
 
       <Folio text="Chapter IV · Records" />
     </main>

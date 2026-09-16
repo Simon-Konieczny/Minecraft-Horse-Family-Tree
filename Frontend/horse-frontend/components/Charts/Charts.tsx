@@ -404,12 +404,15 @@ export function TrendLine({
   color = "#b98a2f",
   unit = "",
   decimals = 1,
+  compare = null,
 }: {
   points: TrendPoint[];
   height?: number;
   color?: string;
   unit?: string;
   decimals?: number;
+  /** Optional dashed overlay series (e.g. per-generation best vs average). */
+  compare?: { points: TrendPoint[]; label: string } | null;
 }) {
   if (points.length === 0) {
     return <p className={styles.mutedNote}>Not enough data yet.</p>;
@@ -421,8 +424,9 @@ export function TrendLine({
   const plotW = width - padLeft - 8;
   const plotH = height - padBottom - padTop;
   const values = points.map((p) => p.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const compareValues = compare?.points.map((p) => p.value) ?? [];
+  const min = Math.min(...values, ...compareValues);
+  const max = Math.max(...values, ...compareValues);
   const span = max - min > 0 ? max - min : 1;
   const x = (i: number) =>
     padLeft + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
@@ -463,6 +467,17 @@ export function TrendLine({
         stroke="none"
       />
       <path d={`M${line}`} fill="none" stroke={color} strokeWidth={2.5} />
+      {compare && compare.points.length > 0 && (
+        <path
+          d={`M${compare.points.map((p, i) => `${x(i)},${y(p.value)}`).join(" L")}`}
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth={2}
+          strokeDasharray="6 4"
+        >
+          <title>{compare.label}</title>
+        </path>
+      )}
       {points.map((p, i) => (
         <circle key={p.label} cx={x(i)} cy={y(p.value)} r={4} fill={color}>
           <title>{`${p.label}: ${p.value.toFixed(2)}${unit ? ` ${unit}` : ""}`}</title>

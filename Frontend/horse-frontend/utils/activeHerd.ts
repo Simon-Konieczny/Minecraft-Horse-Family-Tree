@@ -24,6 +24,8 @@ export interface ActiveHerdResult<T> {
   /** Raw-stat value at the last included rank (null when pool is empty). */
   cuts: { speed: number | null; jump: number | null; health: number | null };
   counts: { candidates: number; active: number; pastured: number };
+  /** Living-candidate ids per stat, fastest-first (ties by id) — powers bubble watch. */
+  ranked: { speed: string[]; jump: string[]; health: string[] };
 }
 
 type HerdHorse = {
@@ -43,13 +45,13 @@ function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-function topIds<T extends HerdHorse>(candidates: T[], field: "speed" | "jump" | "health", n: number): { ids: Set<string>; cut: number | null } {
-  const ranked = candidates
+function topIds<T extends HerdHorse>(candidates: T[], field: "speed" | "jump" | "health", n: number): { ids: Set<string>; cut: number | null; ranked: string[] } {
+  const rankedAll = candidates
     .filter((h) => num(h[field]) !== null)
     .sort((a, b) => (num(b[field]) as number) - (num(a[field]) as number) || a.id.localeCompare(b.id));
-  const ids = new Set(ranked.slice(0, Math.max(0, n)).map((h) => h.id));
-  const cut = ranked.length > 0 ? (num(ranked[Math.min(n, ranked.length) - 1][field]) as number) : null;
-  return { ids, cut };
+  const ids = new Set(rankedAll.slice(0, Math.max(0, n)).map((h) => h.id));
+  const cut = rankedAll.length > 0 ? (num(rankedAll[Math.min(n, rankedAll.length) - 1][field]) as number) : null;
+  return { ids, cut, ranked: rankedAll.map((h) => h.id) };
 }
 
 /**
@@ -89,6 +91,7 @@ export function getActiveHerd<T extends HerdHorse>(horses: T[]): ActiveHerdResul
     reasons,
     cuts: { speed: speed.cut, jump: jump.cut, health: health.cut },
     counts: { candidates: candidates.length, active: active.length, pastured: pastured.length },
+    ranked: { speed: speed.ranked, jump: jump.ranked, health: health.ranked },
   };
 }
 
