@@ -61,6 +61,7 @@ export default function TopPerformers({ horses }: { horses: Horse[] }) {
               Top {limit} {label}
             </h4>
             {top.length > 0 && (
+              <div style={limit > 16 ? { maxHeight: 420, overflowY: "auto" } : undefined}>
               <table className={chartStyles.ledgerTable}>
                 <thead>
                   <tr>
@@ -109,6 +110,7 @@ export default function TopPerformers({ horses }: { horses: Horse[] }) {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         );

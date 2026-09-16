@@ -13,6 +13,7 @@ import {
   inbreedingRanking,
   linearRegression,
   longestLineage,
+  niceHistogram,
   pairOutcomes,
   pairOutcomesVsParents,
   prolificParents,
@@ -22,6 +23,7 @@ import {
   statSummary,
   statusBreakdown,
   variantBloodlineCrosstab,
+  variantBloodlineShares,
   variantDistribution,
 } from "./analytics";
 
@@ -545,5 +547,56 @@ describe("filterHorsesByScope", () => {
 
   it("is empty-safe", () => {
     expect(filterHorsesByScope([], { from: 0, to: 4 })).toEqual([]);
+  });
+});
+
+describe("niceHistogram", () => {
+  it("bins clustered values with nice widths and true range labels", () => {
+    const bins = niceHistogram([12.4, 12.41, 12.55, 13.9], 2);
+    expect(bins.length).toBeGreaterThan(1);
+    expect(bins.length).toBeLessThanOrEqual(16);
+    expect(bins.reduce((t, b) => t + b.count, 0)).toBe(4);
+    for (const b of bins) {
+      expect(b.label).toContain("–");
+      expect(b.end).toBeGreaterThan(b.start);
+    }
+  });
+
+  it("collapses degenerate input to a single bin", () => {
+    const bins = niceHistogram([5, 5, 5], 2);
+    expect(bins).toHaveLength(1);
+    expect(bins[0].count).toBe(3);
+  });
+
+  it("is empty-safe", () => {
+    expect(niceHistogram([], 2)).toEqual([]);
+    expect(niceHistogram([NaN, Infinity], 2)).toEqual([]);
+  });
+});
+
+describe("variantBloodlineShares", () => {
+  it("splits hybrids by DNA weight so totals stay exact", () => {
+    const cells = variantBloodlineShares([
+      { variant: 1, dna: { A: 0.5, B: 0.5 } },
+      { variant: 1, dna: { A: 1.0 } },
+    ]);
+    const a = cells.find((c) => c.bloodline === "A");
+    const b = cells.find((c) => c.bloodline === "B");
+    expect(a?.share).toBeCloseTo(1.5, 9);
+    expect(b?.share).toBeCloseTo(0.5, 9);
+    expect(a?.horses).toBe(2);
+    expect(b?.horses).toBe(1);
+    // Fractional shares still sum to the horse count.
+    expect(cells.reduce((t, c) => t + c.share, 0)).toBeCloseTo(2, 9);
+  });
+
+  it("falls back to Unknown when DNA is missing", () => {
+    expect(variantBloodlineShares([{ variant: 2, dna: {} }])).toEqual([
+      { variant: 2, bloodline: "Unknown", share: 1, horses: 1 },
+    ]);
+  });
+
+  it("skips non-numeric variants", () => {
+    expect(variantBloodlineShares([{ variant: "x", dna: { A: 1 } }])).toEqual([]);
   });
 });

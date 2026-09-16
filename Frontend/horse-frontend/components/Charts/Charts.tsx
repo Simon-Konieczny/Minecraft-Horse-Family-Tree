@@ -140,6 +140,115 @@ export function Bars({
   );
 }
 
+export interface HistogramBinInput {
+  start: number;
+  end: number;
+  count: number;
+  label: string;
+}
+
+/**
+ * Vertical histogram: x = value ranges along the bottom, y =
+ * frequency. Bar labels are true ranges ("12.40–12.59"); counts sit
+ * atop each bar. X labels rotate -25° and edge-anchor so first/last
+ * never clip; y ticks are integers.
+ */
+export function VerticalHistogram({
+  bins,
+  height = 240,
+  color = "#b98a2f",
+  yLabel = "horses",
+}: {
+  bins: HistogramBinInput[];
+  height?: number;
+  color?: string;
+  yLabel?: string;
+}) {
+  if (bins.length === 0) {
+    return <p className={styles.mutedNote}>Not enough data yet.</p>;
+  }
+  const width = 600;
+  const padLeft = 48;
+  const padBottom = 52;
+  const padTop = 20;
+  const plotW = width - padLeft - 12;
+  const plotH = height - padBottom - padTop;
+  const max = Math.max(1, ...bins.map((b) => b.count));
+  const slot = plotW / bins.length;
+  const barW = Math.max(4, slot - 6);
+  const x = (i: number) => padLeft + slot * i + slot / 2;
+  const y = (v: number) => padTop + plotH * (1 - v / max);
+  // Integer y ticks, at most 6 lines.
+  const tickStep = Math.max(1, Math.ceil(max / 5));
+  const ticks: number[] = [];
+  for (let v = 0; v <= max; v += tickStep) ticks.push(v);
+  if (ticks[ticks.length - 1] !== max) ticks.push(max);
+
+  return (
+    <svg
+      width="100%"
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Distribution histogram"
+    >
+      {ticks.map((v) => (
+        <g key={v}>
+          <line
+            x1={padLeft}
+            x2={width - 12}
+            y1={y(v)}
+            y2={y(v)}
+            stroke="#e8d5a3"
+            strokeWidth={1}
+          />
+          <text x={padLeft - 8} y={y(v) + 4} textAnchor="end" className={styles.areaLabels}>
+            {v}
+          </text>
+        </g>
+      ))}
+      <text
+        x={14}
+        y={padTop + plotH / 2}
+        textAnchor="middle"
+        className={styles.areaLabels}
+        transform={`rotate(-90 14 ${padTop + plotH / 2})`}
+      >
+        {yLabel}
+      </text>
+      {bins.map((b, i) => {
+        const barH = (b.count / max) * plotH;
+        const bx = x(i) - barW / 2;
+        const by = padTop + plotH - barH;
+        // Thin out labels when crowded: always show first/last.
+        const showLabel = bins.length <= 8 || i % 2 === 0 || i === bins.length - 1;
+        return (
+          <g key={`${b.label}-${i}`}>
+            <rect x={bx} y={by} width={barW} height={Math.max(0, barH)} fill={color} rx={3}>
+              <title>{`${b.label}: ${b.count} horse${b.count === 1 ? "" : "s"}`}</title>
+            </rect>
+            {b.count > 0 && (
+              <text x={x(i)} y={by - 5} textAnchor="middle" className={styles.areaLabels}>
+                {b.count}
+              </text>
+            )}
+            {showLabel && (
+              <text
+                x={x(i)}
+                y={padTop + plotH + 14}
+                textAnchor={i === 0 ? "start" : i === bins.length - 1 ? "end" : "middle"}
+                className={styles.areaLabels}
+                transform={`rotate(-25 ${x(i)} ${padTop + plotH + 14})`}
+              >
+                {b.label}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export interface AreaPoint {
   generation: number;
   shares: Record<string, number>;
@@ -294,18 +403,20 @@ export function TrendLine({
   height = 200,
   color = "#b98a2f",
   unit = "",
+  decimals = 1,
 }: {
   points: TrendPoint[];
   height?: number;
   color?: string;
   unit?: string;
+  decimals?: number;
 }) {
   if (points.length === 0) {
     return <p className={styles.mutedNote}>Not enough data yet.</p>;
   }
   const width = 600;
-  const padLeft = 44;
-  const padBottom = 24;
+  const padLeft = 64;
+  const padBottom = 36;
   const padTop = 12;
   const plotW = width - padLeft - 8;
   const plotH = height - padBottom - padTop;
@@ -338,8 +449,8 @@ export function TrendLine({
               stroke="#e8d5a3"
               strokeWidth={1}
             />
-            <text x={padLeft - 6} y={y(v) + 4} textAnchor="end" className={styles.areaLabels}>
-              {v.toFixed(1)}
+            <text x={padLeft - 8} y={y(v) + 4} textAnchor="end" className={styles.areaLabels}>
+              {v.toFixed(decimals)}
               {unit ? ` ${unit}` : ""}
             </text>
           </g>
@@ -361,8 +472,8 @@ export function TrendLine({
         <text
           key={p.label}
           x={x(i)}
-          y={height - 8}
-          textAnchor="middle"
+          y={height - 10}
+          textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}
           className={styles.areaLabels}
         >
           {p.label}
@@ -483,19 +594,28 @@ export function ScatterPlot({
   height = 240,
   xLabel,
   yLabel,
+  xDecimals = 2,
+  yDecimals = 2,
+  avgX = null,
+  avgY = null,
 }: {
   points: ScatterPoint[];
   height?: number;
   xLabel: string;
   yLabel: string;
+  xDecimals?: number;
+  yDecimals?: number;
+  /** Mean reference lines (dashed gold) with legend chips. */
+  avgX?: number | null;
+  avgY?: number | null;
 }) {
   if (points.length === 0) {
     return <p className={styles.mutedNote}>Not enough data yet.</p>;
   }
   const width = 600;
-  const padLeft = 44;
-  const padBottom = 28;
-  const padTop = 12;
+  const padLeft = 60;
+  const padBottom = 44;
+  const padTop = 14;
   const plotW = width - padLeft - 8;
   const plotH = height - padBottom - padTop;
   const xs = points.map((p) => p.x);
@@ -512,6 +632,15 @@ export function ScatterPlot({
     padTop + plotH * (1 - (v - yMin + ySpan * 0.08) / (ySpan * 1.16));
 
   return (
+    <div>
+    {(avgX !== null || avgY !== null) && (
+      <p className={styles.mutedNote} style={{ margin: "0 0 4px" }}>
+        {avgX !== null && `avg speed ${avgX.toFixed(xDecimals)} m/s`}
+        {avgX !== null && avgY !== null && " · "}
+        {avgY !== null && `avg jump ${avgY.toFixed(yDecimals)} blocks`}
+        {" "}— dashed lines split the herd into quadrants.
+      </p>
+    )}
     <svg
       width="100%"
       viewBox={`0 0 ${width} ${height}`}
@@ -521,27 +650,62 @@ export function ScatterPlot({
       {[yMin, (yMin + yMax) / 2, yMax].map((v) => (
         <g key={v}>
           <line x1={padLeft} x2={width - 8} y1={y(v)} y2={y(v)} stroke="#e8d5a3" strokeWidth={1} />
-          <text x={padLeft - 6} y={y(v) + 4} textAnchor="end" className={styles.areaLabels}>
-            {v.toFixed(1)}
+          <text x={padLeft - 8} y={y(v) + 4} textAnchor="end" className={styles.areaLabels}>
+            {v.toFixed(yDecimals)}
           </text>
         </g>
       ))}
       {[xMin, (xMin + xMax) / 2, xMax].map((v) => (
-        <text key={v} x={x(v)} y={height - 8} textAnchor="middle" className={styles.areaLabels}>
-          {v.toFixed(1)}
+        <text
+          key={v}
+          x={x(v)}
+          y={height - 22}
+          textAnchor={v === xMin ? "start" : v === xMax ? "end" : "middle"}
+          className={styles.areaLabels}
+        >
+          {v.toFixed(xDecimals)}
         </text>
       ))}
+      {avgX !== null && Number.isFinite(avgX) && (
+        <line
+          x1={x(avgX)}
+          x2={x(avgX)}
+          y1={padTop}
+          y2={padTop + plotH}
+          stroke="#b98a2f"
+          strokeWidth={1.5}
+          strokeDasharray="6 4"
+        />
+      )}
+      {avgY !== null && Number.isFinite(avgY) && (
+        <line
+          x1={padLeft}
+          x2={width - 8}
+          y1={y(avgY)}
+          y2={y(avgY)}
+          stroke="#b98a2f"
+          strokeWidth={1.5}
+          strokeDasharray="6 4"
+        />
+      )}
       {points.map((p, i) => (
-        <circle key={`${p.label}-${i}`} cx={x(p.x)} cy={y(p.y)} r={5} fill={p.color} opacity={0.85}>
+        <circle key={`${p.label}-${i}`} cx={x(p.x)} cy={y(p.y)} r={4} fill={p.color} opacity={0.85}>
           <title>{p.label}</title>
         </circle>
       ))}
-      <text x={padLeft - 34} y={padTop + 8} textAnchor="middle" className={styles.areaLabels}>
-        {yLabel}
-      </text>
-      <text x={padLeft + plotW} y={height - 8} textAnchor="end" className={styles.areaLabels}>
+      <text x={padLeft + plotW / 2} y={height - 6} textAnchor="middle" className={styles.areaLabels}>
         {xLabel}
       </text>
+      <text
+        x={12}
+        y={padTop + plotH / 2}
+        textAnchor="middle"
+        className={styles.areaLabels}
+        transform={`rotate(-90 12 ${padTop + plotH / 2})`}
+      >
+        {yLabel}
+      </text>
     </svg>
+    </div>
   );
 }

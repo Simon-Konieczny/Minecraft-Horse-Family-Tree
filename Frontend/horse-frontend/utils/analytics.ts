@@ -832,3 +832,119 @@ export function ancestryOverlap<
   const total = new Set([...a, ...b]).size;
   return { shared, total, pct: total > 0 ? shared / total : 0 };
 }
+
+export interface NiceBin {
+  start: number;
+  end: number;
+  count: number;
+  label: string;
+}
+
+const NICE_STEPS = [1, 2, 2.5, 5, 10];
+
+/**
+ * Auto-binned histogram over finite values with "nice" rounded widths
+ * (1/2/2.5/5 × 10^n in data units, snapped to the requested decimal
+ * places). Domain extends outward to nice bounds so bars never start
+ * mid-tick. Targets ~14 bins ("more detail" policy) capped at 16;
+ * degenerate (single-value / empty) input yields one bin. Labels are
+ * true ranges ("12.40–12.59"), not bare starts.
+ */
+export function niceHistogram(
+  values: number[],
+  decimals = 2,
+  targetBins = 14,
+  maxBins = 16,
+): NiceBin[] {
+  const finite = values.filter((v) => Number.isFinite(v));
+  const fmt = (v: number) => v.toFixed(decimals);
+  if (finite.length === 0) return [];
+  const min = Math.min(...finite);
+  const max = Math.max(...finite);
+  if (!(max > min)) {
+    const half = Math.pow(10, -decimals) / 2 || 0.5;
+    return [
+      {
+        start: min - half,
+        end: max + half,
+        count: finite.length,
+        label: `${fmt(min - half)}–${fmt(max + half)}`,
+      },
+    ];
+  }
+  const span = max - min;
+  const raw = span / Math.max(1, targetBins);
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const stepNorm = NICE_STEPS.find((s) => s >= norm) ?? 10;
+  // Snap the step itself to whole decimal units so widths stay "nice"
+  // at the requested precision (e.g. 0.05 not 0.0499).
+  const quantum = Math.pow(10, -decimals);
+  let width = Math.max(quantum, Math.round((stepNorm * mag) / quantum) * quantum);
+  // Guard against float dust producing hundreds of micro-bins.
+  while (span / width > maxBins) width = Math.round((width * 2) / quantum) * quantum;
+  const lo = Math.floor(min / width) * width;
+  const count = Math.max(1, Math.ceil((max - lo) / width));
+  const bins: NiceBin[] = Array.from({ length: count }, (_, i) => {
+    const start = lo + i * width;
+    const end = start + width;
+    return { start, end, count: 0, label: `${fmt(start)}–${fmt(end)}` };
+  });
+  for (const v of finite) {
+    const idx = Math.min(count - 1, Math.max(0, Math.floor((v - lo) / width)));
+    bins[idx].count++;
+  }
+  return bins;
+}
+
+export interface VariantBloodlineShare {
+  variant: number;
+  bloodline: string;
+  /** Fractional share (DNA-weight split); sums to the horse count. */
+  share: number;
+  /** Whole horses touching this cell (for tooltips). */
+  horses: number;
+}
+
+/**
+ * Fractional variant × bloodline cross-tab: each horse's DNA weights
+ * split its single count across its bloodlines (a 50/50 hybrid adds
+ * 0.5 + 0.5), so column totals stay exact and hybrids are never
+ * misattributed to one dominant column. Junk DNA weights skipped.
+ */
+export function variantBloodlineShares(
+  horses: { variant?: unknown; dna?: Record<string, unknown> }[],
+): VariantBloodlineShare[] {
+  const shares = new Map<string, { share: number; horses: Set<number> }>();
+  horses.forEach((h, idx) => {
+    if (typeof h.variant !== "number" || !Number.isFinite(h.variant)) return;
+    const entries = Object.entries(h.dna || {}).filter(
+      (entry): entry is [string, number] =>
+        typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] > 0,
+    );
+    const total = entries.reduce((t, [, w]) => t + w, 0);
+    const parts: [string, number][] =
+      total > 0 ? entries.map(([b, w]) => [b, w / total]) : [["Unknown", 1]];
+    for (const [bloodline, frac] of parts) {
+      const key = `${h.variant}|||${bloodline}`;
+      let cell = shares.get(key);
+      if (!cell) {
+        cell = { share: 0, horses: new Set() };
+        shares.set(key, cell);
+      }
+      cell.share += frac;
+      cell.horses.add(idx);
+    }
+  });
+  return [...shares.entries()]
+    .map(([key, cell]) => {
+      const [variant, bloodline] = key.split("|||");
+      return {
+        variant: Number(variant),
+        bloodline,
+        share: Math.round(cell.share * 10) / 10,
+        horses: cell.horses.size,
+      };
+    })
+    .sort((a, b) => a.variant - b.variant || a.bloodline.localeCompare(b.bloodline));
+}

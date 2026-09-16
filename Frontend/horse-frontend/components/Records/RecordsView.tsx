@@ -12,14 +12,15 @@ import {
   filterHorsesByScope,
   generationCounts,
   heritabilityPoints,
-  histogramBins,
   inbreedingRanking,
   linearRegression,
   longestLineage,
+  niceHistogram,
   pairOutcomesVsParents,
   prolificParents,
   purityRanking,
   variantBloodlineCrosstab,
+  variantBloodlineShares,
   variantDistribution,
 } from "@/utils/analytics";
 import Link from "next/link";
@@ -34,9 +35,11 @@ import {
   ChartCard,
   ScatterPlot,
   TrendLine,
+  VerticalHistogram,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 import TopPerformers from "@/components/Records/TopPerformers";
+import VariantGrid from "@/components/Records/VariantGrid";
 import GenerationScopeBar, {
   type GenerationScopeValue,
 } from "@/components/Common/GenerationScopeBar/GenerationScopeBar";
@@ -160,21 +163,18 @@ export default function RecordsView({
 
   const histograms = STATS.map(({ field, label, unit, decimals }) => {
     const values = translated.map((h) => h[field]);
-    const min = values.length > 0 ? Math.min(...values) : 0;
-    const max = values.length > 0 ? Math.max(...values) : 0;
     return {
       label,
       unit,
-      bins: histogramBins(values, 8, min, max).map((b) => ({
-        label: b.start.toFixed(decimals),
-        value: b.count,
-      })),
+      decimals,
+      bins: niceHistogram(values, decimals),
     };
   });
 
   const trends = STATS.map(({ field, label, unit, decimals }) => ({
     label,
     unit,
+    decimals,
     points: avgByGeneration(translated, field).map((g) => ({
       label: `Gen ${g.generation}`,
       value: Math.round(g.avg * 10 ** decimals) / 10 ** decimals,
@@ -190,6 +190,15 @@ export default function RecordsView({
       label: `${getHorseFullName(h)} — ${translateStat("speed", h.speed).toFixed(2)} m/s, ${translateStat("jump", h.jump).toFixed(2)} blocks`,
     };
   });
+
+  // Mean reference lines for Speed vs Jump (translated units).
+  const scatterAvg =
+    scatter.length > 0
+      ? {
+          x: scatter.reduce((t, p) => t + p.x, 0) / scatter.length,
+          y: scatter.reduce((t, p) => t + p.y, 0) / scatter.length,
+        }
+      : null;
 
   const growth = generationCounts(filtered);
   const prolific = prolificParents(filtered).slice(0, 10);
@@ -233,7 +242,9 @@ export default function RecordsView({
   const inbredCount = inbredRanks.filter((r) => r.shared > 0).length;
 
   // Diversity + generation deltas.
-  const diversity = bloodlineDiversity(bloodlineShares(filtered));
+  const herdShares = bloodlineShares(filtered);
+  const diversity = bloodlineDiversity(herdShares);
+  const herdTotal = herdShares.reduce((t, s) => t + s.total, 0);
   const avgMaps = new Map(
     STATS.map(({ field }) => [
       field,
@@ -305,18 +316,39 @@ export default function RecordsView({
   };
 
   const variants = variantDistribution(filtered);
+  // Fractional DNA-split crosstab (hybrids share their count across
+  // bloodlines) with a dominant-only fallback toggle in the UI.
+  const [crosstabMode, setCrosstabMode] = useState<"split" | "dominant">("split");
   const crosstab = variantBloodlineCrosstab(filtered);
+  const crosstabShares = variantBloodlineShares(filtered);
+  const crosstabSource: { variant: number; bloodline: string; display: string; title: string; raw: number }[] =
+    crosstabMode === "split"
+      ? crosstabShares.map((c) => ({
+          variant: c.variant,
+          bloodline: c.bloodline,
+          display: c.share.toFixed(1),
+          title: `${c.horses} horse${c.horses === 1 ? "" : "s"} touch this cell (DNA-split share ${c.share.toFixed(1)})`,
+          raw: c.share,
+        }))
+      : crosstab.map((c) => ({
+          variant: c.variant,
+          bloodline: c.bloodline,
+          display: `${c.count}`,
+          title: `${c.count} horse${c.count === 1 ? "" : "s"} with this dominant bloodline`,
+          raw: c.count,
+        }));
   const crosstabBloodlines = [
-    ...new Set(crosstab.map((c) => c.bloodline)),
+    ...new Set(crosstabSource.map((c) => c.bloodline)),
   ].sort();
-  const crosstabByVariant = new Map<number, Map<string, number>>();
-  for (const c of crosstab) {
+  const crosstabMax = Math.max(0, ...crosstabSource.map((c) => c.raw));
+  const crosstabByVariant = new Map<number, Map<string, (typeof crosstabSource)[number]>>();
+  for (const c of crosstabSource) {
     let row = crosstabByVariant.get(c.variant);
     if (!row) {
       row = new Map();
       crosstabByVariant.set(c.variant, row);
     }
-    row.set(c.bloodline, c.count);
+    row.set(c.bloodline, c);
   }
 
   return (
@@ -339,7 +371,10 @@ export default function RecordsView({
       <div className={chartStyles.chartGrid}>
         {histograms.map((h) => (
           <ChartCard key={h.label} title={`${h.label} Distribution`}>
-            <Bars rows={h.bins} />
+            <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+              {h.label} ({h.unit}) along the bottom, horse count going up.
+            </p>
+            <VerticalHistogram bins={h.bins} />
           </ChartCard>
         ))}
       </div>
@@ -347,16 +382,24 @@ export default function RecordsView({
       <div className={chartStyles.chartGrid}>
         {trends.map((t) => (
           <ChartCard key={t.label} title={`Avg ${t.label} by Generation`}>
-            <TrendLine points={t.points} unit={t.unit} />
+            <TrendLine points={t.points} unit={t.unit} decimals={t.decimals} />
           </ChartCard>
         ))}
       </div>
 
       <ChartCard title="Speed vs Jump">
+        <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+          Each dot is a horse, colored by dominant bloodline. Dashed lines
+          mark the herd averages — horses upper-right are fast AND jumpy.
+        </p>
         <ScatterPlot
           points={scatter}
           xLabel="Speed (m/s)"
           yLabel="Jump (blocks)"
+          xDecimals={2}
+          yDecimals={2}
+          avgX={scatterAvg?.x ?? null}
+          avgY={scatterAvg?.y ?? null}
         />
       </ChartCard>
 
@@ -380,6 +423,8 @@ export default function RecordsView({
                   points={h.scatter}
                   xLabel={`Parents avg (${h.unit})`}
                   yLabel={`Foal (${h.unit})`}
+                  xDecimals={h.label === "Health" ? 1 : 2}
+                  yDecimals={h.label === "Health" ? 1 : 2}
                 />
               </div>
             ))}
@@ -394,11 +439,64 @@ export default function RecordsView({
               <p style={{ margin: "0 0 8px", fontSize: 20, fontFamily: vars.font.display }}>
                 {diversity.effective.toFixed(1)} effective bloodlines
               </p>
+              <p className={chartStyles.mutedNote} style={{ margin: "0 0 8px" }}>
+                Think of it as: if the herd were split evenly, how many
+                bloodlines would it feel like? 1.0 means a single-bloodline
+                herd; {herdShares.length} (your bloodline count) would mean a
+                perfectly even split. Shannon {diversity.shannon.toFixed(2)}{" "}
+                nats is the evenness score behind it — higher is more balanced.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                {herdShares.map((s) => {
+                  const pct = herdTotal > 0 ? (s.total / herdTotal) * 100 : 0;
+                  return (
+                    <div key={s.bloodline} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 12,
+                          height: 12,
+                          borderRadius: 3,
+                          backgroundColor: colors[s.bloodline] || "#94a3b8",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ minWidth: 110, fontWeight: 700 }}>{s.bloodline}</span>
+                      <span
+                        style={{
+                          display: "block",
+                          height: 8,
+                          flex: 1,
+                          backgroundColor: "#e9dcc0",
+                          borderRadius: 9999,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "block",
+                            height: "100%",
+                            width: `${pct}%`,
+                            backgroundColor: colors[s.bloodline] || "#94a3b8",
+                            borderRadius: 9999,
+                          }}
+                        />
+                      </span>
+                      <span style={{ minWidth: 44, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        {pct.toFixed(1)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
               <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
-                Shannon {diversity.shannon.toFixed(2)} nats · largest share{" "}
+                Bottleneck meter: largest share{" "}
                 {(diversity.topShare * 100).toFixed(1)}%
-                {diversity.topShare > 0.6 &&
-                  " — one bloodline dominates; outcross to widen the gene pool."}
+                {diversity.topShare > 0.6
+                  ? " — one bloodline dominates; outcross to widen the gene pool."
+                  : diversity.topShare > 0.45
+                    ? " — one bloodline is pulling ahead; watch the next generations."
+                    : " — no bottleneck; the gene pool looks healthy."}
               </p>
             </div>
           ) : (
@@ -622,43 +720,78 @@ export default function RecordsView({
         </ChartCard>
       </div>
 
-      <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 24 }}>
         <ChartCard title="Variant Distribution">
-          <Bars
-            rows={variants.map((v) => ({
-              label: getVariantName(v.variant),
-              value: v.count,
-            }))}
-          />
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            Which coats the herd wears — same pictures as the create/edit
+            form. Sorted most common first.
+          </p>
+          <VariantGrid counts={variants} total={filtered.length} />
         </ChartCard>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
         <ChartCard title="Variant × Bloodline">
-          {crosstab.length > 0 ? (
-            <table className={chartStyles.ledgerTable}>
-              <thead>
-                <tr>
-                  <th className={chartStyles.ledgerTh}>Variant</th>
-                  {crosstabBloodlines.map((b) => (
-                    <th key={b} className={chartStyles.ledgerTh}>
-                      {b}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[...crosstabByVariant.entries()].map(([variant, row]) => (
-                  <tr key={variant}>
-                    <td className={chartStyles.ledgerTd}>
-                      {getVariantName(variant)}
-                    </td>
+          <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
+            {crosstabMode === "split"
+              ? "DNA-split shares: a 50/50 hybrid adds 0.5 to each bloodline, so mixed horses are never misattributed. Hover a cell for the horse count."
+              : "Dominant-only counts: each horse sits in a single column by its top bloodline."}{" "}
+            <button
+              type="button"
+              onClick={() => setCrosstabMode(crosstabMode === "split" ? "dominant" : "split")}
+              style={{ textDecoration: "underline", cursor: "pointer", background: "none", border: "none", padding: 0, font: "inherit", color: "inherit" }}
+            >
+              Show {crosstabMode === "split" ? "dominant-only" : "DNA-split"} instead
+            </button>
+          </p>
+          {crosstabSource.length > 0 ? (
+            <div style={{ overflowX: "auto" }}>
+              <table className={chartStyles.ledgerTable} style={{ minWidth: Math.max(400, crosstabBloodlines.length * 90) }}>
+                <thead>
+                  <tr>
+                    <th className={chartStyles.ledgerTh} style={{ position: "sticky", left: 0 }}>Variant</th>
                     {crosstabBloodlines.map((b) => (
-                      <td key={b} className={chartStyles.ledgerTd}>
-                        {row.get(b) || "—"}
-                      </td>
+                      <th key={b} className={chartStyles.ledgerTh}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: 3,
+                            backgroundColor: colors[b] || "#94a3b8",
+                            marginRight: 6,
+                          }}
+                        />
+                        {b}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[...crosstabByVariant.entries()].map(([variant, row]) => (
+                    <tr key={variant}>
+                      <td className={chartStyles.ledgerTd} style={{ position: "sticky", left: 0 }}>
+                        {getVariantName(variant)}
+                      </td>
+                      {crosstabBloodlines.map((b) => {
+                        const cell = row.get(b);
+                        const intensity = crosstabMax > 0 && cell ? cell.raw / crosstabMax : 0;
+                        return (
+                          <td
+                            key={b}
+                            className={chartStyles.ledgerTd}
+                            title={cell?.title}
+                            style={cell ? { backgroundColor: `rgba(185,138,47,${(intensity * 0.35).toFixed(2)})`, fontWeight: 700 } : undefined}
+                          >
+                            {cell ? cell.display : "—"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p className={chartStyles.mutedNote}>No variants recorded yet.</p>
           )}
