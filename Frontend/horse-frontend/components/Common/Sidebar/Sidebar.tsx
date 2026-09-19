@@ -49,7 +49,7 @@ export default function Sidebar({ fallbackHorses, initialAllowCloseRelativeBreed
     { numeral: "I", label: "The Stable", href: "/" },
     { numeral: "II", label: "Lineage Tree", href: "/horses" },
     { numeral: "III", label: "Bloodlines Registry", href: "/bloodlines" },
-    { numeral: "IV", label: "Records", href: "/records" },
+    { numeral: "IV", label: "Records Ledger", href: "/records" },
     { numeral: "V", label: "Breeding Planner", href: "/breeding" },
   ];
 
