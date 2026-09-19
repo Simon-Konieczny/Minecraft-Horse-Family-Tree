@@ -418,10 +418,10 @@ export function RecordGenCard({
 
 /** Do related pairings cost or pay? */
 export function InbreedSplitCard({ split }: { split: InbredSplit }) {
-  const row = (label: string, n: number, v: number, base: number, decimals: number, unit: string) => {
+  const row = (key: string, label: string, n: number, v: number, base: number, decimals: number, unit: string) => {
     const d = n > 0 && base > 0 ? v - base : null;
     return (
-      <tr key={label}>
+      <tr key={key}>
         <td className={chartStyles.ledgerTd}>{label}</td>
         <td className={chartStyles.ledgerTd}>{n}</td>
         <td className={chartStyles.ledgerTd}>
@@ -449,12 +449,12 @@ export function InbreedSplitCard({ split }: { split: InbredSplit }) {
           </tr>
         </thead>
         <tbody>
-          {row("🧬 Inbred", split.inbred.n, split.inbred.speed, split.clean.speed, 2, "m/s")}
-          {row("🌱 Clean", split.clean.n, split.clean.speed, split.clean.speed, 2, "m/s")}
-          {row("🧬 Inbred", split.inbred.n, split.inbred.jump, split.clean.jump, 2, "blocks")}
-          {row("🌱 Clean", split.clean.n, split.clean.jump, split.clean.jump, 2, "blocks")}
-          {row("🧬 Inbred", split.inbred.n, split.inbred.health, split.clean.health, 1, "hp")}
-          {row("🌱 Clean", split.clean.n, split.clean.health, split.clean.health, 1, "hp")}
+          {row("inbred-speed", "🧬 Inbred", split.inbred.n, split.inbred.speed, split.clean.speed, 2, "m/s")}
+          {row("clean-speed", "🌱 Clean", split.clean.n, split.clean.speed, split.clean.speed, 2, "m/s")}
+          {row("inbred-jump", "🧬 Inbred", split.inbred.n, split.inbred.jump, split.clean.jump, 2, "blocks")}
+          {row("clean-jump", "🌱 Clean", split.clean.n, split.clean.jump, split.clean.jump, 2, "blocks")}
+          {row("inbred-health", "🧬 Inbred", split.inbred.n, split.inbred.health, split.clean.health, 1, "hp")}
+          {row("clean-health", "🌱 Clean", split.clean.n, split.clean.health, split.clean.health, 1, "hp")}
         </tbody>
       </table>
     </ChartCard>
