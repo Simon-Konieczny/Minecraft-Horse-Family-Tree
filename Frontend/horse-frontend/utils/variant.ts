@@ -16,6 +16,24 @@ export const patterns: Record<number, string> = {
   4: "with_Black_Dots",
 };
 
+export const VARIANT_COLOR_COUNT = 7;
+export const VARIANT_PATTERN_COUNT = 5;
+
+/**
+ * Canonical create/edit order (color-major): White + its 5 patterns,
+ * then Creamy + its 5, and so on. Variant id = color + pattern * 256.
+ * Records census reuses this order so gaps are scannable.
+ */
+export const ALL_VARIANTS: number[] = (() => {
+  const out: number[] = [];
+  for (let color = 0; color < VARIANT_COLOR_COUNT; color++) {
+    for (let pattern = 0; pattern < VARIANT_PATTERN_COUNT; pattern++) {
+      out.push(color + pattern * 256);
+    }
+  }
+  return out;
+})();
+
 export function getHorseVariantImage(variantId: number): string {
   const colorId = variantId % 256;
   const patternId = Math.floor(variantId / 256);

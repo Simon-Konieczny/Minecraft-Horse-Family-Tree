@@ -41,7 +41,7 @@ import {
   variantUnlockHints,
 } from "@/utils/herdInsights";
 import { vars } from "@/styles/theme.css";
-import { getVariantName } from "@/utils/variant";
+import { getVariantName, ALL_VARIANTS } from "@/utils/variant";
 import { translateStat } from "@/utils/translateRawStats";
 import { ChapterHeading, Folio } from "@/components/Book/Book";
 import {
@@ -344,6 +344,15 @@ export default function RecordsView({
   };
 
   const variants = variantDistribution(filtered);
+  // Full 35-combo census in canonical create/edit (color-major) order so
+  // missing coats stay visible. Counts respect the current scope.
+  const fullVariants = useMemo(() => {
+    const byVariant = new Map(variants.map((v) => [v.variant, v.count]));
+    return ALL_VARIANTS.map((variant) => ({
+      variant,
+      count: byVariant.get(variant) ?? 0,
+    }));
+  }, [variants]);
   // Fractional DNA-split crosstab (hybrids share their count across
   // bloodlines) with a dominant-only fallback toggle in the UI.
   const [crosstabMode, setCrosstabMode] = useState<"split" | "dominant">("split");
@@ -378,6 +387,18 @@ export default function RecordsView({
     }
     row.set(c.bloodline, c);
   }
+  // Full 35 rows in canonical order; columns stay scoped to in-scope
+  // bloodlines. Missing rows render all-blank so gaps are visible.
+  const crosstabRows = useMemo(
+    () =>
+      ALL_VARIANTS.map((variant) => ({
+        variant,
+        row: crosstabByVariant.get(variant),
+      })),
+    // crosstabByVariant derives from crosstabSource; rebuild rows when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [crosstabSource],
+  );
 
   // ---- Insight engine (all translated units; no dates anywhere) ----
   const tById = useMemo(
@@ -545,6 +566,7 @@ export default function RecordsView({
     [filtered, tById],
   );
   const rarest = useMemo(() => [...variants].sort((a, b) => a.count - b.count).slice(0, 5), [variants]);
+  const presentCount = variants.length;
   const champions = useMemo(() => {
     const table = new Map<
       string,
@@ -1210,9 +1232,9 @@ export default function RecordsView({
       <div style={{ marginTop: 24 }}>
         <ChartCard title="Variant Distribution">
           <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
-            Which coats the herd wears — same pictures as the create/edit
-            form. Sorted most common first. {variants.length} of 35
-            combinations present
+            Which coats the herd wears — same pictures and order as the
+            create/edit form (White + its patterns first). {presentCount} of
+            35 combinations present in scope
             {rarest.length > 0 && (
               <>
                 {" "}— rarest:{" "}
@@ -1221,7 +1243,7 @@ export default function RecordsView({
             )}
             .
           </p>
-          <VariantGrid counts={variants} total={filtered.length} />
+          <VariantGrid counts={fullVariants} total={filtered.length} />
         </ChartCard>
       </div>
 
@@ -1229,8 +1251,8 @@ export default function RecordsView({
         <ChartCard title="Variant × Bloodline">
           <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
             {crosstabMode === "split"
-              ? "DNA-split shares: a 50/50 hybrid adds 0.5 to each bloodline, so mixed horses are never misattributed. Hover a cell for the horse count."
-              : "Dominant-only counts: each horse sits in a single column by its top bloodline."}{" "}
+              ? "DNA-split shares: a 50/50 hybrid adds 0.5 to each bloodline, so mixed horses are never misattributed. All 35 coats in create/edit order — blank rows are missing in scope. Hover a cell for the horse count."
+              : "Dominant-only counts: each horse sits in a single column by its top bloodline. All 35 coats in create/edit order — blank rows are missing in scope."}{" "}
             <button
               type="button"
               onClick={() => setCrosstabMode(crosstabMode === "split" ? "dominant" : "split")}
@@ -1239,7 +1261,7 @@ export default function RecordsView({
               Show {crosstabMode === "split" ? "dominant-only" : "DNA-split"} instead
             </button>
           </p>
-          {crosstabSource.length > 0 ? (
+          {filtered.length > 0 && crosstabBloodlines.length > 0 ? (
             <div style={{ overflowX: "auto" }}>
               <table className={chartStyles.ledgerTable} style={{ minWidth: Math.max(400, crosstabBloodlines.length * 90) }}>
                 <thead>
@@ -1263,13 +1285,13 @@ export default function RecordsView({
                   </tr>
                 </thead>
                 <tbody>
-                  {[...crosstabByVariant.entries()].map(([variant, row]) => (
-                    <tr key={variant}>
+                  {crosstabRows.map(({ variant, row }) => (
+                    <tr key={variant} style={row ? undefined : { opacity: 0.55 }}>
                       <td className={chartStyles.ledgerTd} style={{ position: "sticky", left: 0 }}>
                         {getVariantName(variant)}
                       </td>
                       {crosstabBloodlines.map((b) => {
-                        const cell = row.get(b);
+                        const cell = row?.get(b);
                         const intensity = crosstabMax > 0 && cell ? cell.raw / crosstabMax : 0;
                         return (
                           <td

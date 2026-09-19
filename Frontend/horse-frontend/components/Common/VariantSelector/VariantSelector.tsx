@@ -1,6 +1,6 @@
 "use client";
 
-import { getHorseVariantImage, getVariantName } from "@/utils/variant";
+import { ALL_VARIANTS, getHorseVariantImage, getVariantName } from "@/utils/variant";
 import Image from "next/image";
 import * as styles from "./VariantSelector.css";
 
@@ -13,13 +13,8 @@ export default function VariantSelector({
   selectedVariant,
   onChange,
 }: VariantSelectorProps) {
-  // Generate all 35 variants
-  const variants = [];
-  for (let color = 0; color < 7; color++) {
-    for (let pattern = 0; pattern < 5; pattern++) {
-      variants.push(color + pattern * 256);
-    }
-  }
+  // All 35 variants in canonical create/edit (color-major) order.
+  const variants = ALL_VARIANTS;
 
   return (
     <div className={styles.container}>
