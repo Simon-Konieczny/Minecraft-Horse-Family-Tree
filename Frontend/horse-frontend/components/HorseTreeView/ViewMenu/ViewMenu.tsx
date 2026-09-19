@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useMemo, useState } from "react";
-import { ClickAction, ColorMode, FocusDisplay, ViewMode } from "../HorseTreeView";
+import { ClickAction, ColorMode, FocusDisplay, TreeOrientation, ViewMode } from "../HorseTreeView";
 import { DENSITY_LABELS, DENSITY_LEVELS, NodeDensity } from "@/utils/layout";
 import { ALL_STATUSES, applyTreeFilters, type TreeFilters } from "@/utils/treeFilters";
 import { searchHorses } from "@/utils/horseSearch";
@@ -15,6 +15,8 @@ import Switch from "@/components/Common/Switch/Switch";
 interface ViewMenuProps {
   setView: Dispatch<SetStateAction<ViewMode>>;
   view: ViewMode;
+  orientation: TreeOrientation;
+  setOrientation: (mode: TreeOrientation) => void;
   statusView: boolean;
   setStatusView: Dispatch<SetStateAction<boolean>>;
   density: NodeDensity;
@@ -43,7 +45,14 @@ const LAYOUT_MODES = [
   { mode: "speed", label: "Speed" },
   { mode: "jump", label: "Jump" },
   { mode: "health", label: "Health" },
+  { mode: "family", label: "Family Lanes" },
+  { mode: "lineage", label: "Lineage" },
 ] as const;
+
+const ORIENTATIONS: { mode: TreeOrientation; label: string; hint: string }[] = [
+  { mode: "TB", label: "Top-Down", hint: "Generations flow downward." },
+  { mode: "LR", label: "Left-Right", hint: "Generations flow rightward. Better for wide herds." },
+];
 
 const COLOR_MODES: { mode: ColorMode; label: string; hint: string }[] = [
   { mode: "stored", label: "Stored", hint: "Snapshot saved with each horse." },
@@ -64,6 +73,8 @@ const FOCUS_DISPLAYS: { mode: FocusDisplay; label: string; hint: string }[] = [
 export default function ViewMenu({
   setView,
   view,
+  orientation,
+  setOrientation,
   statusView,
   setStatusView,
   density,
@@ -233,7 +244,32 @@ export default function ViewMenu({
           </div>
           <p className={styles.sectionCaption} style={{ marginTop: 6 }}>
             Traditional draws the pedigree; stat modes reorder each
-            generation row left to right.
+            generation row left to right. Family Lanes groups each
+            bloodline into its own column. Lineage centers the focused
+            horse with ancestors left and descendants right.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <p className={styles.menuLabel}>Direction</p>
+          <div className={styles.segmentGrid}>
+            {ORIENTATIONS.map(({ mode, label, hint }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setOrientation(mode); refit(); }}
+                title={view === "lineage" ? "Lineage always flows left to right." : hint}
+                disabled={view === "lineage"}
+                className={orientation === mode ? styles.segmentActive : styles.segmentInactive}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className={styles.sectionCaption} style={{ marginTop: 6 }}>
+            {view === "lineage"
+              ? "Lineage always flows left to right."
+              : "Left-Right turns generations into columns — better for wide herds."}
           </p>
         </section>
 

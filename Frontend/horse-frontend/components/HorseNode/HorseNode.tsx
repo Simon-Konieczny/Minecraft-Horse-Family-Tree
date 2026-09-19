@@ -6,7 +6,7 @@ import { getHorseFullName } from '@/utils/horseNames';
 import * as styles from './HorseNode.css';
 import { CSSProperties } from 'react';
 import Image from 'next/image';
-import { DENSITY_CONFIG, NodeDensity } from '@/utils/layout';
+import { DENSITY_CONFIG, NodeDensity, type Orientation } from '@/utils/layout';
 
 export type HorseNodeData = {
   horse: Horse;
@@ -14,6 +14,8 @@ export type HorseNodeData = {
   activeView?: 'speed' | 'jump' | 'health' | 'base';
   statusView?: boolean;
   density?: NodeDensity;
+  /** Tree direction: picks which edges handles sit on (default TB). */
+  orientation?: Orientation;
   /** Disambiguated first name for minimal chips (duplicates gain II/III). */
   shortName?: string;
   /** Live color override (color-by-bloodline modes); falls back to stored hexColor. */
@@ -51,6 +53,9 @@ function darkenColor(hex: string, amount: number): string {
 export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
   const { horse, activeView, statusView, focused } = data;
   const density: NodeDensity = data.density ?? 'full';
+  // Edges flow down in TB, right in LR — handles follow the direction.
+  const targetSide = data.orientation === 'LR' ? Position.Left : Position.Top;
+  const sourceSide = data.orientation === 'LR' ? Position.Right : Position.Bottom;
   const maxWidth = DENSITY_CONFIG[density].nodeWidth;
   const fullName = getHorseFullName(horse);
   const {jump, health, speed, variant} = horse;
@@ -110,11 +115,11 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
   if (density === 'minimal') {
     return (
       <div className={styles.nodeContainer} style={{ ...containerStyle, minWidth: 0 }}>
-        <Handle type="target" position={Position.Top} className={styles.handleStyle} />
+        <Handle type="target" position={targetSide} className={styles.handleStyle} />
         <div className={styles.horseName} title={fullName} style={{ color: textColor, fontSize: '12px', ...ellipsisStyle }}>
           {data.shortName ?? horse.firstName}
         </div>
-        <Handle type="source" position={Position.Bottom} className={styles.handleStyle} />
+        <Handle type="source" position={sourceSide} className={styles.handleStyle} />
       </div>
     );
   }
@@ -122,7 +127,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
   if (density === 'compact') {
     return (
       <div className={styles.nodeContainer} style={{ ...containerStyle, minWidth: '140px' }}>
-        <Handle type="target" position={Position.Top} className={styles.handleStyle} />
+        <Handle type="target" position={targetSide} className={styles.handleStyle} />
         <div className={styles.contentWrapper} style={{ flexDirection: 'column', gap: '2px' }}>
           <div className={styles.horseName} title={fullName} style={{ color: textColor, fontSize: '13px', ...ellipsisStyle }}>
             {firstNameLine}
@@ -136,7 +141,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
             {display.label}: {display.value}
           </div>
         </div>
-        <Handle type="source" position={Position.Bottom} className={styles.handleStyle} />
+        <Handle type="source" position={sourceSide} className={styles.handleStyle} />
       </div>
     );
   }
@@ -145,7 +150,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
     <div className={styles.nodeContainer} style={containerStyle}>
       <Handle 
         type="target" 
-        position={Position.Top} 
+        position={targetSide} 
         className={styles.handleStyle} 
       />
 
@@ -177,7 +182,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
 
       <Handle 
         type="source" 
-        position={Position.Bottom} 
+        position={sourceSide} 
         className={styles.handleStyle} 
       />
     </div>

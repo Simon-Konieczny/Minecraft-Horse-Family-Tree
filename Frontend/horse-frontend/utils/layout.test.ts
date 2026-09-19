@@ -6,8 +6,11 @@ import {
   DENSITY_CONFIG,
   DENSITY_LEVELS,
   getBaseLayout,
+  getFamilyLaneLayout,
+  getLineageLayout,
   getSortLayout,
   sweepRow,
+  timeSpacingFor,
   type NodeDensity,
 } from "./layout";
 
@@ -198,5 +201,121 @@ describe("getSortLayout", () => {
         nodeWidth + gap - 1e-6,
       );
     }
+  });
+});
+
+describe("orientation (TB/LR)", () => {
+  it("LR turns generations into spaced columns with non-overlapping stacks", () => {
+    const { nodes, edges } = pedigree();
+    const laid = getBaseLayout(nodes, edges, "full", "LR");
+    const spacing = timeSpacingFor("full", "LR");
+    expect(spacing).toBeGreaterThan(DENSITY_CONFIG.full.nodeWidth);
+    for (const n of laid) {
+      expect(n.position.x).toBe((n.data.horse.generation || 0) * spacing);
+      expect(n.data.orientation).toBe("LR");
+    }
+    const byGen = new Map<number, number[]>();
+    for (const n of laid) {
+      const list = byGen.get(n.data.horse.generation || 0) ?? [];
+      list.push(n.position.y);
+      byGen.set(n.data.horse.generation || 0, list);
+    }
+    for (const ys of byGen.values()) {
+      const sorted = [...ys].sort((a, b) => a - b);
+      for (let i = 1; i < sorted.length; i++) {
+        expect(sorted[i] - sorted[i - 1]).toBeGreaterThanOrEqual(100 + 40 - 1e-6);
+      }
+    }
+  });
+
+  it("TB keeps the legacy row pitch and defaults orientation", () => {
+    const { nodes, edges } = pedigree();
+    const laid = getBaseLayout(nodes, edges, "full");
+    for (const n of laid) {
+      expect(n.position.y).toBe((n.data.horse.generation || 0) * 200);
+      expect(n.data.orientation ?? "TB").toBe("TB");
+    }
+  });
+
+  it("sort layout mirrors across orientations", () => {
+    const { nodes } = pedigree();
+    const tb = getSortLayout(nodes, "speed", "compact", "TB");
+    const lr = getSortLayout(nodes, "speed", "compact", "LR");
+    const orderTB = [...tb]
+      .filter((n) => (n.data.horse.generation || 0) === 0)
+      .sort((a, b) => a.position.x - b.position.x)
+      .map((n) => n.id);
+    const orderLR = [...lr]
+      .filter((n) => (n.data.horse.generation || 0) === 0)
+      .sort((a, b) => a.position.y - b.position.y)
+      .map((n) => n.id);
+    expect(orderLR).toEqual(orderTB);
+  });
+});
+
+describe("getFamilyLaneLayout", () => {
+  it("keeps each family in a contiguous lane, alphabetical", () => {
+    const nodes = [
+      node("m1", 0, 0.2, "Mandragoran"),
+      node("l1", 0, 0.2, "Longbottom"),
+      node("m2", 1, 0.2, "Mandragoran"),
+      node("l2", 1, 0.2, "Longbottom"),
+    ];
+    const laid = getFamilyLaneLayout(nodes, [], "full", "TB");
+    for (const gen of [0, 1]) {
+      const row = laid
+        .filter((n) => (n.data.horse.generation || 0) === gen)
+        .sort((a, b) => a.position.x - b.position.x)
+        .map((n) => n.id);
+      expect(row).toEqual(["l1", "m1"].map((id) => id.replace("1", String(gen === 0 ? "1" : "2"))));
+    }
+    // Lanes align across generations: same family, same x.
+    const byId = new Map(laid.map((n) => [n.id, n.position.x]));
+    expect(byId.get("l1")).toBeCloseTo(byId.get("l2")!, 9);
+    expect(byId.get("m1")).toBeCloseTo(byId.get("m2")!, 9);
+  });
+
+  it("places hyphenated hybrids in their primary lane only, once", () => {
+    const nodes = [node("h", 0, 0.2, "Aurelian-Baguette"), node("a", 0, 0.2, "Aurelian")];
+    const laid = getFamilyLaneLayout(nodes, [], "full", "TB");
+    expect(laid).toHaveLength(2);
+    const xs = [...laid].sort((a, b) => a.position.x - b.position.x);
+    // Same primary family => adjacent, no duplication.
+    expect(xs[0].position.x).toBeLessThan(xs[1].position.x);
+  });
+});
+
+describe("getLineageLayout", () => {
+  function chain() {
+    const gp1 = node("gp1", 0);
+    const gp2 = node("gp2", 0);
+    const parent = node("parent", 1);
+    (parent.data.horse as Horse).parentId1 = "gp1";
+    (parent.data.horse as Horse).parentId2 = "gp2";
+    const focus = node("focus", 2);
+    (focus.data.horse as Horse).parentId1 = "parent";
+    (focus.data.horse as Horse).parentId2 = "gp2";
+    const child = node("child", 3);
+    (child.data.horse as Horse).parentId1 = "focus";
+    (child.data.horse as Horse).parentId2 = "gp1";
+    return [gp1, gp2, parent, focus, child];
+  }
+
+  it("orders ancestors left, focus center, descendants right", () => {
+    const laid = getLineageLayout(chain(), "focus", "full");
+    const byId = new Map(laid.map((n) => [n.id, n.position.x]));
+    expect(byId.get("gp1")!).toBeLessThan(byId.get("parent")!);
+    expect(byId.get("parent")!).toBeLessThan(byId.get("focus")!);
+    expect(byId.get("focus")!).toBeLessThan(byId.get("child")!);
+    for (const n of laid) {
+      expect(n.data.orientation).toBe("LR");
+    }
+  });
+
+  it("is deterministic and cycle-safe", () => {
+    const nodes = chain();
+    const first = getLineageLayout(nodes, "focus", "full");
+    const second = getLineageLayout(nodes, "focus", "full");
+    expect(first.map((n) => n.position)).toEqual(second.map((n) => n.position));
   });
 });

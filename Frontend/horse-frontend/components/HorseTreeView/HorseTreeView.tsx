@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useReactFlow } from "@xyflow/react";
 import { getCookie, setCookie } from "cookies-next";
-import { getBaseLayout, getSortLayout, NodeDensity } from "@/utils/layout";
+import { getBaseLayout, getFamilyLaneLayout, getLineageLayout, getSortLayout, NodeDensity, type Orientation } from "@/utils/layout";
 import { getAncestorIds, getDescendantIds } from "@/utils/lineage";
 import { calculateColorFromDna } from "@/utils/genetics/utils";
 import { dominantBloodline } from "@/utils/analytics";
@@ -40,7 +40,9 @@ import ViewMenu from "./ViewMenu/ViewMenu";
 import SearchBar from "./HorseSearch/SearchBar";
 
 const nodeTypes = { horseNode: CustomHorseNode };
-export type ViewMode = "base" | "speed" | "jump" | "health";
+export type ViewMode = "base" | "speed" | "jump" | "health" | "family" | "lineage";
+/** Tree direction: generations flow down (TB) or right (LR). Lineage is fixed LR. */
+export type TreeOrientation = Orientation;
 /** Node fill source: stored snapshot, live registry blend, or dominant-bloodline flat. */
 export type ColorMode = "stored" | "live" | "dominant";
 /** Node click behavior: open the horse page, or focus its lineage in place. */
@@ -62,6 +64,7 @@ function TreeContent({
   const router = useRouter();
 
   const [view, setView] = useState<ViewMode>("base");
+  const [orientation, setOrientation] = useState<TreeOrientation>("TB");
   const [statusView, setStatusView] = useState<boolean>(false);
   const [density, setDensity] = useState<NodeDensity>("full");
   const [colorMode, setColorMode] = useState<ColorMode>("stored");
@@ -232,6 +235,11 @@ function TreeContent({
     setCookie("horse-tree-click", mode, { maxAge: 60 * 60 * 24 * 30 });
   }, []);
 
+  const handleOrientationChange = useCallback((mode: TreeOrientation) => {
+    setOrientation(mode);
+    setCookie("horse-tree-orientation", mode, { maxAge: 60 * 60 * 24 * 30 });
+  }, []);
+
   const handleFocusDisplayChange = useCallback((mode: FocusDisplay) => {
     setFocusDisplay(mode);
     setCookie("horse-tree-focus-display", mode, { maxAge: 60 * 60 * 24 * 30 });
@@ -243,7 +251,21 @@ function TreeContent({
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const savedView = getCookie("horse-tree-view") as ViewMode;
-    if (savedView) setView(savedView);
+    if (
+      savedView === "base" ||
+      savedView === "speed" ||
+      savedView === "jump" ||
+      savedView === "health" ||
+      savedView === "family" ||
+      savedView === "lineage"
+    ) {
+      setView(savedView);
+    }
+
+    const savedOrientation = getCookie("horse-tree-orientation") as TreeOrientation;
+    if (savedOrientation === "TB" || savedOrientation === "LR") {
+      setOrientation(savedOrientation);
+    }
 
     const savedColor = getCookie("horse-tree-color") as ColorMode;
     if (savedColor === "stored" || savedColor === "live" || savedColor === "dominant") {
@@ -316,14 +338,23 @@ function TreeContent({
   }, [filters, horses]);
 
   // Re-layout on view/filter/herd changes and push the result into the
-  // controlled ReactFlow instance. Suppression justified below: the
+  // controlled ReactFlow instance. Lineage needs a focused horse; without
+  // one the canvas keeps the base layout and a prompt overlay invites a
+  // pick (see below). Suppression justified below: the
   // nodes prop must stay synced with the external layout inputs.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    // Lineage without a focus falls back to base positions; the prompt
+    // overlay (below) explains the pick-a-horse step.
+    const effectiveView = view === "lineage" && !focusId ? "base" : view;
     const layoutNodes =
-      view === "base"
-        ? getBaseLayout(visibleNodes, visibleEdges, density)
-        : getSortLayout(visibleNodes, view, density);
+      effectiveView === "base"
+        ? getBaseLayout(visibleNodes, visibleEdges, density, orientation)
+        : effectiveView === "family"
+          ? getFamilyLaneLayout(visibleNodes, visibleEdges, density, orientation)
+          : effectiveView === "lineage"
+            ? getLineageLayout(visibleNodes, focusId as string, density)
+            : getSortLayout(visibleNodes, effectiveView, density, orientation);
 
     // Update nodes with statusView, density, short-name, focus dim/ring data
     const newNodes = layoutNodes.map(node => ({
@@ -334,7 +365,7 @@ function TreeContent({
       },
       data: {
         ...node.data,
-        activeView: view,
+        activeView: effectiveView === "family" || effectiveView === "lineage" ? "base" : effectiveView,
         statusView: statusView,
         density: density,
         shortName: shortNames.get(node.id) ?? node.data.horse.firstName,
@@ -344,7 +375,7 @@ function TreeContent({
 
     setNodes(newNodes);
     setEdges(visibleEdges);
-  }, [view, statusView, density, shortNames, visibleNodes, visibleEdges, dimmedIds, focusId]);
+  }, [view, orientation, statusView, density, shortNames, visibleNodes, visibleEdges, dimmedIds, focusId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const onNodesChange: OnNodesChange = useCallback(
@@ -425,6 +456,8 @@ function TreeContent({
       <ViewMenu
         setView={setView}
         view={view}
+        orientation={orientation}
+        setOrientation={handleOrientationChange}
         statusView={statusView}
         setStatusView={setStatusView}
         density={density}
@@ -494,6 +527,33 @@ function TreeContent({
           >
             × Clear
           </button>
+        </div>
+      )}
+
+      {view === "lineage" && !focusId && (
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100,
+            backgroundColor: vars.color.parchment,
+            border: `1px solid ${vars.color.goldSoft}`,
+            borderRadius: vars.borderRadius.md,
+            boxShadow: vars.shadow.md,
+            padding: `${vars.spacing.sm} ${vars.spacing.md}`,
+            fontFamily: vars.font.display,
+            color: vars.color.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            maxWidth: "calc(100vw - 360px)",
+          }}
+        >
+          <span>
+            Lineage view needs a horse — pick one in View → Focus horse (or click a horse when Click action is Focus).
+          </span>
         </div>
       )}
 

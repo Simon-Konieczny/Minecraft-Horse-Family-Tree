@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { Horse } from "@/types/horse";
 import { getHorseFullName } from "@/utils/horseNames";
+import { getHorseVariantImage } from "@/utils/variant";
+import { translateStat } from "@/utils/translateRawStats";
 import { vars } from "@/styles/theme.css";
 
 const MAX_DEPTH = 3;
@@ -41,24 +44,56 @@ function AncestorCell({
       : null;
   return (
     <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
-      <div
+      <Link
+        href={`/horses/${horse.id}`}
+        title={getHorseFullName(horse)}
         style={{
-          padding: "6px 10px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 10px 6px 6px",
           backgroundColor: horse.hexColor || "#1e293b",
           borderRadius: 8,
           fontSize: 12,
-          fontWeight: 700,
-          whiteSpace: "nowrap",
+          color: "inherit",
+          textDecoration: "none",
           alignSelf: "center",
+          maxWidth: 220,
         }}
       >
-        <Link
-          href={`/horses/${horse.id}`}
-          style={{ color: "inherit", textDecoration: "none" }}
+        <span
+          style={{
+            display: "inline-flex",
+            borderRadius: 6,
+            overflow: "hidden",
+            backgroundColor: "rgba(255,255,255,0.2)",
+            flexShrink: 0,
+          }}
         >
-          {getHorseFullName(horse)}
-        </Link>
-      </div>
+          <Image
+            src={getHorseVariantImage(horse.variant)}
+            alt={getHorseFullName(horse)}
+            width={40}
+            height={40}
+          />
+        </span>
+        <span style={{ minWidth: 0 }}>
+          <span
+            style={{
+              display: "block",
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {getHorseFullName(horse)}
+          </span>
+          <span style={{ display: "block", opacity: 0.8, whiteSpace: "nowrap" }}>
+            {translateStat("speed", horse.speed).toFixed(2)} m/s
+          </span>
+        </span>
+      </Link>
       {parents && (
         <div
           style={{
