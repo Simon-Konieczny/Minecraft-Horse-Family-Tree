@@ -1,4 +1,5 @@
 import { style, globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
 
 export const shapeCard = style({
   position: "relative",
@@ -37,7 +38,7 @@ export const shapeTextContainer = style({
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  color: "white",
+  color: vars.color.white,
   zIndex: 10,
   textAlign: "center",
   textShadow: "0px 1px 4px rgba(0,0,0,0.4)",
@@ -45,16 +46,18 @@ export const shapeTextContainer = style({
 });
 
 export const shapeLabel = style({
-  fontSize: "11px",
-  fontWeight: 700,
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
+  letterSpacing: "0.12em",
   opacity: 0.9,
+  fontFamily: vars.font.display,
 });
 
 export const shapeValue = style({
-  fontSize: "26px",
-  fontWeight: 900,
+  fontSize: vars.fontSize.xxl,
+  fontWeight: vars.fontWeight.bold,
+  fontFamily: vars.font.display,
   margin: "0",
   zIndex: 20,
   display: "flex",
@@ -63,14 +66,14 @@ export const shapeValue = style({
 });
 
 export const shapeUnit = style({
-  fontSize: "10px", // Standardizing the units
-  fontWeight: 500,
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.medium,
   opacity: 0.8,
 });
 
 export const shapeSubtext = style({
-  fontSize: "10px",
-  fontWeight: 700,
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.bold,
   textTransform: "uppercase",
   opacity: 0.8,
   marginTop: "4px",

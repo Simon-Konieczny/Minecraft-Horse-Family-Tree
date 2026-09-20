@@ -4,15 +4,6 @@ const withVanillaExtract = createVanillaExtractPlugin();
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/horses',
-        permanent: true,
-      }
-    ];
-  },
 };
 
 export default withVanillaExtract(nextConfig);

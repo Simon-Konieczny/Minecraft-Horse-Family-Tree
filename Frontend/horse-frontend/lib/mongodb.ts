@@ -1,28 +1,60 @@
 import { MongoClient } from "mongodb";
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
-}
-
-const uri = process.env.MONGODB_URI;
-const options = {};
-
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
-
-if (process.env.NODE_ENV === "development") {
-  const globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
+function getUri(): string {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error(
+      'Invalid/Missing environment variable: "MONGODB_URI". ' +
+        'For host dev copy Frontend/horse-frontend/.env.example to .env.local; ' +
+        "in Docker it is provided by docker-compose.yml.",
+    );
   }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  return uri;
 }
 
-export default clientPromise;
+// Lazy client promise: never cache a rejected connection (e.g. app started
+// before Mongo was healthy), so a later retry can reconnect.
+let clientPromise: Promise<MongoClient> | null = null;
+
+function getClientPromise(): Promise<MongoClient> {
+  if (process.env.NODE_ENV === "development") {
+    const globalWithMongo = global as typeof globalThis & {
+      _mongoClientPromise?: Promise<MongoClient>;
+    };
+    if (!globalWithMongo._mongoClientPromise) {
+      const client = new MongoClient(getUri());
+      globalWithMongo._mongoClientPromise = client.connect().catch((err) => {
+        globalWithMongo._mongoClientPromise = undefined;
+        throw err;
+      });
+    }
+    return globalWithMongo._mongoClientPromise;
+  }
+
+  if (!clientPromise) {
+    const client = new MongoClient(getUri());
+    clientPromise = client.connect().catch((err) => {
+      clientPromise = null;
+      throw err;
+    });
+  }
+  return clientPromise;
+}
+
+export function getMongoClient(): Promise<MongoClient> {
+  return getClientPromise();
+}
+
+// Back-compat default export. Defers connecting (and env validation) until
+// first awaited, so `next build` without env vars doesn't crash at import.
+const lazyClientPromise = {
+  then: (
+    onFulfilled?: (value: MongoClient) => unknown,
+    onRejected?: (reason: unknown) => unknown,
+  ) => getClientPromise().then(onFulfilled, onRejected),
+  catch: (onRejected?: (reason: unknown) => unknown) =>
+    getClientPromise().catch(onRejected),
+  finally: (onFinally?: () => void) => getClientPromise().finally(onFinally),
+} as unknown as Promise<MongoClient>;
+
+export default lazyClientPromise;

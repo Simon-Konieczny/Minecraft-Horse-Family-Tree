@@ -1,3 +1,5 @@
+import { getVariantName } from "./variant";
+
 export interface RawStats {
     speed: number;
     jump: number;
@@ -12,44 +14,39 @@ export interface ProcessedStats {
     variant: string;
 }
 
-function decodeVariant(variantId: number): string {
-  const colors: Record<number, string> = {
-    0: "White",
-    1: "Creamy",
-    2: "Chestnut",
-    3: "Brown",
-    4: "Black",
-    5: "Gray",
-    6: "Dark Brown",
-  };
-  const patterns: Record<number, string> = {
-    0: "None",
-    1: "White Stockings",
-    2: "White Field",
-    3: "White Dots",
-    4: "Black Dots",
-  };
-  const color = colors[variantId % 256] ?? "Unknown";
-  const pattern = patterns[Math.floor(variantId / 256)] ?? "None";
-  return `${color} w/ ${pattern}`;
+export function translateStatsForDisplay(stats: RawStats): ProcessedStats {
+    return {
+        speed: translateStat("speed", stats.speed),
+        jump: translateStat("jump", stats.jump),
+        health: translateStat("health", stats.health),
+        variant: getVariantName(stats.variant),
+    };
 }
 
-export function translateStatsForDisplay(stats: RawStats): ProcessedStats {
-
-    const speed = Number((stats.speed * 42.157).toFixed(4));
-    const jump = Number(((7.56889 * Math.E ** (0.602676 * stats.jump)) - 8.59434).toFixed(4));
-    const health = Number((stats.health / 2).toFixed(4));
-    const variant = decodeVariant(stats.variant);
-
-    return { speed, jump, variant, health };
+/** Text-field values for the stat inputs in raw or display units. */
+export function formatStatsForView(
+    speed: number,
+    health: number,
+    jump: number,
+    rawView: boolean,
+): { speed: string; health: string; jump: string } {
+    return {
+        speed: (rawView ? speed : translateStat("speed", speed)).toString(),
+        health: (rawView ? health : translateStat("health", health)).toString(),
+        jump: (rawView ? jump : translateStat("jump", jump)).toString(),
+    };
 }
 
 export function translateStat(field: string, value: number): number {
     switch (field) {
         case "speed":
-            return Number((value * 42.157).toFixed(4));
+            return Number((value * 43.17).toFixed(4));
         case "jump":
-            return Number(((7.56889 * Math.E ** (0.602676 * value)) - 8.59434).toFixed(4));
+            // Quadratic through the documented anchors (raw -> blocks):
+            // 0.4 -> 1.153, 0.7 -> 3.124, 1.0 -> 5.9197. Cross-validated
+            // against in-game observations (raw 0.7634 -> 3.64,
+            // raw 0.7740 -> 3.74, both within 0.01 of prediction).
+            return Number(((4.581667 * value ** 2 + 1.530167 * value - 0.192133)).toFixed(4));
         case "health":
             return Number((value / 2).toFixed(4));
         default:
@@ -61,9 +58,15 @@ export function translateStat(field: string, value: number): number {
 export function untranslateStat(field: string, value: number): number {
     switch (field) {
         case "speed":
-            return Number((value / 42.157));
-        case "jump":
-            return Number((Math.log((value + 8.59434) / 7.56889) / 0.602676));
+            return Number((value / 43.17));
+        case "jump": {
+            // Positive root of 4.581667*j^2 + 1.530167*j - 0.192133 = value.
+            // The parabola's vertex sits at j ~= -0.17, so the curve is
+            // strictly increasing over the whole 0.4-1.0 attribute range
+            // and the positive root is always the right one.
+            const disc = 1.530167 ** 2 - 4 * 4.581667 * (-0.192133 - value);
+            return Number(((-1.530167 + Math.sqrt(Math.max(0, disc))) / (2 * 4.581667)));
+        }
         case "health":
             return Number((value * 2));
         default:

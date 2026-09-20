@@ -1,17 +1,40 @@
 // main type representing a horse
+export type HorseStatus = "Alive" | "Deceased" | "Retired";
+
+/**
+ * Coerces legacy/informal status values to HorseStatus.
+ * Numeric convention: 0 = Deceased, anything else = Alive.
+ * Unrecognized or missing values default to Alive (matches the
+ * historical display behavior, which treated non-zero as alive).
+ */
+export function parseHorseStatus(value: unknown): HorseStatus {
+  if (value === 0 || value === "0") return "Deceased";
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "deceased" || normalized === "dead") return "Deceased";
+    if (normalized === "retired") return "Retired";
+  }
+  // Numbers (other than 0), missing values, and anything unrecognized
+  // default to Alive.
+  return "Alive";
+}
+
 export interface Horse {
   id: string;
-  name: string;
+  firstName: string;
+  familyName: string;
   parentId1?: string;
   parentId2?: string;
   dna: BloodlineMap;
-  status: number;
+  status: HorseStatus;
   speed: number;
   jump: number;
   health: number;
   variant: number;
   generation: number;
   hexColor?: string;
+  /** ISO timestamp of creation (absent on older docs — see getFoundingDate). */
+  createdAt?: string;
 }
 
 export type BloodlineMap = {
@@ -19,10 +42,11 @@ export type BloodlineMap = {
 };
 
 export interface createHorseRequest {
-  name: string;
+  firstName: string;
+  familyName: string;
   parentId1?: string;
   parentId2?: string;
-  status: number;
+  status: HorseStatus;
   speed: number;
   jump: number;
   health: number;
@@ -37,10 +61,11 @@ export interface horseDna {
 }
 
 export interface editHorseRequest {
-  name?: string;
+  firstName?: string;
+  familyName?: string;
   parentId1?: string;
   parentId2?: string;
-  status: number;
+  status: HorseStatus;
   speed: number;
   jump: number;
   health: number;

@@ -1,4 +1,4 @@
-import Button from "@/components/Button/Button";
+import Button from "@/components/Common/Button/Button";
 import * as modalStyles from "../Modals.css";
 
 interface HorseDeleteModalProps {

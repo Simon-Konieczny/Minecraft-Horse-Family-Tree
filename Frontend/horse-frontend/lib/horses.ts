@@ -1,7 +1,71 @@
 import { Collection, Document, ObjectId, WithId } from "mongodb";
-import clientPromise from "./mongodb";
-import { createHorseRequest, editHorseRequest, Horse } from "@/types/horse";
+import { getMongoClient } from "./mongodb";
+import { createHorseRequest, editHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
+import {
+  calculateColorFromDna,
+  countBloodlineReferencesInList,
+  getSurnameFromDna,
+  renameBloodlineInDna,
+  renameBloodlineInFamilyName,
+  type BloodlineReferenceCounts,
+} from "@/utils/genetics/utils";
+import { splitLegacyName } from "@/utils/horseNames";
 import { unstable_noStore as noStore } from "next/cache";
+
+function toNumber(value: unknown): number {
+  const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  return Number.isFinite(n) ? (n as number) : 0;
+}
+
+function toHorse(row: WithId<Document>): Horse {
+  const legacy = splitLegacyName(row.name);
+  return {
+    id: String(row._id).trim(),
+    firstName: row.firstName || legacy.firstName,
+    familyName:
+      row.familyName || getSurnameFromDna(row.dna || {}),
+    parentId1: row.parentId1 || null,
+    parentId2: row.parentId2 || null,
+    status: parseHorseStatus(row.status),
+    speed: toNumber(row.speed),
+    jump: toNumber(row.jump),
+    health: toNumber(row.health),
+    variant: toVariant(row),
+    generation: toNumber(row.generation),
+    hexColor: row.hexColor || "#000000",
+    dna: row.dna || {},
+    createdAt: toISOString(row.createdAt),
+  };
+}
+
+function toVariant(row: Document): number {
+  // Writes use `variant`; older docs may carry `variantId`.
+  return toNumber(row.variant ?? row.variantId);
+}
+
+function toISOString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const parsed = new Date(value as string | number | Date);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
+function isValidId(id: string | undefined | null): id is string {
+  return !!id && ObjectId.isValid(id);
+}
+
+export async function getRecentHorses(limit: number = 10): Promise<Horse[]> {
+  noStore();
+  try {
+    const horses = await getCollection();
+    const data = await horses.find({}).sort({ _id: -1 }).limit(limit).toArray();
+
+    return data.map(toHorse);
+  } catch (error) {
+    console.error("Error fetching recent horses:", error);
+    return [];
+  }
+}
 
 export async function getAllHorses(): Promise<Horse[]> {
   noStore();
@@ -10,20 +74,7 @@ export async function getAllHorses(): Promise<Horse[]> {
 
     const data = await horses.find({}).toArray();
 
-    const horseList: Horse[] = data.map((row: WithId<Document>) => ({
-      id: String(row._id).trim(),
-      name: row.name || "Unknown",
-      parentId1: row.parentId1 || null,
-      parentId2: row.parentId2 || null,
-      status: row.status,
-      speed: parseFloat(row.speed) || 0,
-      jump: parseFloat(row.jump) || 0,
-      health: parseFloat(row.health) || 0,
-      variant: parseFloat(row.variantId) || 0,
-      generation: parseFloat(row.generation) || 0,
-      hexColor: row.hexColor || "#000000",
-      dna: row.dna || {},
-    }));
+    const horseList: Horse[] = data.map(toHorse);
 
     return horseList;
   } catch (error) {
@@ -34,31 +85,17 @@ export async function getAllHorses(): Promise<Horse[]> {
 
 export async function getHorseById(id: string): Promise<Horse | undefined> {
   noStore();
+  // Origin horses have empty parent ids — not an error, just no parent.
+  if (!isValidId(id)) return;
   try {
     const horses = await getCollection();
 
     const response = await horses.findOne({ _id: new ObjectId(id) });
     if (!response) {
-      console.error("Horse not found with ID:", id);
       return;
     }
 
-    const horse: Horse = {
-      id: String(response._id).trim(),
-      name: response.name || "Unknown",
-      parentId1: response.parentId1 || null,
-      parentId2: response.parentId2 || null,
-      status: response.status,
-      speed: parseFloat(response.speed) || 0,
-      jump: parseFloat(response.jump) || 0,
-      health: parseFloat(response.health) || 0,
-      variant: parseFloat(response.variantId) || 0,
-      generation: parseFloat(response.generation) || 0,
-      dna: response.dna || {},
-      hexColor: response.hexColor || "#000000",
-    };
-
-    return horse;
+    return toHorse(response);
   } catch (error) {
     console.error("Error fetching horse by ID", error);
     return;
@@ -67,21 +104,21 @@ export async function getHorseById(id: string): Promise<Horse | undefined> {
 
 export async function createHorse(
   request: createHorseRequest,
-): Promise<string | undefined> {
+): Promise<string> {
   noStore();
-  try {
-    const horses = await getCollection();
+  const horses = await getCollection();
 
-    const response = await horses.insertOne(request);
-    if (!response.acknowledged) {
-      console.error("Error writing to db");
-      return;
-    }
-    return response.insertedId.toString();
+  let response;
+  try {
+    response = await horses.insertOne({ ...request, createdAt: new Date() });
   } catch (error) {
     console.error("Error creating horse", error);
-    return;
+    throw new Error("Could not write horse to MongoDB. Is it running?");
   }
+  if (!response.acknowledged) {
+    throw new Error("MongoDB did not acknowledge the horse write.");
+  }
+  return response.insertedId.toString();
 }
 
 export async function editHorse(
@@ -103,8 +140,7 @@ export async function editHorse(
   }
 }
 
-export async function deleteHorse(id: string): Promise<boolean> {
-  noStore();
+export async function deleteHorse(id: string): Promise<boolean> {  noStore();
   try {
     const horses = await getCollection();
 
@@ -116,13 +152,233 @@ export async function deleteHorse(id: string): Promise<boolean> {
   }
 }
 
+export async function getStablesStats() {
+  noStore();
+  try {
+    const horses = await getCollection();
+    const stats = await horses.aggregate([
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          alive: [{ $match: { status: { $in: ["Alive", "Retired"] } } }, { $count: "count" }],
+          byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+          averages: [
+            {
+              $group: {
+                _id: null,
+                avgSpeed: { $avg: "$speed" },
+                minSpeed: { $min: "$speed" },
+                maxSpeed: { $max: "$speed" },
+                avgJump: { $avg: "$jump" },
+                minJump: { $min: "$jump" },
+                maxJump: { $max: "$jump" },
+                avgHealth: { $avg: "$health" },
+                minHealth: { $min: "$health" },
+                maxHealth: { $max: "$health" },
+              },
+            },
+          ],
+        },
+      },
+    ]).toArray();
+
+    const result = stats[0];
+    // Buckets may hold legacy numeric codes — coerce via parseHorseStatus.
+    const byStatus = { Alive: 0, Deceased: 0, Retired: 0 };
+    for (const bucket of result.byStatus || []) {
+      byStatus[parseHorseStatus(bucket._id)] += bucket.count || 0;
+    }
+    const avg = result.averages[0] || {};
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+    return {
+      total: result.total[0]?.count || 0,
+      alive: result.alive[0]?.count || 0,
+      byStatus,
+      avgSpeed: num(avg.avgSpeed),
+      avgJump: num(avg.avgJump),
+      avgHealth: num(avg.avgHealth),
+      speed: { avg: num(avg.avgSpeed), min: num(avg.minSpeed), max: num(avg.maxSpeed) },
+      jump: { avg: num(avg.avgJump), min: num(avg.minJump), max: num(avg.maxJump) },
+      health: { avg: num(avg.avgHealth), min: num(avg.minHealth), max: num(avg.maxHealth) },
+    };
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    const empty = { avg: 0, min: 0, max: 0 };
+    return {
+      total: 0,
+      alive: 0,
+      byStatus: { Alive: 0, Deceased: 0, Retired: 0 },
+      avgSpeed: 0,
+      avgJump: 0,
+      avgHealth: 0,
+      speed: empty,
+      jump: empty,
+      health: empty,
+    };
+  }
+}
+
+export async function getHorsesByIds(ids: string[]): Promise<Horse[]> {
+  noStore();
+  const validIds = ids.filter(isValidId);
+  if (!validIds.length) return [];
+  try {
+    const horses = await getCollection();
+    const objectIds = validIds.map((id) => new ObjectId(id));
+    const data = await horses.find({ _id: { $in: objectIds } }).toArray();
+    
+    // Map back in the order requested
+    const horseMap = new Map<string, Horse>(
+      data.map((row: WithId<Document>) => {
+        const horse = toHorse(row);
+        return [horse.id, horse];
+      }),
+    );
+
+    return validIds.map(id => horseMap.get(id)).filter((h): h is Horse => !!h);
+  } catch (error) {
+    console.error("Error fetching horses by ids:", error);
+    return [];
+  }
+}
+
+export async function bulkUpdateGenerations(  updates: { id: string; generation: number }[],
+): Promise<void> {
+  noStore();
+  const valid = updates.filter((u) => isValidId(u.id));
+  if (!valid.length) return;
+  const horses = await getCollection();
+  try {
+    await horses.bulkWrite(
+      valid.map((u) => ({
+        updateOne: {
+          filter: { _id: new ObjectId(u.id) },
+          update: { $set: { generation: u.generation } },
+        },
+      })),
+    );
+  } catch (error) {
+    console.error("Error bulk updating generations", error);
+    throw new Error("Could not update descendant generations in MongoDB.");
+  }
+}
+
+/** Distinct family names in the DB, for autocomplete (sorted A–Z). */
+export async function getDistinctFamilyNames(): Promise<string[]> {
+  noStore();
+  try {
+    const horses = await getCollection();
+    const names = await horses.distinct("familyName");
+    return names
+      .filter((n): n is string => typeof n === "string" && n.trim().length > 0)
+      .sort((a, b) => a.localeCompare(b));
+  } catch (error) {
+    console.error("Error fetching family names:", error);
+    return [];
+  }
+}
+
+/**
+ * Renames a bloodline across all horses: DNA keys whose slug matches
+ * `oldName` become `newName` (mixes included — any map holding the key),
+ * and `familyName` values follow per hyphen part ("Emberhoof-Frostmane"
+ * becomes "Inferno-Frostmane"). When `colors` is supplied, affected
+ * horses also get `hexColor` recalculated via calculateColorFromDna.
+ * Returns the number of horses changed.
+ */
+export async function renameBloodlineInHorses(
+  oldName: string,
+  newName: string,
+  colors?: Record<string, string>,
+): Promise<number> {
+  noStore();
+  const horses = await getCollection();
+  const docs = await horses.find({}).toArray();
+
+  const ops = [];
+  for (const doc of docs) {
+    const dna = (doc.dna || {}) as Record<string, number>;
+    const nextDna = renameBloodlineInDna(dna, oldName, newName);
+    const family = renameBloodlineInFamilyName(
+      doc.familyName,
+      oldName,
+      newName,
+    );
+    if (nextDna || family !== undefined) {
+      const effectiveDna = nextDna || dna;
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: {
+            $set: {
+              ...(nextDna ? { dna: nextDna } : {}),
+              ...(family !== undefined ? { familyName: family } : {}),
+              ...(colors ? { hexColor: calculateColorFromDna(effectiveDna, colors) } : {}),
+            },
+          },
+        },
+      });
+    }
+  }
+  if (ops.length === 0) return 0;
+  try {
+    const result = await horses.bulkWrite(ops);
+    return result.modifiedCount;
+  } catch (error) {
+    console.error("Error renaming bloodline in horses", error);
+    throw new Error("Could not rename bloodline in horse records.");
+  }
+}
+
+/**
+ * Recalculates stored `hexColor` for every horse whose DNA references
+ * `bloodlineName` (slug-compared): pure founders resolve to the flat
+ * registry color, mixes re-blend via calculateColorFromDna.
+ * Returns the number of horses changed.
+ */
+export async function recalcColorsForBloodline(
+  bloodlineName: string,
+  colors: Record<string, string>,
+): Promise<number> {
+  noStore();
+  const slug = bloodlineSlug(bloodlineName);
+  const horses = await getCollection();
+  const docs = await horses.find({}).toArray();
+
+  const ops = [];
+  for (const doc of docs) {
+    const dna = (doc.dna || {}) as Record<string, number>;
+    if (!Object.keys(dna).some((k) => bloodlineSlug(k) === slug)) continue;
+    ops.push({
+      updateOne: {
+        filter: { _id: doc._id },
+        update: { $set: { hexColor: calculateColorFromDna(dna, colors) } },
+      },
+    });
+  }
+  if (ops.length === 0) return 0;
+  try {
+    const result = await horses.bulkWrite(ops);
+    return result.modifiedCount;
+  } catch (error) {
+    console.error("Error recalculating horse colors", error);
+    throw new Error("Could not update horse colors in horse records.");
+  }
+}
+
+export type { BloodlineReferenceCounts };
+export { countBloodlineReferencesInList };
+
 async function getCollection(): Promise<Collection<Document>> {
   const db_name = process.env.DB_NAME;
   const collection_name = process.env.COLLECTION_NAME;
   if (!db_name || !collection_name)
-    throw new Error("Database or Collection not set");
+    throw new Error(
+      'DB_NAME or COLLECTION_NAME not set. For host dev copy .env.example to .env.local; ' +
+        "in Docker they come from docker-compose.yml.",
+    );
 
-  const client = await clientPromise;
+  const client = await getMongoClient();
   const db = client.db(db_name);
   const horses = db.collection(collection_name);
   if (!horses) throw new Error("Collection not found");

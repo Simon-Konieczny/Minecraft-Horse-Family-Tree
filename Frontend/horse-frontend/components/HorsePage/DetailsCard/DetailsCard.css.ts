@@ -1,93 +1,97 @@
 import { style, globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
 
 export const detailsSection = style({
-  backgroundColor: "white",
-  border: "1px solid #e5e0d8",
-  borderRadius: "8px",
-  padding: "32px",
-  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+  backgroundColor: vars.color.secondary,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.md,
+  padding: vars.spacing.xl,
+  boxShadow: vars.shadow.sm,
 });
 
 export const lineageSection = style({
-  marginTop: "32px",
+  marginTop: vars.spacing.xl,
 });
 
 export const parentGrid = style({
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "16px",
-  marginTop: "12px",
+  gap: vars.spacing.md,
+  marginTop: vars.spacing.sm,
 });
 
 export const parentBox = style({
-  padding: "16px",
-  backgroundColor: "#fcfaf7",
-  border: "1px solid #e5e0d8",
-  borderRadius: "8px",
+  padding: vars.spacing.md,
+  backgroundColor: vars.color.parchmentDeep,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.md,
   transition: "border-color 0.2s ease",
   selectors: {
-    '&[data-gender="sire"]': { borderLeft: "6px solid #3b82f6" },
-    '&[data-gender="dam"]': { borderLeft: "6px solid #ec4899" },
+    '&[data-gender="sire"]': { borderLeft: `6px solid #3b82f6` },
+    '&[data-gender="dam"]': { borderLeft: `6px solid #ec4899` },
   },
 });
 
 export const parentLabel = style({
   display: "block",
-  fontSize: "11px",
+  fontSize: vars.fontSize.xs,
   textTransform: "uppercase",
-  color: "#64748b",
-  fontWeight: 800,
-  marginBottom: "6px",
-  letterSpacing: "0.05em",
+  color: vars.color.inkSoft,
+  fontWeight: vars.fontWeight.extrabold,
+  marginBottom: vars.spacing.xs,
+  letterSpacing: "0.08em",
+  fontFamily: vars.font.display,
 });
 
 export const parentName = style({
-  fontSize: "16px",
-  fontWeight: 600,
-  color: "#334155",
+  fontSize: vars.fontSize.lg,
+  fontWeight: vars.fontWeight.semibold,
+  color: vars.color.ink,
   margin: 0,
+  fontFamily: vars.font.display,
 });
 
 export const divider = style({
   border: 0,
-  borderTop: "2px dashed #e5e0d8",
-  margin: "32px 0",
+  borderTop: `2px dashed ${vars.color.goldSoft}`,
+  margin: `${vars.spacing.xl} 0`,
 });
 
 export const bloodlineWrapper = style({
-  marginTop: "8px",
+  marginTop: vars.spacing.sm,
 });
 
 export const sectionTitle = style({
-  fontSize: "14px",
+  fontSize: vars.fontSize.sm,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
-  fontWeight: 800,
-  color: "#475569",
-  marginBottom: "16px",
+  letterSpacing: "0.12em",
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.inkSoft,
+  marginBottom: vars.spacing.md,
+  fontFamily: vars.font.display,
 });
 
 export const detailRow = style({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "16px 0",
-  fontSize: "15px",
-  borderBottom: "1px solid #f1f1f1",
+  padding: `${vars.spacing.md} 0`,
+  fontSize: vars.fontSize.md,
+  borderBottom: `1px solid ${vars.color.secondary}`,
 });
 
 // Target the 'strong' tag inside 'detailRow'
 globalStyle(`${detailRow} strong`, {
-  color: "#1e293b",
-  fontWeight: 700,
+  color: vars.color.textMain,
+  fontWeight: vars.fontWeight.bold,
 });
 
 // Target the 'span' tag inside 'detailRow'
 globalStyle(`${detailRow} span`, {
-  color: "#334155",
-  fontWeight: 500,
-  backgroundColor: "#f8fafc",
+  color: vars.color.textMain,
+  fontWeight: vars.fontWeight.medium,
+  backgroundColor: vars.color.secondary,
   padding: "4px 12px",
-  borderRadius: "6px",
-  border: "1px solid #e2e8f0",
+  borderRadius: vars.borderRadius.sm,
+  border: `1px solid ${vars.color.border}`,
 });

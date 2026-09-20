@@ -1,35 +1,48 @@
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme.css";
 
 export const container = style({
   display: "flex",
   flexDirection: "column",
-  margin: 10,
-  padding: 10,
-  borderRadius: 8,
-  gap: "10px"
+  gap: vars.spacing.md,
 });
 
 export const field = style({
-  maxHeight: 40,
-  maxWidth: 300,
+  width: "100%",
 });
 
 export const fields = style({
   display: "flex",
   flexDirection: "column",
-  gap: "8px",
+  gap: vars.spacing.md,
 });
 
 export const nameField = style({
-  maxHeight: 40,
-  maxWidth: 300,
-  borderRadius: "3spx",
-  borderWidth: "1px",
-  borderColor: "grey",
+  width: "120px",
+  padding: vars.spacing.sm,
+  borderRadius: vars.borderRadius.sm,
+  border: `1px solid ${vars.color.border}`,
+  fontSize: vars.fontSize.sm,
+  fontFamily: vars.font.main,
+  ":focus": {
+    outline: "none",
+    borderColor: vars.color.primary,
+  },
 });
 
 export const nameRow = style({
   display: "flex",
+  width: "100%",
   flexDirection: "row",
   justifyContent: "space-between",
+  alignItems: "center",
+  margin: `${vars.spacing.xs} 0`,
+});
+
+export const label = style({
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  fontSize: vars.fontSize.xs,
+  fontWeight: vars.fontWeight.extrabold,
+  color: vars.color.primary,
 });
