@@ -1,12 +1,20 @@
 import { MongoClient } from "mongodb";
 
+/** Hint appended to missing-env errors (same wording everywhere). */
+export const ENV_HINT =
+  "For host dev copy Frontend/horse-frontend/.env.example to .env.local; " +
+  "in Docker it is provided by docker-compose.yml.";
+
+/** Uniform "Mongo is down" error. Pass the action, e.g. "save horse". */
+export function mongoUnavailable(action: string): Error {
+  return new Error(`Could not ${action}. Is MongoDB running?`);
+}
+
 function getUri(): string {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error(
-      'Invalid/Missing environment variable: "MONGODB_URI". ' +
-        'For host dev copy Frontend/horse-frontend/.env.example to .env.local; ' +
-        "in Docker it is provided by docker-compose.yml.",
+      'Invalid/Missing environment variable: "MONGODB_URI". ' + ENV_HINT,
     );
   }
   return uri;

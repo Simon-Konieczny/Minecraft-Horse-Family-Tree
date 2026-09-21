@@ -1,6 +1,6 @@
 import { Collection, Document, ObjectId, WithId } from "mongodb";
-import { getMongoClient } from "./mongodb";
-import { createHorseRequest, editHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
+import { getMongoClient, mongoUnavailable, ENV_HINT } from "./mongodb";
+import { CreateHorseRequest, EditHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
 import {
   calculateColorFromDna,
@@ -103,7 +103,7 @@ export async function getHorseById(id: string): Promise<Horse | undefined> {
 }
 
 export async function createHorse(
-  request: createHorseRequest,
+  request: CreateHorseRequest,
 ): Promise<string> {
   noStore();
   const horses = await getCollection();
@@ -113,7 +113,7 @@ export async function createHorse(
     response = await horses.insertOne({ ...request, createdAt: new Date() });
   } catch (error) {
     console.error("Error creating horse", error);
-    throw new Error("Could not write horse to MongoDB. Is it running?");
+    throw mongoUnavailable("save horse");
   }
   if (!response.acknowledged) {
     throw new Error("MongoDB did not acknowledge the horse write.");
@@ -123,7 +123,7 @@ export async function createHorse(
 
 export async function editHorse(
   id: string,
-  request: editHorseRequest,
+  request: EditHorseRequest,
 ): Promise<string | undefined> {
   noStore();
   try {
@@ -263,21 +263,6 @@ export async function bulkUpdateGenerations(  updates: { id: string; generation:
   }
 }
 
-/** Distinct family names in the DB, for autocomplete (sorted A–Z). */
-export async function getDistinctFamilyNames(): Promise<string[]> {
-  noStore();
-  try {
-    const horses = await getCollection();
-    const names = await horses.distinct("familyName");
-    return names
-      .filter((n): n is string => typeof n === "string" && n.trim().length > 0)
-      .sort((a, b) => a.localeCompare(b));
-  } catch (error) {
-    console.error("Error fetching family names:", error);
-    return [];
-  }
-}
-
 /**
  * Renames a bloodline across all horses: DNA keys whose slug matches
  * `oldName` become `newName` (mixes included — any map holding the key),
@@ -370,17 +355,14 @@ export type { BloodlineReferenceCounts };
 export { countBloodlineReferencesInList };
 
 async function getCollection(): Promise<Collection<Document>> {
-  const db_name = process.env.DB_NAME;
-  const collection_name = process.env.COLLECTION_NAME;
-  if (!db_name || !collection_name)
-    throw new Error(
-      'DB_NAME or COLLECTION_NAME not set. For host dev copy .env.example to .env.local; ' +
-        "in Docker they come from docker-compose.yml.",
-    );
+  const dbName = process.env.DB_NAME;
+  const collectionName = process.env.COLLECTION_NAME;
+  if (!dbName || !collectionName)
+    throw new Error("DB_NAME or COLLECTION_NAME not set. " + ENV_HINT);
 
   const client = await getMongoClient();
-  const db = client.db(db_name);
-  const horses = db.collection(collection_name);
+  const db = client.db(dbName);
+  const horses = db.collection(collectionName);
   if (!horses) throw new Error("Collection not found");
   return horses;
 }

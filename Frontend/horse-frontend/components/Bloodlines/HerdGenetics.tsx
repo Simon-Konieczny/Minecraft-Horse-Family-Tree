@@ -7,7 +7,7 @@ import {
   sharesByGeneration,
 } from "@/utils/analytics";
 import { getHorseFullName } from "@/utils/horseNames";
-import { bloodlineSlug } from "@/utils/bloodlineValidation";
+import { bloodlineSlug, FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import {
   Bars,
   ChartCard,
@@ -44,7 +44,7 @@ export default function HerdGenetics({
     }
   }
 
-  const colorFor = (name: string) => colors[name] || "#94a3b8";
+  const colorFor = (name: string) => colors[name] || FALLBACK_HEX_COLOR;
 
   return (
     <section style={{ marginTop: 40 }}>

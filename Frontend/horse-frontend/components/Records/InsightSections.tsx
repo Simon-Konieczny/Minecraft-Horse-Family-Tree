@@ -12,6 +12,7 @@ import type {
   VariantUnlockHint,
 } from "@/utils/herdInsights";
 import { getVariantName } from "@/utils/variant";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import { ChartCard, TrendLine } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 
@@ -227,7 +228,7 @@ export function UntriedCrossesCard({
         width: 10,
         height: 10,
         borderRadius: 3,
-        backgroundColor: colors[b] || "#94a3b8",
+        backgroundColor: colors[b] || FALLBACK_HEX_COLOR,
         marginRight: 4,
       }}
     />

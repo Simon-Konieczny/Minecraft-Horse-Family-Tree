@@ -1,7 +1,7 @@
 "use server";
 
 import { bulkUpdateGenerations, editHorse, getAllHorses, getHorseById } from "@/lib/horses";
-import { Horse, editHorseRequest } from "@/types/horse";
+import { Horse, EditHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
 import { resolveOriginBlood } from "@/utils/genetics/utils";
 import { getDescendantIds, validatePairing, validateParents } from "@/utils/lineage";
@@ -45,7 +45,7 @@ export default async function editHorseAction(
   );
 
 
-  const data: editHorseRequest = {
+  const data: EditHorseRequest = {
     firstName: formData.firstName,
     familyName: formData.familyName,
     parentId1: formData.parentId1,

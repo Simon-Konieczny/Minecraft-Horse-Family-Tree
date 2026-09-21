@@ -6,6 +6,7 @@ import { searchHorses } from "@/utils/horseSearch";
 import type { FamilyCount } from "@/utils/studbook";
 import type { Horse, HorseStatus } from "@/types/horse";
 import { getHorseFullName } from "@/utils/horseNames";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import * as styles from "./ViewMenu.css";
 import { setCookie } from "cookies-next";
 import { useReactFlow } from "@xyflow/react";
@@ -463,7 +464,7 @@ export default function ViewMenu({
                   />
                     <span
                       className={styles.checkDot}
-                      style={{ backgroundColor: colors[f.family] || "#94a3b8" }}
+                      style={{ backgroundColor: colors[f.family] || FALLBACK_HEX_COLOR }}
                     />
                     {f.family} ({f.count})
                   </label>

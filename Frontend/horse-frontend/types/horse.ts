@@ -41,7 +41,7 @@ export type BloodlineMap = {
   [key: string]: number;
 };
 
-export interface createHorseRequest {
+export interface CreateHorseRequest {
   firstName: string;
   familyName: string;
   parentId1?: string;
@@ -53,14 +53,10 @@ export interface createHorseRequest {
   variant: number;
   hexColor: string;
   generation: number;
-  dna: horseDna;
+  dna: BloodlineMap;
 }
 
-export interface horseDna {
-    [key: string]: number;
-}
-
-export interface editHorseRequest {
+export interface EditHorseRequest {
   firstName?: string;
   familyName?: string;
   parentId1?: string;
@@ -72,11 +68,5 @@ export interface editHorseRequest {
   variant: number;
   hexColor: string;
   generation: number;
-  dna: horseDna;
-}
-
-// type used in the home page nodes
-export interface HorseNodeData {
-  labels: string;
-  horse: Horse;
+  dna: BloodlineMap;
 }

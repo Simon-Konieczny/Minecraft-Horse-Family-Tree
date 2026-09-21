@@ -1,5 +1,5 @@
 import { Collection } from "mongodb";
-import { getMongoClient } from "./mongodb";
+import { getMongoClient, mongoUnavailable, ENV_HINT } from "./mongodb";
 import { unstable_noStore as noStore } from "next/cache";
 
 /** Mongo collection for settings. Configurable via env, defaults to "settings". */
@@ -52,18 +52,14 @@ export async function setBreedingSettings(
     );
   } catch (error) {
     console.error("Error saving breeding settings", error);
-    throw new Error("Could not save breeding rule. Is MongoDB running?");
+    throw mongoUnavailable("save breeding rule");
   }
   return settings;
 }
 
 async function getSettingsCollection(): Promise<Collection<BreedingSettingsDoc>> {
   const dbName = process.env.DB_NAME;
-  if (!dbName)
-    throw new Error(
-      "DB_NAME not set. For host dev copy .env.example to .env.local; " +
-        "in Docker it comes from docker-compose.yml.",
-    );
+  if (!dbName) throw new Error("DB_NAME not set. " + ENV_HINT);
   const client = await getMongoClient();
   return client.db(dbName).collection(getSettingsCollectionName());
 }

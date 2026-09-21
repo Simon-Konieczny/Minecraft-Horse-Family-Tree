@@ -1,7 +1,7 @@
 "use server";
 import { createHorseData } from "@/components/Modals/HorseCreateModal/HorseCreateModal";
 import { createHorse, getAllHorses, getHorseById } from "@/lib/horses";
-import { createHorseRequest } from "@/types/horse";
+import { CreateHorseRequest } from "@/types/horse";
 import { processNewHorseGenetics } from "@/utils/genetics/service";
 import { getSurnameFromDna, resolveOriginBlood } from "@/utils/genetics/utils";
 import { getHorseFullName } from "@/utils/horseNames";
@@ -63,7 +63,7 @@ export default async function createHorseAction(formData: createHorseData) {
   const familyName =
     typedFamily || getSurnameFromDna(dna);
 
-  const data: createHorseRequest = {
+  const data: CreateHorseRequest = {
     firstName,
     familyName,
     parentId1: formData.parentId1 as string,

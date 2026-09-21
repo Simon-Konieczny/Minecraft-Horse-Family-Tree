@@ -4,6 +4,7 @@ import { useDeferredValue, useMemo, useRef, useState } from "react";
 import type { Horse } from "@/types/horse";
 import { getHorseFullName } from "@/utils/horseNames";
 import { searchHorses } from "@/utils/horseSearch";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import * as styles from "./SearchBar.css";
 
 const RESULT_LIMIT = 8;
@@ -109,7 +110,7 @@ export default function SearchBar({ horses, colors, onPick }: SearchBarProps) {
               >
                 <span
                   className={styles.dot}
-                  style={{ backgroundColor: hit.horse.hexColor || colors[hit.horse.familyName] || "#94a3b8" }}
+                  style={{ backgroundColor: hit.horse.hexColor || colors[hit.horse.familyName] || FALLBACK_HEX_COLOR }}
                 />
                 <span>{name}</span>
                 <span className={styles.optionMeta}>

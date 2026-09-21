@@ -26,6 +26,7 @@ import {
 } from "@/utils/analytics";
 import Link from "next/link";
 import { getHorseFullName } from "@/utils/horseNames";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import { getActiveHerd, ACTIVE_SPEED_COUNT, ACTIVE_JUMP_COUNT, ACTIVE_HEALTH_COUNT } from "@/utils/activeHerd";
 import {
   bubbleWatch,
@@ -215,7 +216,7 @@ export default function RecordsView({
     return {
       x: translateStat("speed", h.speed),
       y: translateStat("jump", h.jump),
-      color: (dominant && colors[dominant]) || "#94a3b8",
+      color: (dominant && colors[dominant]) || FALLBACK_HEX_COLOR,
       label: `${getHorseFullName(h)} — ${translateStat("speed", h.speed).toFixed(2)} m/s, ${translateStat("jump", h.jump).toFixed(2)} blocks`,
     };
   });
@@ -482,7 +483,7 @@ export default function RecordsView({
         return {
           x: translateStat(xf, h[xf]),
           y: translateStat(yf, h[yf]),
-          color: (dominant && colors[dominant]) || "#94a3b8",
+          color: (dominant && colors[dominant]) || FALLBACK_HEX_COLOR,
           label: getHorseFullName(h),
         };
       });
@@ -771,7 +772,7 @@ export default function RecordsView({
                           width: 12,
                           height: 12,
                           borderRadius: 3,
-                          backgroundColor: colors[s.bloodline] || "#94a3b8",
+                          backgroundColor: colors[s.bloodline] || FALLBACK_HEX_COLOR,
                           flexShrink: 0,
                         }}
                       />
@@ -791,7 +792,7 @@ export default function RecordsView({
                             display: "block",
                             height: "100%",
                             width: `${pct}%`,
-                            backgroundColor: colors[s.bloodline] || "#94a3b8",
+                            backgroundColor: colors[s.bloodline] || FALLBACK_HEX_COLOR,
                             borderRadius: 9999,
                           }}
                         />
@@ -856,7 +857,7 @@ export default function RecordsView({
                           width: 10,
                           height: 10,
                           borderRadius: 3,
-                          backgroundColor: colors[c.bloodline] || "#94a3b8",
+                          backgroundColor: colors[c.bloodline] || FALLBACK_HEX_COLOR,
                           marginRight: 6,
                         }}
                       />
@@ -1275,7 +1276,7 @@ export default function RecordsView({
                             width: 10,
                             height: 10,
                             borderRadius: 3,
-                            backgroundColor: colors[b] || "#94a3b8",
+                            backgroundColor: colors[b] || FALLBACK_HEX_COLOR,
                             marginRight: 6,
                           }}
                         />

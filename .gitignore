@@ -2,4 +2,10 @@
 !Frontend/horse-frontend/public/images/horses/*.webp
 */.next/
 .env.local
-./node_modules
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+repomix-output*.xml
+*.log
+.DS_Store

@@ -20,6 +20,7 @@ import { getCookie, setCookie } from "cookies-next";
 import { getBaseLayout, getFamilyLaneLayout, getLineageLayout, getSortLayout, NodeDensity, type Orientation } from "@/utils/layout";
 import { getAncestorIds, getDescendantIds } from "@/utils/lineage";
 import { calculateColorFromDna } from "@/utils/genetics/utils";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import { dominantBloodline } from "@/utils/analytics";
 import { getHorseFullName } from "@/utils/horseNames";
 import { disambiguatedFirstNames, effectiveFamilies, familiesWithCounts } from "@/utils/studbook";
@@ -138,7 +139,7 @@ function TreeContent({
         map.set(h.id, calculateColorFromDna(h.dna || {}, colors));
       } else {
         const dom = dominantBloodline(h.dna);
-        map.set(h.id, (dom && colors[dom]) || "#94a3b8");
+        map.set(h.id, (dom && colors[dom]) || FALLBACK_HEX_COLOR);
       }
     }
     return map;
@@ -595,7 +596,7 @@ function TreeContent({
                 <span key={f.family} className={styles.legendRow}>
                   <span
                     className={styles.legendSwatch}
-                    style={{ backgroundColor: colors[f.family] || "#94a3b8" }}
+                    style={{ backgroundColor: colors[f.family] || FALLBACK_HEX_COLOR }}
                   />
                   {f.family} · {f.count}
                 </span>

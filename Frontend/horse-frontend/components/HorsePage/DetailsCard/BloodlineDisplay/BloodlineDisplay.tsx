@@ -1,11 +1,12 @@
 "use client";
-import { horseDna } from "@/types/horse";
+import { BloodlineMap } from "@/types/horse";
 import { getPurityTier } from "@/utils/genetics/utils";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import { useBloodlineColors } from "@/components/Bloodlines/BloodlineProvider";
 import * as styles from "./BloodlineDisplay.css";
 
 interface BloodlineDisplayProps {
-  dna: horseDna;
+  dna: BloodlineMap;
 }
 
 export function BloodlineDisplay({ dna }: BloodlineDisplayProps) {
@@ -26,7 +27,7 @@ export function BloodlineDisplay({ dna }: BloodlineDisplayProps) {
       </span>
       <div className={styles.bloodlineList}>
         {sorted.map(([name, percent]) => {
-          const color = bloodlineColors[name] || "#94a3b8";
+          const color = bloodlineColors[name] || FALLBACK_HEX_COLOR;
           const percentageValue = (percent * 100).toFixed(1);
           const width = `${percentageValue}%`;
 

@@ -16,6 +16,9 @@ export function isValidHex(hex: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(hex);
 }
 
+/** Fallback swatch when a bloodline has no registered color. */
+export const FALLBACK_HEX_COLOR = "#94a3b8";
+
 /**
  * Normalizes a typed hex draft for the strict #rrggbb registry format:
  * trims whitespace and uppercases. Returns the normalized value when it

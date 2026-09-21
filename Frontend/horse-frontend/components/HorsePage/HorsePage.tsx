@@ -19,6 +19,7 @@ import { getHorseFullName } from "@/utils/horseNames";
 import { getActiveHerd, getSuggestedHousing } from "@/utils/activeHerd";
 import { useMemo } from "react";
 import { Folio } from "@/components/Book/Book";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 
 export default function HorsePage({
   horse,
@@ -128,7 +129,7 @@ export default function HorsePage({
     .map(([bloodline, weight]) => ({
       label: bloodline,
       value: Math.round(weight * 100) / 100,
-      color: colors[bloodline] || "#94a3b8",
+      color: colors[bloodline] || FALLBACK_HEX_COLOR,
     }))
     .sort((a, b) => b.value - a.value);
 

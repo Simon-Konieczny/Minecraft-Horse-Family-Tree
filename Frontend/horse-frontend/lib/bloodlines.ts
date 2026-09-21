@@ -1,5 +1,5 @@
 import { Collection } from "mongodb";
-import { getMongoClient } from "./mongodb";
+import { getMongoClient, mongoUnavailable, ENV_HINT } from "./mongodb";
 import {
   countBloodlineReferencesInList,
   getAllHorses,
@@ -99,7 +99,7 @@ export async function addBloodline(input: Bloodline): Promise<Bloodline> {
     await collection.insertOne({ _id: bloodlineSlug(name), name, hexColor, ...(theme ? { theme } : {}) });
   } catch (error) {
     console.error("Error adding bloodline", error);
-    throw new Error("Could not save bloodline. Is MongoDB running?");
+    throw mongoUnavailable("save bloodline");
   }
   return bloodline;
 }
@@ -244,11 +244,7 @@ async function countReferences(id: string): Promise<number> {
 
 async function getBloodlinesCollection(): Promise<Collection<BloodlineDoc>> {
   const dbName = process.env.DB_NAME;
-  if (!dbName)
-    throw new Error(
-      "DB_NAME not set. For host dev copy .env.example to .env.local; " +
-        "in Docker it comes from docker-compose.yml.",
-    );
+  if (!dbName) throw new Error("DB_NAME not set. " + ENV_HINT);
   const client = await getMongoClient();
   // Note: no explicit index setup — _id is uniquely indexed by Mongo
   // itself (an explicit createIndex({_id: 1}) call throws here).

@@ -1,4 +1,5 @@
 import * as styles from "./Charts.css";
+import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 
 export function ChartCard({
   title,
@@ -327,7 +328,7 @@ export function StackedArea({
           <path
             key={name}
             d={pathFor(ni)}
-            fill={colors[name] || "#94a3b8"}
+            fill={colors[name] || FALLBACK_HEX_COLOR}
             opacity={0.85}
             stroke="#f4ecd9"
             strokeWidth={1}
@@ -350,7 +351,7 @@ export function StackedArea({
           <span key={name} className={styles.legendRow}>
             <span
               className={styles.legendSwatch}
-              style={{ backgroundColor: colors[name] || "#94a3b8" }}
+              style={{ backgroundColor: colors[name] || FALLBACK_HEX_COLOR }}
             />
             {name}
           </span>
@@ -471,7 +472,7 @@ export function TrendLine({
         <path
           d={`M${compare.points.map((p, i) => `${x(i)},${y(p.value)}`).join(" L")}`}
           fill="none"
-          stroke="#94a3b8"
+          stroke={FALLBACK_HEX_COLOR}
           strokeWidth={2}
           strokeDasharray="6 4"
         >
