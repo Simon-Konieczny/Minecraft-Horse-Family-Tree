@@ -1,9 +1,7 @@
 import type { Horse } from "@/types/horse";
-// Relative runtime imports: vitest has no "@" alias configured.
-// Type-only "@" imports above are erased at compile time.
-import { getHorseFullName } from "./horseNames";
-import { effectiveFamilies } from "./studbook";
-import { translateStat } from "./translateRawStats";
+import { getHorseFullName } from "@/utils/horseNames";
+import { effectiveFamilies } from "@/utils/studbook";
+import { translateStat } from "@/utils/translateRawStats";
 
 export type SearchStatField = "speed" | "jump" | "health";
 export type SearchOperator = ">" | ">=" | "<" | "<=" | "=" | ":";

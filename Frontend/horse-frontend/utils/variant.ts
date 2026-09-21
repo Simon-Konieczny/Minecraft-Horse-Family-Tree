@@ -19,6 +19,18 @@ export const patterns: Record<number, string> = {
 export const VARIANT_COLOR_COUNT = 7;
 export const VARIANT_PATTERN_COUNT = 5;
 
+/** Total distinct coat variants (colors × patterns). */
+export const VARIANT_TOTAL = VARIANT_COLOR_COUNT * VARIANT_PATTERN_COUNT;
+
+/** Color id (0-6) encoded in a variant id. */
+export const variantColorOf = (variantId: number): number => variantId % 256;
+/** Pattern id (0-4) encoded in a variant id. */
+export const variantPatternOf = (variantId: number): number =>
+  Math.floor(variantId / 256);
+/** Variant id for a color + pattern pair. Inverse of the two above. */
+export const variantIdOf = (color: number, pattern: number): number =>
+  color + pattern * 256;
+
 /**
  * Canonical create/edit order (color-major): White + its 5 patterns,
  * then Creamy + its 5, and so on. Variant id = color + pattern * 256.

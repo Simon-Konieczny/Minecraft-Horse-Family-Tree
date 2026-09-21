@@ -1,13 +1,15 @@
 import { Collection } from "mongodb";
 import { getMongoClient, mongoUnavailable, ENV_HINT } from "./mongodb";
 import {
-  countBloodlineReferencesInList,
   getAllHorses,
   recalcColorsForBloodline,
   renameBloodlineInHorses,
   type BloodlineReferenceCounts,
 } from "./horses";
-import { BLOODLINE_COLORS } from "@/utils/genetics/utils";
+import {
+  BLOODLINE_COLORS,
+  countBloodlineReferencesInList,
+} from "@/utils/genetics/utils";
 import {
   bloodlineSlug,
   isValidHex,

@@ -1,7 +1,5 @@
 import { Horse } from "@/types/horse";
-// Relative import: vitest has no "@" alias configured, and this is a
-// runtime (value) import (same reason as in genetics/utils.ts).
-import { getHorseFullName } from "./horseNames";
+import { getHorseFullName } from "@/utils/horseNames";
 
 export interface ParentIds {
   parentId1?: string | null;

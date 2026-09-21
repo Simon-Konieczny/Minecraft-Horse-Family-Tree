@@ -201,13 +201,25 @@ export function untriedBloodlineCrosses(
   );
 }
 
-export const VARIANT_COLORS = 7;
-export const VARIANT_PATTERNS = 5;
-export const VARIANT_TOTAL = VARIANT_COLORS * VARIANT_PATTERNS;
+import {
+  VARIANT_COLOR_COUNT as VARIANT_COLORS,
+  VARIANT_PATTERN_COUNT as VARIANT_PATTERNS,
+  VARIANT_TOTAL,
+  variantColorOf,
+  variantIdOf,
+  variantPatternOf,
+} from "./variant";
 
-export const variantColorOf = (v: number) => v % 256;
-export const variantPatternOf = (v: number) => Math.floor(v / 256);
-export const variantIdOf = (color: number, pattern: number) => color + pattern * 256;
+// Single-source variant math lives in ./variant; re-exported here so
+// existing importers keep working.
+export {
+  VARIANT_COLORS,
+  VARIANT_PATTERNS,
+  VARIANT_TOTAL,
+  variantColorOf,
+  variantIdOf,
+  variantPatternOf,
+};
 
 export interface VariantUnlockHint {
   missingVariant: number;

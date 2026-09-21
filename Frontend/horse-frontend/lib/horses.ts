@@ -4,7 +4,6 @@ import { CreateHorseRequest, EditHorseRequest, Horse, parseHorseStatus } from "@
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
 import {
   calculateColorFromDna,
-  countBloodlineReferencesInList,
   getSurnameFromDna,
   renameBloodlineInDna,
   renameBloodlineInFamilyName,
@@ -352,7 +351,6 @@ export async function recalcColorsForBloodline(
 }
 
 export type { BloodlineReferenceCounts };
-export { countBloodlineReferencesInList };
 
 async function getCollection(): Promise<Collection<Document>> {
   const dbName = process.env.DB_NAME;

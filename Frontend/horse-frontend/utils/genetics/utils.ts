@@ -1,7 +1,5 @@
 import { BloodlineMap } from "@/types/horse";
-// Relative import: vitest has no "@" alias configured, and this is a
-// runtime (value) import, unlike the type-only import above.
-import { bloodlineSlug } from "../bloodlineValidation";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
 
 export const BLOODLINE_COLORS: Record<string, string> = {
   "Star Strider": "#000066",
