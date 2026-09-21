@@ -37,6 +37,8 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017
       - DB_NAME=horse
       - COLLECTION_NAME=horse
+      - BLOODLINES_COLLECTION_NAME=bloodlines
+      - SETTINGS_COLLECTION_NAME=settings
     depends_on:
       mongodb:
         condition: service_healthy

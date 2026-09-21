@@ -2,7 +2,11 @@ import { Collection } from "mongodb";
 import { getMongoClient } from "./mongodb";
 import { unstable_noStore as noStore } from "next/cache";
 
-const SETTINGS_COLLECTION = "settings";
+/** Mongo collection for settings. Configurable via env, defaults to "settings". */
+function getSettingsCollectionName(): string {
+  const name = process.env.SETTINGS_COLLECTION_NAME?.trim();
+  return name ? name : "settings";
+}
 const BREEDING_SETTINGS_ID = "breeding";
 
 export interface BreedingSettings {
@@ -61,5 +65,5 @@ async function getSettingsCollection(): Promise<Collection<BreedingSettingsDoc>>
         "in Docker it comes from docker-compose.yml.",
     );
   const client = await getMongoClient();
-  return client.db(dbName).collection(SETTINGS_COLLECTION);
+  return client.db(dbName).collection(getSettingsCollectionName());
 }
