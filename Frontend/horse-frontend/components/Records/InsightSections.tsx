@@ -14,7 +14,7 @@ import type {
 import { getVariantName } from "@/utils/variant";
 import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import { vars } from "@/styles/theme.css";
-import { ChartCard, TrendLine } from "@/components/Charts/Charts";
+import { ChartCard, Bars, Donut, TrendLine } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 
 const FIELD_META = {
@@ -330,6 +330,13 @@ export function FounderCard({
   }
   return (
     <ChartCard title="Founder Legacy — who built the herd">
+      <Bars
+        rows={top.slice(0, 8).map((r) => ({
+          label: nameOf(r.founderId),
+          value: r.activeDescendants,
+          displayValue: `${r.activeDescendants} active / ${r.livingDescendants} living`,
+        }))}
+      />
       <table className={chartStyles.ledgerTable}>
         <thead>
           <tr>
@@ -482,6 +489,13 @@ export function DeadAliveCard({ split }: { split: AliveDeadSplit }) {
       <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
         Living averages against all deceased history (deltas vs deceased).
       </p>
+      <Donut
+        segments={[
+          { label: `Living (${split.living.n})`, value: split.living.n, color: vars.color.primary },
+          { label: `Deceased (${split.deceased.n})`, value: split.deceased.n, color: vars.color.wax },
+        ]}
+        centerLabel={`${split.living.n + split.deceased.n} horses`}
+      />
       <table className={chartStyles.ledgerTable}>
         <thead>
           <tr>

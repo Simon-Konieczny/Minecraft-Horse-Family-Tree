@@ -3,6 +3,7 @@ import { vars } from "@/styles/theme.css";
 import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import {
   ChartCard,
+  Radar,
   StackedArea,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
@@ -38,6 +39,22 @@ export function BloodlinesSection({
   colors,
   nameOf,
 }: Props) {
+  // Trait profiles for the top-3 champion lines: each stat normalized
+  // against the best of the three, so shapes (not scales) compare.
+  const radarChampions = champions.slice(0, 3);
+  const radarMax = {
+    speed: Math.max(0, ...radarChampions.map((c) => c.speed?.value ?? 0)),
+    jump: Math.max(0, ...radarChampions.map((c) => c.jump?.value ?? 0)),
+    health: Math.max(0, ...radarChampions.map((c) => c.health?.value ?? 0)),
+  };
+  const radarAxes = (field: "speed" | "jump" | "health", unit: string, decimals: number) =>
+    radarChampions.map((c) => ({
+      label: c.bloodline,
+      value: c[field]?.value ?? 0,
+      min: 0,
+      max: radarMax[field] > 0 ? radarMax[field] : 1,
+      display: `${(c[field]?.value ?? 0).toFixed(decimals)} ${unit}`,
+    }));
   return (
     <>
       <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
@@ -131,6 +148,20 @@ export function BloodlinesSection({
         <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
           Which line owns which trait — your outcrossing guide.
         </p>
+        {radarChampions.length > 0 && (
+          <div className={chartStyles.chartGrid}>
+            {(["speed", "jump", "health"] as const).map((field) => (
+              <ChartCard
+                key={field}
+                title={`${field === "speed" ? "Speed" : field === "jump" ? "Jump" : "Health"} profile — top lines`}
+              >
+                <Radar
+                  axes={radarAxes(field, field === "speed" ? "m/s" : field === "jump" ? "blocks" : "hp", field === "health" ? 1 : 2)}
+                />
+              </ChartCard>
+            ))}
+          </div>
+        )}
         {champions.length > 0 ? (
           <div style={{ overflowX: "auto" }}>
             <table className={chartStyles.ledgerTable}>

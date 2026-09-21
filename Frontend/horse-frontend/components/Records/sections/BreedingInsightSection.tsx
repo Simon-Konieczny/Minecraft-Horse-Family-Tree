@@ -1,7 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { vars } from "@/styles/theme.css";
 import { translateStat } from "@/utils/translateRawStats";
 import {
+  Bars,
   ChartCard,
   ScatterPlot,
 } from "@/components/Charts/Charts";
@@ -107,6 +111,21 @@ export function BreedingInsightSection({
   colors,
   nameOf,
 }: Props) {
+  // Progressive disclosure: the insight section is the longest on the
+  // page, so long lists start collapsed behind show-all toggles.
+  const [showAllHeritability, setShowAllHeritability] = useState(false);
+  const [showAllInbred, setShowAllInbred] = useState(false);
+  const [showAllProlific, setShowAllProlific] = useState(false);
+  const [showAllPairs, setShowAllPairs] = useState(false);
+  const disclosureButton = (showing: boolean, onClick: () => void, total: number, shown: number) => (
+    <button
+      type="button"
+      className={chartStyles.miniNavAction}
+      onClick={onClick}
+    >
+      {showing ? "Show less" : `Show all ${total} (showing ${shown})`}
+    </button>
+  );
   return (
     <>
       <div style={{ marginTop: 24 }}>
@@ -170,7 +189,7 @@ export function BreedingInsightSection({
             Descriptive only — a selected herd is not a random-mating trial.
           </p>
           <div className={chartStyles.chartGrid}>
-            {heritability.map((h) => (
+            {(showAllHeritability ? heritability : heritability.slice(0, 1)).map((h) => (
               <div key={h.label}>
                 <h4 style={{ margin: "8px 0" }}>
                   {h.label}{" "}
@@ -191,6 +210,11 @@ export function BreedingInsightSection({
               </div>
             ))}
           </div>
+          {heritability.length > 1 && (
+            <div style={{ marginTop: 8 }}>
+              {disclosureButton(showAllHeritability, () => setShowAllHeritability((v) => !v), heritability.length, 1)}
+            </div>
+          )}
         </ChartCard>
       </div>
 
@@ -207,7 +231,7 @@ export function BreedingInsightSection({
                 </tr>
               </thead>
               <tbody>
-                {inbredRanks.slice(0, 10).map((r, i) => (
+                {(showAllInbred ? inbredRanks.slice(0, 10) : inbredRanks.slice(0, 5)).map((r, i) => (
                   <tr key={r.id}>
                     <td className={chartStyles.ledgerTd}>{i + 1}</td>
                     <td className={chartStyles.ledgerTd}>
@@ -234,6 +258,11 @@ export function BreedingInsightSection({
           ) : (
             <p className={chartStyles.statusNote}>No foals with recorded parents yet.</p>
           )}
+          {inbredRanks.length > 5 && (
+            <div style={{ marginTop: 8 }}>
+              {disclosureButton(showAllInbred, () => setShowAllInbred((v) => !v), Math.min(10, inbredRanks.length), 5)}
+            </div>
+          )}
         </ChartCard>
       </div>
 
@@ -244,6 +273,14 @@ export function BreedingInsightSection({
       <div style={{ marginTop: 24 }}>
         <ChartCard title="Most Prolific Parents">
           {prolific.length > 0 ? (
+            <>
+            <Bars
+              rows={(showAllProlific ? prolific : prolific.slice(0, 8)).map((p) => ({
+                label: nameOf(p.id),
+                value: p.offspring,
+                displayValue: `${p.offspring} foal${p.offspring === 1 ? "" : "s"}`,
+              }))}
+            />
             <table className={chartStyles.ledgerTable}>
               <thead>
                 <tr>
@@ -253,7 +290,7 @@ export function BreedingInsightSection({
                 </tr>
               </thead>
               <tbody>
-                {prolific.map((p, i) => (
+                {(showAllProlific ? prolific : prolific.slice(0, 8)).map((p, i) => (
                   <tr key={p.id}>
                     <td className={chartStyles.ledgerTd}>{i + 1}</td>
                     <td className={chartStyles.ledgerTd}>
@@ -269,8 +306,14 @@ export function BreedingInsightSection({
                 ))}
               </tbody>
             </table>
+            </>
           ) : (
             <p className={chartStyles.statusNote}>No foals recorded yet.</p>
+          )}
+          {prolific.length > 8 && (
+            <div style={{ marginTop: 8 }}>
+              {disclosureButton(showAllProlific, () => setShowAllProlific((v) => !v), prolific.length, 8)}
+            </div>
           )}
         </ChartCard>
       </div>
@@ -290,7 +333,7 @@ export function BreedingInsightSection({
                   </tr>
                 </thead>
                 <tbody>
-                  {pairs.map((pair) => {
+                  {(showAllPairs ? pairs : pairs.slice(0, 8)).map((pair) => {
                     const speedRange = rangeFor(pair.parentId1, pair.parentId2, "speed");
                     const jumpRange = rangeFor(pair.parentId1, pair.parentId2, "jump");
                     const healthRange = rangeFor(pair.parentId1, pair.parentId2, "health");
@@ -347,6 +390,11 @@ export function BreedingInsightSection({
             </div>
           ) : (
             <p className={chartStyles.statusNote}>No pairings recorded yet.</p>
+          )}
+          {pairs.length > 8 && (
+            <div style={{ marginTop: 8 }}>
+              {disclosureButton(showAllPairs, () => setShowAllPairs((v) => !v), pairs.length, 8)}
+            </div>
           )}
         </ChartCard>
       </div>
