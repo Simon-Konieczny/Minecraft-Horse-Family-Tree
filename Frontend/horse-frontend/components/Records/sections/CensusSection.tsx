@@ -10,7 +10,6 @@ import {
   ChartCard,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
-import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import VariantGrid from "@/components/Records/VariantGrid";
 import { DeadAliveCard } from "@/components/Records/InsightSections";
 import type { RecordsModel } from "../useRecordsModel";
@@ -90,7 +89,7 @@ export function CensusSection({
   );
 
   return (
-    <CollapsibleSection title="Census" count={filtered.length} defaultOpen={false}>
+    <>
       <div style={{ marginTop: 24 }}>
         <ChartCard title="Variant Distribution">
           <p className={chartStyles.mutedNote} style={{ margin: 0 }}>
@@ -249,6 +248,6 @@ export function CensusSection({
       <div style={{ marginTop: 24 }}>
         <DeadAliveCard split={deadAlive} />
       </div>
-    </CollapsibleSection>
+    </>
   );
 }

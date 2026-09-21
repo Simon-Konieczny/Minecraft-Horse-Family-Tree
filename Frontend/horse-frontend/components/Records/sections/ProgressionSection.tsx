@@ -4,7 +4,6 @@ import {
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 import { vars } from "@/styles/theme.css";
-import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import { RecordGenCard } from "@/components/Records/InsightSections";
 import { STATS, type RecordsModel } from "../useRecordsModel";
 
@@ -22,7 +21,7 @@ export function ProgressionSection({
   nameOf,
 }: Props) {
   return (
-    <CollapsibleSection title="Progression" count={trends.length * 2 + deltas.length + recByGen.length} defaultOpen>
+    <>
       <div className={chartStyles.chartGrid}>
         {trends.map((t) => (
           <ChartCard key={t.label} title={`Avg ${t.label} by Generation`}>
@@ -98,6 +97,6 @@ export function ProgressionSection({
       </ChartCard>
 
       <RecordGenCard rows={recByGen} nameOf={nameOf} />
-    </CollapsibleSection>
+    </>
   );
 }

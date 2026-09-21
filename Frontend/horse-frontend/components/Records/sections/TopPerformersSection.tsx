@@ -3,7 +3,6 @@ import {
   ChartCard,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
-import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import TopPerformers from "@/components/Records/TopPerformers";
 import type { RecordsModel } from "../useRecordsModel";
 
@@ -14,11 +13,7 @@ type Props = Pick<
 
 export function TopPerformersSection({ filtered, fame, godRoll, nameOf }: Props) {
   return (
-    <CollapsibleSection
-      title="Top performers"
-      count={filtered.length}
-      defaultOpen={false}
-    >
+    <>
       <div style={{ marginTop: 24 }}>
         <ChartCard title="Top Performers — Top 63 Speed · Top 16 Jump/Health">
           <TopPerformers horses={filtered} />
@@ -120,6 +115,6 @@ export function TopPerformersSection({ filtered, fame, godRoll, nameOf }: Props)
           )}
         </ChartCard>
       </div>
-    </CollapsibleSection>
+    </>
   );
 }

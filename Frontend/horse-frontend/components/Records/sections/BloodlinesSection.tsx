@@ -6,7 +6,6 @@ import {
   StackedArea,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
-import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import {
   FounderCard,
   PurityCard,
@@ -40,7 +39,7 @@ export function BloodlinesSection({
   nameOf,
 }: Props) {
   return (
-    <CollapsibleSection title="Bloodlines" count={herdShares.length + genShares.length + legacy.length + champions.length} defaultOpen>
+    <>
       <div className={chartStyles.chartGrid} style={{ marginTop: 24 }}>
         <ChartCard title="Bloodline Diversity">
           {filtered.length > 0 ? (
@@ -177,6 +176,6 @@ export function BloodlinesSection({
           <p className={chartStyles.statusNote}>No horses yet.</p>
         )}
       </ChartCard>
-    </CollapsibleSection>
+    </>
   );
 }

@@ -4,7 +4,6 @@ import {
   VerticalHistogram,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
-import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import type { RecordsModel } from "../useRecordsModel";
 
 type Props = Pick<
@@ -33,7 +32,7 @@ export function DistributionsSection({
   const meanSH = withinMean("speedHealth");
   const meanJH = withinMean("jumpHealth");
   return (
-    <CollapsibleSection title="Distributions" count={histograms.length + 3} defaultOpen>
+    <>
       <div className={chartStyles.chartGrid}>
         {histograms.map((h) => (
           <ChartCard key={h.label} title={`${h.label} Distribution`}>
@@ -88,6 +87,6 @@ export function DistributionsSection({
           <ScatterPlot points={corrPoints.jumpHealth} xLabel="Jump (blocks)" yLabel="Health (hp)" xDecimals={2} yDecimals={1} />
         </ChartCard>
       </div>
-    </CollapsibleSection>
+    </>
   );
 }

@@ -6,7 +6,6 @@ import {
   ScatterPlot,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
-import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import {
   BubbleWatchCard,
   CullListCard,
@@ -109,11 +108,7 @@ export function BreedingInsightSection({
   nameOf,
 }: Props) {
   return (
-    <CollapsibleSection
-      title="Breeding insight"
-      count={activeHerd.counts.active + bubble.speed.length + bubble.jump.length + bubble.health.length}
-      defaultOpen
-    >
+    <>
       <div style={{ marginTop: 24 }}>
         <ChartCard title={`Active Herd — ${activeHerd.counts.active} active · ${activeHerd.counts.pastured} pastured`}>
           <p style={{ margin: "0 0 8px", fontSize: 14 }}>
@@ -355,6 +350,6 @@ export function BreedingInsightSection({
           )}
         </ChartCard>
       </div>
-    </CollapsibleSection>
+    </>
   );
 }

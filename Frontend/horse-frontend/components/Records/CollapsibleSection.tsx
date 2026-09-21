@@ -6,24 +6,34 @@ import { vars } from "@/styles/theme.css";
 /**
  * Expandable chapter grouping for the Records page. Headers carry an
  * item count so collapsed sections still communicate their weight.
+ * Controlled when `open`/`onToggle` are provided (mini-nav +
+ * expand/collapse-all); uncontrolled otherwise.
  */
 export default function CollapsibleSection({
   title,
   count,
   defaultOpen = true,
+  open: controlledOpen,
+  onToggle,
+  id,
   children,
 }: {
   title: string;
   count?: number;
   defaultOpen?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
+  id?: string;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const toggle = onToggle ?? (() => setUncontrolledOpen((v) => !v));
   return (
-    <section style={{ marginTop: 24 }}>
+    <section id={id} style={{ marginTop: 24, scrollMarginTop: 96 }}>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         aria-expanded={open}
         style={{
           display: "flex",

@@ -231,6 +231,60 @@ export const recordsMain = style({
   },
 });
 
+/** Sticky records mini-nav: anchor chips + expand/collapse controls. */
+export const miniNav = style({
+  position: "sticky",
+  top: 0,
+  zIndex: 10,
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: vars.spacing.sm,
+  padding: `${vars.spacing.sm} 0`,
+  backgroundColor: vars.color.parchment,
+  borderBottom: `1px solid ${vars.color.goldSoft}`,
+  marginBottom: vars.spacing.md,
+});
+
+export const miniNavChip = style({
+  background: "none",
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.full,
+  padding: "2px 10px",
+  font: "inherit",
+  fontSize: vars.fontSize.sm,
+  color: vars.color.inkSoft,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  selectors: {
+    "&[data-open='false']": {
+      opacity: 0.55,
+    },
+  },
+  ":hover": {
+    color: vars.color.ink,
+    borderColor: vars.color.gold,
+  },
+  ":focus-visible": {
+    outline: `2px solid ${vars.color.gold}`,
+    outlineOffset: 1,
+  },
+});
+
+export const miniNavAction = style({
+  background: "none",
+  border: "none",
+  padding: "2px 4px",
+  font: "inherit",
+  fontSize: vars.fontSize.sm,
+  color: vars.color.inkSoft,
+  cursor: "pointer",
+  textDecoration: "underline",
+  ":hover": {
+    color: vars.color.ink,
+  },
+});
+
 export const filterRow = style({
   display: "flex",
   gap: vars.spacing.md,
