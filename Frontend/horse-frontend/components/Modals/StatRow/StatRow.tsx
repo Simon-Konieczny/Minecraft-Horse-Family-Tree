@@ -1,4 +1,5 @@
 import * as styles from "./StatRow.css";
+import { vars } from "@/styles/theme.css";
 
 interface StatRowProps {
   text: string;
@@ -25,7 +26,7 @@ export default function StatRow({
         onChange={(e) => handleTextChange(fieldName, e.target.value)}
       />
       {error && (
-        <span style={{ color: "#8f2d22", fontSize: 12 }}>{error}</span>
+        <span style={{ color: vars.color.wax, fontSize: 12 }}>{error}</span>
       )}
     </div>
   );

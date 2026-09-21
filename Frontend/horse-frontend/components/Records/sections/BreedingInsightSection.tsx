@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { vars } from "@/styles/theme.css";
 import { translateStat } from "@/utils/translateRawStats";
 import {
   ChartCard,
@@ -64,7 +65,7 @@ function DeltaCell({
   }
   const delta = foal - parent;
   const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "＝";
-  const color = delta > 0 ? "#2d4a3e" : delta < 0 ? "#8f2d22" : "inherit";
+  const color = delta > 0 ? vars.color.primary : delta < 0 ? vars.color.wax : "inherit";
   return (
     <td
       className={chartStyles.ledgerTd}
@@ -221,7 +222,7 @@ export function BreedingInsightSection({
                     </td>
                     <td
                       className={chartStyles.ledgerTd}
-                      style={{ color: r.shared > 0 ? "#8f2d22" : "inherit", fontWeight: r.shared > 0 ? 700 : 400 }}
+                      style={{ color: r.shared > 0 ? vars.color.wax : "inherit", fontWeight: r.shared > 0 ? 700 : 400 }}
                     >
                       {r.shared > 0 ? `${r.shared} ⚠` : "0"}
                     </td>
@@ -236,7 +237,7 @@ export function BreedingInsightSection({
               </tbody>
             </table>
           ) : (
-            <p className={chartStyles.mutedNote}>No foals with recorded parents yet.</p>
+            <p className={chartStyles.statusNote}>No foals with recorded parents yet.</p>
           )}
         </ChartCard>
       </div>
@@ -274,7 +275,7 @@ export function BreedingInsightSection({
               </tbody>
             </table>
           ) : (
-            <p className={chartStyles.mutedNote}>No foals recorded yet.</p>
+            <p className={chartStyles.statusNote}>No foals recorded yet.</p>
           )}
         </ChartCard>
       </div>
@@ -350,7 +351,7 @@ export function BreedingInsightSection({
               </table>
             </div>
           ) : (
-            <p className={chartStyles.mutedNote}>No pairings recorded yet.</p>
+            <p className={chartStyles.statusNote}>No pairings recorded yet.</p>
           )}
         </ChartCard>
       </div>

@@ -25,6 +25,7 @@ import {
   variantDistribution,
 } from "@/utils/analytics";
 import { getHorseFullName } from "@/utils/horseNames";
+import { vars } from "@/styles/theme.css";
 import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
 import { getActiveHerd, ACTIVE_SPEED_COUNT, ACTIVE_JUMP_COUNT, ACTIVE_HEALTH_COUNT } from "@/utils/activeHerd";
 import {
@@ -181,7 +182,7 @@ export function useRecordsModel(horses: Horse[], colors: Record<string, string>)
       scatter: points.map((p, i) => ({
         x: p.x,
         y: p.y,
-        color: "#b98a2f",
+        color: vars.color.gold,
         label: `Foal ${i + 1}: parents ${p.x.toFixed(2)}, foal ${p.y.toFixed(2)} ${unit}`,
       })),
     };

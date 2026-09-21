@@ -29,7 +29,7 @@ export function ScatterPlot({
   avgY?: number | null;
 }) {
   if (points.length === 0) {
-    return <p className={styles.mutedNote}>Not enough data yet.</p>;
+    return <p className={styles.statusNote}>Not enough data yet.</p>;
   }
   const width = 600;
   const padLeft = 60;

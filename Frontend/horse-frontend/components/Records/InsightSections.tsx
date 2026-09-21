@@ -13,6 +13,7 @@ import type {
 } from "@/utils/herdInsights";
 import { getVariantName } from "@/utils/variant";
 import { FALLBACK_HEX_COLOR } from "@/utils/bloodlineValidation";
+import { vars } from "@/styles/theme.css";
 import { ChartCard, TrendLine } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
 
@@ -44,7 +45,7 @@ export function BubbleWatchCard({
   if (rows.length === 0) {
     return (
       <ChartCard title="Bubble Watch">
-        <p className={chartStyles.mutedNote}>Not enough ranked horses yet.</p>
+        <p className={chartStyles.statusNote}>Not enough ranked horses yet.</p>
       </ChartCard>
     );
   }
@@ -77,7 +78,7 @@ export function BubbleWatchCard({
                   <td
                     className={chartStyles.ledgerTd}
                     style={{
-                      color: r.inside ? "#2d4a3e" : "#8f2d22",
+                      color: r.inside ? vars.color.primary : vars.color.wax,
                       fontWeight: 700,
                     }}
                   >
@@ -142,7 +143,7 @@ export function CullListCard({
 function SignedDelta({ value, decimals, unit }: { value: number | null; decimals: number; unit: string }) {
   if (value === null) return <span>—</span>;
   return (
-    <span style={{ color: value > 0 ? "#2d4a3e" : value < 0 ? "#8f2d22" : "inherit", fontWeight: 700 }}>
+    <span style={{ color: value > 0 ? vars.color.primary : value < 0 ? vars.color.wax : "inherit", fontWeight: 700 }}>
       {(value >= 0 ? "+" : "") + value.toFixed(decimals)} {unit}
     </span>
   );
@@ -160,7 +161,7 @@ export function ReliabilityCard({
   if (top.length === 0) {
     return (
       <ChartCard title="Parent Reliability">
-        <p className={chartStyles.mutedNote}>No foals with recorded parents yet.</p>
+        <p className={chartStyles.statusNote}>No foals with recorded parents yet.</p>
       </ChartCard>
     );
   }
@@ -257,7 +258,7 @@ export function UntriedCrossesCard({
                 </td>
                 <td
                   className={chartStyles.ledgerTd}
-                  style={{ fontWeight: c.triedFoals === 0 ? 700 : 400, color: c.triedFoals === 0 ? "#8f2d22" : "inherit" }}
+                  style={{ fontWeight: c.triedFoals === 0 ? 700 : 400, color: c.triedFoals === 0 ? vars.color.wax : "inherit" }}
                 >
                   {c.triedFoals === 0 ? "never tried" : c.triedFoals}
                 </td>
@@ -267,7 +268,7 @@ export function UntriedCrossesCard({
           </tbody>
         </table>
       ) : (
-        <p className={chartStyles.mutedNote}>No bloodline crosses to show yet.</p>
+        <p className={chartStyles.statusNote}>No bloodline crosses to show yet.</p>
       )}
     </ChartCard>
   );
@@ -323,7 +324,7 @@ export function FounderCard({
   if (top.length === 0) {
     return (
       <ChartCard title="Founder Legacy">
-        <p className={chartStyles.mutedNote}>No founders in scope yet.</p>
+        <p className={chartStyles.statusNote}>No founders in scope yet.</p>
       </ChartCard>
     );
   }
@@ -379,7 +380,7 @@ export function RecordGenCard({
   if (rows.length === 0) {
     return (
       <ChartCard title="Records by Generation">
-        <p className={chartStyles.mutedNote}>No horses yet.</p>
+        <p className={chartStyles.statusNote}>No horses yet.</p>
       </ChartCard>
     );
   }
@@ -428,7 +429,7 @@ export function InbreedSplitCard({ split }: { split: InbredSplit }) {
         <td className={chartStyles.ledgerTd}>
           {n > 0 ? `${v.toFixed(decimals)} ${unit}` : "—"}
           {d !== null && (
-            <span style={{ color: d > 0 ? "#2d4a3e" : d < 0 ? "#8f2d22" : "inherit", fontWeight: 700 }}>
+            <span style={{ color: d > 0 ? vars.color.primary : d < 0 ? vars.color.wax : "inherit", fontWeight: 700 }}>
               {" "}{(d >= 0 ? "+" : "") + d.toFixed(decimals)}
             </span>
           )}
@@ -470,7 +471,7 @@ export function DeadAliveCard({ split }: { split: AliveDeadSplit }) {
       <td className={chartStyles.ledgerTd}>{n}</td>
       <td className={chartStyles.ledgerTd}>
         {v.toFixed(decimals)} {unit}{" "}
-        <span style={{ color: v - base > 0 ? "#2d4a3e" : v - base < 0 ? "#8f2d22" : "inherit", fontWeight: 700 }}>
+        <span style={{ color: v - base > 0 ? vars.color.primary : v - base < 0 ? vars.color.wax : "inherit", fontWeight: 700 }}>
           {(v - base >= 0 ? "+" : "") + (v - base).toFixed(decimals)}
         </span>
       </td>

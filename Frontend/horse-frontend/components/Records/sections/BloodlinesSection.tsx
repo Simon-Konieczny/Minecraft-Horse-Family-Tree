@@ -76,7 +76,7 @@ export function BloodlinesSection({
                           display: "block",
                           height: 8,
                           flex: 1,
-                          backgroundColor: "#e9dcc0",
+                          backgroundColor: vars.color.parchmentDeep,
                           borderRadius: 9999,
                           overflow: "hidden",
                         }}
@@ -111,7 +111,7 @@ export function BloodlinesSection({
               </p>
             </div>
           ) : (
-            <p className={chartStyles.mutedNote}>No horses yet.</p>
+            <p className={chartStyles.statusNote}>No horses yet.</p>
           )}
         </ChartCard>
         <ChartCard title="Market Share by Generation">
@@ -174,7 +174,7 @@ export function BloodlinesSection({
             </table>
           </div>
         ) : (
-          <p className={chartStyles.mutedNote}>No horses yet.</p>
+          <p className={chartStyles.statusNote}>No horses yet.</p>
         )}
       </ChartCard>
     </CollapsibleSection>

@@ -82,7 +82,7 @@ export function TopPerformersSection({ filtered, fame, godRoll, nameOf }: Props)
               </tbody>
             </table>
           ) : (
-            <p className={chartStyles.mutedNote}>No horses yet.</p>
+            <p className={chartStyles.statusNote}>No horses yet.</p>
           )}
         </ChartCard>
         <ChartCard title="God-Roll Tracker — Distance to Max">
@@ -116,7 +116,7 @@ export function TopPerformersSection({ filtered, fame, godRoll, nameOf }: Props)
               </tbody>
             </table>
           ) : (
-            <p className={chartStyles.mutedNote}>No horses yet.</p>
+            <p className={chartStyles.statusNote}>No horses yet.</p>
           )}
         </ChartCard>
       </div>

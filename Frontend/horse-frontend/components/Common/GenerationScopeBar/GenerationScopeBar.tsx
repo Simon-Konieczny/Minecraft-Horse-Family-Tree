@@ -86,10 +86,9 @@ export default function GenerationScopeBar({
         </label>
         <button
           type="button"
-          className={chartStyles.formSelect}
+          className={chartStyles.resetButton}
           onClick={onReset}
           disabled={isDefault}
-          style={{ cursor: isDefault ? "default" : "pointer", opacity: isDefault ? 0.5 : 1 }}
         >
           Reset
         </button>

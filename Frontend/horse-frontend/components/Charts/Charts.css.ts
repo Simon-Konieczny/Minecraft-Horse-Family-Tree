@@ -11,6 +11,11 @@ export const card = style({
   display: "flex",
   flexDirection: "column",
   gap: vars.spacing.md,
+  "@media": {
+    "screen and (max-width: 640px)": {
+      padding: vars.spacing.md,
+    },
+  },
 });
 
 export const cardTitle = style({
@@ -63,6 +68,11 @@ export const barRow = style({
   gap: vars.spacing.sm,
   fontSize: vars.fontSize.sm,
   color: vars.color.ink,
+  "@media": {
+    "screen and (max-width: 480px)": {
+      gridTemplateColumns: "84px 1fr 40px",
+    },
+  },
 });
 
 export const barLabel = style({
@@ -188,6 +198,39 @@ export const formSelect = style({
   fontFamily: vars.font.main,
 });
 
+/** Subordinate action button for filter rows (distinct from selects). */
+export const resetButton = style({
+  backgroundColor: "transparent",
+  color: vars.color.inkSoft,
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.sm,
+  padding: "8px 12px",
+  fontSize: vars.fontSize.sm,
+  fontFamily: vars.font.main,
+  cursor: "pointer",
+  selectors: {
+    "&:disabled": {
+      opacity: 0.5,
+      cursor: "default",
+    },
+  },
+  ":focus-visible": {
+    outline: `2px solid ${vars.color.gold}`,
+    outlineOffset: 1,
+  },
+});
+
+/** Records page shell: centers content with responsive padding. */
+export const recordsMain = style({
+  padding: vars.spacing.lg,
+  maxWidth: 960,
+  "@media": {
+    "screen and (max-width: 640px)": {
+      padding: vars.spacing.md,
+    },
+  },
+});
+
 export const filterRow = style({
   display: "flex",
   gap: vars.spacing.md,
@@ -206,4 +249,40 @@ export const filterLabel = style({
   display: "flex",
   flexDirection: "column",
   gap: "4px",
+});
+
+/** Segmented two-option toggle (e.g. crosstab DNA-split vs dominant). */
+export const segmented = style({
+  display: "inline-flex",
+  border: `1px solid ${vars.color.goldSoft}`,
+  borderRadius: vars.borderRadius.full,
+  overflow: "hidden",
+});
+
+export const segmentButton = style({
+  background: "none",
+  border: "none",
+  padding: "4px 12px",
+  font: "inherit",
+  fontSize: vars.fontSize.sm,
+  color: vars.color.inkSoft,
+  cursor: "pointer",
+  selectors: {
+    "&[data-active='true']": {
+      backgroundColor: vars.color.gold,
+      color: vars.color.white,
+      fontWeight: vars.fontWeight.bold,
+    },
+  },
+  ":focus-visible": {
+    outline: `2px solid ${vars.color.gold}`,
+    outlineOffset: -2,
+  },
+});
+
+/** Non-italic status message (empty states) — distinct from mutedNote help copy. */
+export const statusNote = style({
+  fontSize: vars.fontSize.sm,
+  color: vars.color.inkSoft,
+  fontFamily: vars.font.main,
 });

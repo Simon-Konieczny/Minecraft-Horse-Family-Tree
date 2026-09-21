@@ -3,6 +3,7 @@ import {
   TrendLine,
 } from "@/components/Charts/Charts";
 import * as chartStyles from "@/components/Charts/Charts.css";
+import { vars } from "@/styles/theme.css";
 import CollapsibleSection from "@/components/Records/CollapsibleSection";
 import { RecordGenCard } from "@/components/Records/InsightSections";
 import { STATS, type RecordsModel } from "../useRecordsModel";
@@ -75,8 +76,8 @@ export function ProgressionSection({
                           v === null || v === 0
                             ? "inherit"
                             : v > 0
-                              ? "#2d4a3e"
-                              : "#8f2d22",
+                              ? vars.color.primary
+                              : vars.color.wax,
                         fontWeight: 700,
                       }}
                     >
@@ -90,7 +91,7 @@ export function ProgressionSection({
             </tbody>
           </table>
         ) : (
-          <p className={chartStyles.mutedNote}>
+          <p className={chartStyles.statusNote}>
             Needs horses across at least two generations.
           </p>
         )}

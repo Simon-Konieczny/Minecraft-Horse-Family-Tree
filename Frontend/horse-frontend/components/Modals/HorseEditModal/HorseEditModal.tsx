@@ -18,6 +18,7 @@ import { useHiddenBloodlineSlugs } from "@/components/Bloodlines/BloodlineProvid
 import FamilyNameBloodlineLink from "@/components/Bloodlines/FamilyNameBloodlineLink";
 import FounderBloodlinePicker from "@/components/Bloodlines/FounderBloodlinePicker";
 import { bloodlineSlug } from "@/utils/bloodlineValidation";
+import { vars } from "@/styles/theme.css";
 
 import * as statRowStyles from "../StatRow/StatRow.css";
 
@@ -331,7 +332,7 @@ export default function HorseEditModal({
           />
         </div>
         {saveError && (
-          <p style={{ color: "#8f2d22", fontSize: 13, marginTop: 8 }}>{saveError}</p>
+          <p style={{ color: vars.color.wax, fontSize: 13, marginTop: 8 }}>{saveError}</p>
         )}
       </div>
     </div>

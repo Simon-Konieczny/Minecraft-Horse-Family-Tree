@@ -115,20 +115,36 @@ export function CensusSection({
             {crosstabMode === "split"
               ? "DNA-split shares: a 50/50 hybrid adds 0.5 to each bloodline, so mixed horses are never misattributed. All 35 coats in create/edit order — blank rows are missing in scope. Hover a cell for the horse count."
               : "Dominant-only counts: each horse sits in a single column by its top bloodline. All 35 coats in create/edit order — blank rows are missing in scope."}{" "}
-            <button
-              type="button"
-              onClick={() => setCrosstabMode(crosstabMode === "split" ? "dominant" : "split")}
-              style={{ textDecoration: "underline", cursor: "pointer", background: "none", border: "none", padding: 0, font: "inherit", color: "inherit" }}
+            <div
+              role="group"
+              aria-label="Crosstab mode"
+              className={chartStyles.segmented}
+              style={{ marginLeft: 8, verticalAlign: "middle" }}
             >
-              Show {crosstabMode === "split" ? "dominant-only" : "DNA-split"} instead
-            </button>
+              <button
+                type="button"
+                className={chartStyles.segmentButton}
+                data-active={crosstabMode === "split"}
+                onClick={() => setCrosstabMode("split")}
+              >
+                DNA-split
+              </button>
+              <button
+                type="button"
+                className={chartStyles.segmentButton}
+                data-active={crosstabMode === "dominant"}
+                onClick={() => setCrosstabMode("dominant")}
+              >
+                Dominant-only
+              </button>
+            </div>
           </p>
           {filtered.length > 0 && crosstabBloodlines.length > 0 ? (
             <div style={{ overflowX: "auto" }}>
               <table className={chartStyles.ledgerTable} style={{ minWidth: Math.max(400, crosstabBloodlines.length * 90) }}>
                 <thead>
                   <tr>
-                    <th className={chartStyles.ledgerTh} style={{ position: "sticky", left: 0 }}>Variant</th>
+                    <th className={chartStyles.ledgerTh} style={{ position: "sticky", left: 0, backgroundColor: vars.color.parchment, zIndex: 1 }}>Variant</th>
                     {crosstabBloodlines.map((b) => (
                       <th key={b} className={chartStyles.ledgerTh}>
                         <span
@@ -149,7 +165,7 @@ export function CensusSection({
                 <tbody>
                   {crosstabRows.map(({ variant, row }) => (
                     <tr key={variant} style={row ? undefined : { opacity: 0.55 }}>
-                      <td className={chartStyles.ledgerTd} style={{ position: "sticky", left: 0 }}>
+                      <td className={chartStyles.ledgerTd} style={{ position: "sticky", left: 0, backgroundColor: vars.color.parchment, zIndex: 1 }}>
                         {getVariantName(variant)}
                       </td>
                       {crosstabBloodlines.map((b) => {
@@ -172,7 +188,7 @@ export function CensusSection({
               </table>
             </div>
           ) : (
-            <p className={chartStyles.mutedNote}>No variants recorded yet.</p>
+            <p className={chartStyles.statusNote}>No variants recorded yet.</p>
           )}
         </ChartCard>
       </div>
@@ -216,13 +232,16 @@ export function CensusSection({
                       title={inScope ? undefined : "Outside selected generations"}
                     >
                       {nameOf(id)}
+                      {!inScope && (
+                        <span style={{ opacity: 0.7, fontSize: 12 }}> · out of scope</span>
+                      )}
                     </Link>
                   </span>
                 );
               })}
             </p>
           ) : (
-            <p className={chartStyles.mutedNote}>No horses yet.</p>
+            <p className={chartStyles.statusNote}>No horses yet.</p>
           )}
         </ChartCard>
       </div>

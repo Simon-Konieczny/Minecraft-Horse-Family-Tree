@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { getHorseVariantImage, getVariantName } from "@/utils/variant";
+import { vars } from "@/styles/theme.css";
 import * as chartStyles from "@/components/Charts/Charts.css";
 
 /**
@@ -21,7 +22,7 @@ export default function VariantGrid({
   // Preserve caller order (canonical color-major); scale bars by max.
   const max = Math.max(1, ...counts.map((c) => c.count));
   if (counts.length === 0 || total <= 0) {
-    return <p className={chartStyles.mutedNote}>No variants recorded yet.</p>;
+    return <p className={chartStyles.statusNote}>No variants recorded yet.</p>;
   }
   return (
     <div
@@ -130,7 +131,7 @@ export default function VariantGrid({
               display: "block",
               height: 6,
               width: "100%",
-              backgroundColor: "#e9dcc0",
+              backgroundColor: vars.color.parchmentDeep,
               borderRadius: 9999,
               overflow: "hidden",
             }}
@@ -140,7 +141,7 @@ export default function VariantGrid({
                 display: "block",
                 height: "100%",
                 width: `${(count / max) * 100}%`,
-                backgroundColor: "#b98a2f",
+                backgroundColor: vars.color.gold,
                 borderRadius: 9999,
               }}
             />

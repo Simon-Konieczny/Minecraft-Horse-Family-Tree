@@ -24,7 +24,7 @@ export function TrendLine({
   compare?: { points: TrendPoint[]; label: string } | null;
 }) {
   if (points.length === 0) {
-    return <p className={styles.mutedNote}>Not enough data yet.</p>;
+    return <p className={styles.statusNote}>Not enough data yet.</p>;
   }
   const width = 600;
   const padLeft = 64;

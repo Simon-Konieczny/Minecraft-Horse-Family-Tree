@@ -9,7 +9,7 @@ export interface PaletteItem {
 
 export function PaletteGrid({ items }: { items: PaletteItem[] }) {
   if (items.length === 0) {
-    return <p className={styles.mutedNote}>No bloodlines yet.</p>;
+    return <p className={styles.statusNote}>No bloodlines yet.</p>;
   }
   return (
     <div className={styles.paletteGrid}>

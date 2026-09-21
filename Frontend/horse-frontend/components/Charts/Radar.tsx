@@ -26,7 +26,7 @@ export function Radar({
   color?: string;
 }) {
   if (axes.length === 0) {
-    return <p className={styles.mutedNote}>Not enough data yet.</p>;
+    return <p className={styles.statusNote}>Not enough data yet.</p>;
   }
   const cx = size / 2;
   const cy = size / 2;

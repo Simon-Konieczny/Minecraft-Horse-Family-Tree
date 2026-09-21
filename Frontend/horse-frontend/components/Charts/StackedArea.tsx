@@ -26,7 +26,7 @@ export function StackedArea({
   );
   if (data.length < 2 || names.length === 0) {
     return (
-      <p className={styles.mutedNote}>
+      <p className={styles.statusNote}>
         Market share appears once horses span at least two generations.
       </p>
     );

@@ -2,6 +2,7 @@
 
 import type { Horse } from "@/types/horse";
 import { ChapterHeading, Folio } from "@/components/Book/Book";
+import * as chartStyles from "@/components/Charts/Charts.css";
 import GenerationScopeBar from "@/components/Common/GenerationScopeBar/GenerationScopeBar";
 import { useRecordsModel } from "./useRecordsModel";
 import { DistributionsSection } from "./sections/DistributionsSection";
@@ -21,7 +22,7 @@ export default function RecordsView({
   const model = useRecordsModel(horses, colors);
 
   return (
-    <main style={{ padding: 24, maxWidth: 960 }}>
+    <main className={chartStyles.recordsMain}>
       <ChapterHeading
         numeral="Chapter IV"
         title="Records"
