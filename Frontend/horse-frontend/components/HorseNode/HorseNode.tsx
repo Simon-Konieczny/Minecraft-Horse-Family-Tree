@@ -7,6 +7,7 @@ import * as styles from './HorseNode.css';
 import { CSSProperties } from 'react';
 import Image from 'next/image';
 import { DENSITY_CONFIG, NodeDensity, type Orientation } from '@/utils/layout';
+import { UNKNOWN_HEX_COLOR } from '@/utils/bloodlineValidation';
 
 export type HorseNodeData = {
   horse: Horse;
@@ -60,7 +61,7 @@ export default function CustomHorseNode({ data }: NodeProps<HorseNode>) {
   const fullName = getHorseFullName(horse);
   const {jump, health, speed, variant} = horse;
   const processedStats = translateStatsForDisplay({jump, health, speed, variant})
-  const dnaColor = data.tint || horse.hexColor || '#444444';
+  const dnaColor = data.tint || horse.hexColor || UNKNOWN_HEX_COLOR;
 
   const isDead = horse.status === "Deceased";
   const useShade = statusView && isDead;

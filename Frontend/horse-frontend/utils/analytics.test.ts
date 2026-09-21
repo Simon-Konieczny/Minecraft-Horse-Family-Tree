@@ -10,6 +10,7 @@ import {
   generationCounts,
   heritabilityPoints,
   histogramBins,
+  inbreedingCoefficient,
   inbreedingRanking,
   linearRegression,
   longestLineage,
@@ -291,16 +292,22 @@ describe("expectedFoalRange", () => {
     expect(wide.hi - wide.lo).toBeGreaterThan(narrow.hi - narrow.lo);
   });
 
-  it("mirror-reflects out-of-range bounds back inside", () => {
-    // Midpoint at the floor: raw lo escapes below min and reflects up.
+  it("clamps out-of-range bounds inside (displayed, not reflected)", () => {
+    // Midpoint at the floor: raw lo escapes below min and clamps up.
     const r = expectedFoalRange(0.1125, 0.1125, 0.1125, 0.3375);
     expect(r.lo).toBeGreaterThanOrEqual(0.1125);
     expect(r.hi).toBeLessThanOrEqual(0.3375);
     expect(r.lo).toBeLessThanOrEqual(r.hi);
-    // Midpoint at the ceiling: raw hi escapes above max and reflects down.
+    // Midpoint at the ceiling: raw hi escapes above max and clamps down.
     const c = expectedFoalRange(1.0, 1.0, 0.4, 1.0);
     expect(c.lo).toBeGreaterThanOrEqual(0.4);
     expect(c.hi).toBeLessThanOrEqual(1.0);
+  });
+
+  it("clamps the midpoint for out-of-range parents", () => {
+    const r = expectedFoalRange(0.5, 0.5, 0.1125, 0.3375);
+    expect(r.midpoint).toBeLessThanOrEqual(0.3375);
+    expect(r.midpoint).toBeGreaterThanOrEqual(0.1125);
   });
 
   it("never shows fast parents a max below themselves (cap is achievable)", () => {
@@ -469,12 +476,24 @@ describe("heritabilityPoints / linearRegression", () => {
         { x: 2, y: 4 },
         { x: 3, y: 6 },
       ]),
-    ).toEqual({ slope: 2, intercept: 0, r2: 1, n: 3 });
+    ).toEqual({ slope: 2, intercept: 0, r2: 1, n: 3, seSlope: 0, slopeCI: [2, 2] });
+  });
+
+  it("reports slope uncertainty", () => {
+    const r = linearRegression([
+      { x: 1, y: 1 },
+      { x: 2, y: 2.5 },
+      { x: 3, y: 2.5 },
+      { x: 4, y: 4 },
+    ]);
+    expect(r.seSlope).toBeGreaterThan(0);
+    expect(r.slopeCI?.[0]).toBeLessThan(r.slope);
+    expect(r.slopeCI?.[1]).toBeGreaterThan(r.slope);
   });
 
   it("is empty-safe", () => {
     expect(heritabilityPoints([], "speed")).toEqual([]);
-    expect(linearRegression([])).toEqual({ slope: 0, intercept: 0, r2: 0, n: 0 });
+    expect(linearRegression([])).toEqual({ slope: 0, intercept: 0, r2: 0, n: 0, seSlope: null, slopeCI: null });
   });
 });
 
@@ -498,11 +517,31 @@ describe("inbreedingRanking / bloodlineDiversity", () => {
       shannon: 0,
       effective: 1,
       topShare: 1,
+      richness: 1,
+      shannonMM: 0,
+      effectiveMM: 1,
     });
     const even = bloodlineDiversity([{ total: 1 }, { total: 1 }]);
     expect(even.effective).toBeCloseTo(2, 9);
     expect(even.topShare).toBeCloseTo(0.5, 9);
-    expect(bloodlineDiversity([])).toEqual({ shannon: 0, effective: 0, topShare: 0 });
+    // Miller-Madow lifts the plug-in estimate at small n: ln2 + 1/4.
+    expect(even.shannonMM).toBeCloseTo(Math.LN2 + 0.25, 9);
+    expect(bloodlineDiversity([])).toEqual({ shannon: 0, effective: 0, topShare: 0, richness: 0, shannonMM: 0, effectiveMM: 0 });
+  });
+
+  it("computes Wright's inbreeding coefficient", () => {
+    // sire × daughter (d is sire's daughter): sire is a common ancestor
+    // at distances 0 and 1 → F = (1/2)^2 = 0.25.
+    const herd = [
+      { id: "sire", parentId1: null, parentId2: null },
+      { id: "dam", parentId1: null, parentId2: null },
+      { id: "daughter", parentId1: "sire", parentId2: "dam" },
+      { id: "foal", parentId1: "sire", parentId2: "daughter" },
+      { id: "clean", parentId1: "sire", parentId2: "dam" },
+    ];
+    expect(inbreedingCoefficient(herd, "foal")).toBeCloseTo(0.25, 9);
+    expect(inbreedingCoefficient(herd, "clean")).toBe(0);
+    expect(inbreedingCoefficient(herd, "sire")).toBe(0);
   });
 });
 

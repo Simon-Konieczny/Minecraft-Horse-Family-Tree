@@ -63,6 +63,18 @@ export async function getBloodlines(): Promise<Bloodline[]> {
       );
       docs = await collection.find({}).toArray();
     }
+  } else {
+    // Registry evolution: the DB wins, but code-side additions since the
+    // first seed still arrive — insert missing entries only, never touch
+    // existing docs (colors, themes, hidden flags stay user-managed).
+    const have = new Set(docs.map((d) => d._id));
+    const missing = seedBloodlines().filter((b) => !have.has(bloodlineSlug(b.name)));
+    if (missing.length > 0) {
+      await collection.insertMany(
+        missing.map((b) => ({ _id: bloodlineSlug(b.name), ...b })),
+      );
+      docs = await collection.find({}).toArray();
+    }
   }
   return docs
     .map((d) => ({

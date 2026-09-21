@@ -17,20 +17,31 @@ export interface HorseStats {
 // into first/family names (single word -> first name only).
 export function parseHorseStats(raw: string): HorseStats | null {
   try {
+    // Parses a numeric capture; malformed numbers ("...", ".") yield
+    // NaN from parseFloat and are rejected as missing (never poison).
+    const num = (text: string | undefined): number | null => {
+      if (text === undefined) return null;
+      const v = parseFloat(text);
+      return Number.isFinite(v) ? v : null;
+    };
     const get = (key: string) => {
-      const match = raw.match(new RegExp(`(?:^|[{,\\s])${key}:\\s*([\\d.]+)`));
-      return match ? parseFloat(match[1]) : null;
+      const match = raw.match(new RegExp(`(?:^|[{,\\s])${key}:\\s*([\\d.eE+-]+)`));
+      return num(match?.[1]);
     };
 
     const getAttr = (name: string) => {
-      const match = raw.match(
-        new RegExp(`"minecraft:(?:generic\\.)?${name}",\\s*base:\\s*([\\d.]+)`),
-      );
-      return match ? parseFloat(match[1]) : null;
+      const id = `"minecraft:(?:generic\\.)?${name}"`;
+      const match =
+        raw.match(new RegExp(`${id},\\s*base:\\s*([\\d.eE+-]+)`)) ??
+        raw.match(new RegExp(`base:\\s*([\\d.eE+-]+)[dfsbl]?,\\s*id:\\s*${id}`));
+      return num(match?.[1]);
     };
 
     const speed = getAttr("movement_speed");
-    const health = get("Health");
+    // Genetic health is the max-health base, not current HP: a pasted
+    // hurt horse must not understate its line. Fall back to Health
+    // only when no max_health attribute is present.
+    const health = getAttr("max_health") ?? get("Health");
     const jump = getAttr("jump_strength");
     const variant = get("Variant");
 

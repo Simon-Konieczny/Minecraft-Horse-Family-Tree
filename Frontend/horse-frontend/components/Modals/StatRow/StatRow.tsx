@@ -5,6 +5,7 @@ interface StatRowProps {
   fieldName: "speed" | "health" | "jump";
   displayStats: { speed: string; health: string; jump: string };
   handleTextChange: (field: string, textValue: string) => void;
+  error?: string | null;
 }
 
 export default function StatRow({
@@ -12,6 +13,7 @@ export default function StatRow({
   fieldName,
   displayStats,
   handleTextChange,
+  error,
 }: StatRowProps) {
   return (
     <div className={styles.statRow}>
@@ -22,6 +24,9 @@ export default function StatRow({
         value={displayStats[fieldName]}
         onChange={(e) => handleTextChange(fieldName, e.target.value)}
       />
+      {error && (
+        <span style={{ color: "#8f2d22", fontSize: 12 }}>{error}</span>
+      )}
     </div>
   );
 }

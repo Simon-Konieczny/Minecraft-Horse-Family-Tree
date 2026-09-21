@@ -52,6 +52,9 @@ export default function HorseCreateModal({
   }));
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("An Error Occured");
+  // Mirrors the form's stat-field validity; creation blocks while false
+  // so mistyped text can never silently persist a stale value.
+  const [statsValid, setStatsValid] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
@@ -80,6 +83,11 @@ export default function HorseCreateModal({
       }
       if ((!!formData.parentId1 && !formData.parentId2) || (!formData.parentId1 && !!formData.parentId2)) {
         setErrorMessage("Record two parents, or none for a founder.");
+        setError(true);
+        return;
+      }
+      if (!statsValid) {
+        setErrorMessage("Fix the highlighted stats before creating.");
         setError(true);
         return;
       }
@@ -121,6 +129,7 @@ export default function HorseCreateModal({
         <CreateHorseForm
           horses={horses}
           setError={setError}
+          setStatsValid={setStatsValid}
           formData={formData}
           setFormData={setFormData}
         />

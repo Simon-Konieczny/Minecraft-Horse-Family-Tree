@@ -9,7 +9,7 @@ import type { RecordsModel } from "../useRecordsModel";
 
 type Props = Pick<
   RecordsModel,
-  "histograms" | "scatter" | "scatterAvg" | "correlations" | "corrPoints"
+  "histograms" | "scatter" | "scatterAvg" | "correlations" | "corrPoints" | "withinGenCorrelations"
 >;
 
 export function DistributionsSection({
@@ -18,7 +18,20 @@ export function DistributionsSection({
   scatterAvg,
   correlations,
   corrPoints,
+  withinGenCorrelations,
 }: Props) {
+  // n-weighted mean of the per-generation correlations: when this
+  // disagrees with the pooled r above, the pooled link is a
+  // between-generation trend, not a within-generation trade-off.
+  const withinMean = (key: "speedHealth" | "jumpHealth") => {
+    const total = withinGenCorrelations.reduce((t, g) => t + g.correlations.n, 0);
+    if (total === 0) return null;
+    return (
+      withinGenCorrelations.reduce((t, g) => t + g.correlations[key] * g.correlations.n, 0) / total
+    );
+  };
+  const meanSH = withinMean("speedHealth");
+  const meanJH = withinMean("jumpHealth");
   return (
     <CollapsibleSection title="Distributions" count={histograms.length + 3} defaultOpen>
       <div className={chartStyles.chartGrid}>
@@ -56,6 +69,8 @@ export function DistributionsSection({
               : correlations.speedHealth < -0.5
                 ? "Strong trade-off — selecting for speed costs health."
                 : "Weak link — speed and health breed mostly independently."}
+            {meanSH !== null &&
+              ` Within-generation mean r = ${meanSH.toFixed(2)} (${withinGenCorrelations.length} generations).`}
           </p>
           <ScatterPlot points={corrPoints.speedHealth} xLabel="Speed (m/s)" yLabel="Health (hp)" xDecimals={2} yDecimals={1} />
         </ChartCard>
@@ -67,6 +82,8 @@ export function DistributionsSection({
               : correlations.jumpHealth < -0.5
                 ? "Strong trade-off — selecting for jump costs health."
                 : "Weak link — jump and health breed mostly independently."}
+            {meanJH !== null &&
+              ` Within-generation mean r = ${meanJH.toFixed(2)}.`}
           </p>
           <ScatterPlot points={corrPoints.jumpHealth} xLabel="Jump (blocks)" yLabel="Health (hp)" xDecimals={2} yDecimals={1} />
         </ChartCard>

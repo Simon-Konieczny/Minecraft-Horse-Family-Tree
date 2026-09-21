@@ -36,6 +36,7 @@ import {
   purityTrend,
   recordByGeneration,
   statCorrelations,
+  statCorrelationsByGeneration,
   untriedBloodlineCrosses,
   varianceByGeneration,
   variantUnlockHints,
@@ -192,7 +193,7 @@ export function useRecordsModel(horses: Horse[], colors: Record<string, string>)
 
   // Diversity + generation deltas.
   const herdShares = bloodlineShares(filtered);
-  const diversity = bloodlineDiversity(herdShares);
+  const diversity = bloodlineDiversity(herdShares, filtered.length);
   const herdTotal = herdShares.reduce((t, s) => t + s.total, 0);
   const avgMaps = new Map(
     STATS.map(({ field }) => [
@@ -357,6 +358,15 @@ export function useRecordsModel(horses: Horse[], colors: Record<string, string>)
     [filtered],
   );
   const correlations = useMemo(() => statCorrelations(translated), [translated]);
+  // Within-generation correlations guard the pooled view against
+  // Simpson's paradox (a herd-wide trend can fabricate pooled links).
+  const withinGenCorrelations = useMemo(
+    () =>
+      statCorrelationsByGeneration(
+        translated.map((h) => ({ generation: h.generation, speed: h.speed, jump: h.jump, health: h.health })),
+      ),
+    [translated],
+  );
   const corrPoints = useMemo(() => {
     const mk = (xf: "speed" | "jump", yf: "jump" | "health") =>
       filtered.map((h) => {
@@ -489,7 +499,7 @@ export function useRecordsModel(horses: Horse[], colors: Record<string, string>)
     fullVariants, crosstab, crosstabShares, rarest, presentCount,
     bubble, reliability, crosses, unlockHints,
     genShares, legacy, purityPts,
-    correlations, corrPoints, bestByGen, variancePts, recByGen,
+    correlations, corrPoints, withinGenCorrelations, bestByGen, variancePts, recByGen,
     inbreedSplit, pyramid, deadAlive, champions,
   };
 }

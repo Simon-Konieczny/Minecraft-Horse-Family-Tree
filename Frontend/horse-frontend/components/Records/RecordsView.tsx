@@ -43,6 +43,7 @@ export default function RecordsView({
         scatterAvg={model.scatterAvg}
         correlations={model.correlations}
         corrPoints={model.corrPoints}
+        withinGenCorrelations={model.withinGenCorrelations}
       />
 
       <ProgressionSection

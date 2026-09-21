@@ -6,7 +6,7 @@ import Select from "react-select";
 import * as styles from "./CreateHorseForm.css";
 import StatsBox from "@/components/Common/StatsBox/StatsBox";
 import Switch from "@/components/Common/Switch/Switch";
-import { untranslateStat, formatStatsForView } from "@/utils/translateRawStats";
+import { untranslateStat, formatStatsForView, statInputError, type StatField } from "@/utils/translateRawStats";
 import StatRow from "../../StatRow/StatRow";
 import { createHorseData } from "../HorseCreateModal";
 import VariantSelector from "@/components/Common/VariantSelector/VariantSelector";
@@ -21,19 +21,24 @@ import { bloodlineSlug } from "@/utils/bloodlineValidation";
 export interface CreateHorseFormProps {
   horses: Horse[];
   setError: (val: boolean) => void;
+  setStatsValid: (val: boolean) => void;
   formData: createHorseData;
   setFormData: Dispatch<SetStateAction<createHorseData>>;
 }
 
 export default function CreateHorseForm({
   horses,
+  setStatsValid,
   formData,
   setFormData,
 }: CreateHorseFormProps) {
   const [statsView, setStatsView] = useState(true);
   const [displayStats, setDisplayStats] = useState(() =>
-    formatStatsForView(formData.speed, formData.health, formData.jump, true),
+    formatStatsForView({ speed: formData.speed, health: formData.health, jump: formData.jump, rawView: true }),
   );
+  // Per-field validation errors; surfaced here and reported upward so
+  // the modal blocks creation while any stat text is invalid.
+  const [statErrors, setStatErrors] = useState<{ speed?: string | null; health?: string | null; jump?: string | null }>({});
 
   const handleSelectChange = (
     field: keyof createHorseData,
@@ -64,32 +69,49 @@ export default function CreateHorseForm({
           : newStats.familyName,
     }));
     // The text fields mirror the import immediately (no sync effect).
-    setDisplayStats(
-      formatStatsForView(newStats.speed, newStats.health, newStats.jump, statsView),
-    );
+    const mirrored = formatStatsForView({ speed: newStats.speed, health: newStats.health, jump: newStats.jump, rawView: statsView });
+    setDisplayStats(mirrored);
+    const importedErrors = {
+      speed: statInputError("speed", mirrored.speed, statsView),
+      health: statInputError("health", mirrored.health, statsView),
+      jump: statInputError("jump", mirrored.jump, statsView),
+    };
+    setStatErrors(importedErrors);
+    setStatsValid(!importedErrors.speed && !importedErrors.health && !importedErrors.jump);
   };
 
   const handleStatsViewChange = (checked: boolean) => {
     const rawView = !checked;
     setStatsView(rawView);
+    // Re-deriving from formData discards any invalid keystrokes.
     setDisplayStats(
-      formatStatsForView(formData.speed, formData.health, formData.jump, rawView),
+      formatStatsForView({ speed: formData.speed, health: formData.health, jump: formData.jump, rawView }),
     );
+    setStatErrors({});
+    setStatsValid(true);
   };
 
   const handleTextChange = (
     field: string,
     textValue: string,
   ) => {
-    setDisplayStats((prev) => ({ ...prev, [field]: textValue }));
+    const nextTexts = { ...displayStats, [field]: textValue };
+    setDisplayStats(nextTexts);
+
+    const error = statInputError(field as StatField, textValue, statsView);
+    const nextErrors = { ...statErrors, [field]: error };
+    setStatErrors(nextErrors);
+    const allValid = (["speed", "health", "jump"] as const).every(
+      (f) => !nextErrors[f] && nextTexts[f].trim() !== "",
+    );
+    setStatsValid(allValid);
+    if (error) return;
 
     const numericValue = parseFloat(textValue);
-    if (!isNaN(numericValue)) {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: statsView ? numericValue : untranslateStat(field, numericValue),
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [field]: statsView ? numericValue : untranslateStat(field, numericValue),
+    }));
   };
 
   const parentOptions = horses.map((horse) => ({
@@ -261,18 +283,21 @@ export default function CreateHorseForm({
               fieldName="speed"
               displayStats={displayStats}
               handleTextChange={handleTextChange}
+              error={statErrors.speed}
             />
             <StatRow
               text="Health"
               fieldName="health"
               displayStats={displayStats}
               handleTextChange={handleTextChange}
+              error={statErrors.health}
             />
             <StatRow
               text="Jump"
               fieldName="jump"
               displayStats={displayStats}
               handleTextChange={handleTextChange}
+              error={statErrors.jump}
             />
           </div>
         </div>

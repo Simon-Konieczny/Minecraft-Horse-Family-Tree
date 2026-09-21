@@ -20,6 +20,14 @@ export function isValidHex(hex: string): boolean {
 export const FALLBACK_HEX_COLOR = "#94a3b8";
 
 /**
+ * Canonical "unknown" color used by the DNA color registry, the UI
+ * fallback swatch, and horse-row defaults alike. (Stored hex casing is
+ * left mixed elsewhere by choice — this constant only governs what new
+ * code displays for unknown bloodlines.)
+ */
+export const UNKNOWN_HEX_COLOR = FALLBACK_HEX_COLOR;
+
+/**
  * Normalizes a typed hex draft for the strict #rrggbb registry format:
  * trims whitespace and uppercases. Returns the normalized value when it
  * is submittable, otherwise null (held locally, never saved).

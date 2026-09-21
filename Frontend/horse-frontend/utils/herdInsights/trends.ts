@@ -94,6 +94,33 @@ export function statCorrelations(
   };
 }
 
+export interface GenerationCorrelations {
+  generation: number;
+  /** Pooled-within-generation correlations (Simpson guard for the pooled view). */
+  correlations: StatCorrelations;
+}
+
+/**
+ * Per-generation correlations. The pooled statCorrelations mixes
+ * generations, so a herd-wide trend (e.g. all stats rising over time)
+ * can fabricate or mask within-generation links — compare these before
+ * claiming a trade-off. Generations with <3 complete rows are skipped.
+ */
+export function statCorrelationsByGeneration(
+  rows: { generation: number; speed: number; jump: number; health: number }[],
+): GenerationCorrelations[] {
+  const groups = new Map<number, { speed: number; jump: number; health: number }[]>();
+  for (const r of rows) {
+    const list = groups.get(r.generation);
+    if (list) list.push(r);
+    else groups.set(r.generation, [r]);
+  }
+  return [...groups.entries()]
+    .map(([generation, list]) => ({ generation, correlations: statCorrelations(list) }))
+    .filter((g) => g.correlations.n >= 3)
+    .sort((a, b) => a.generation - b.generation);
+}
+
 /** Per-generation standard deviation — stabilizing or freshly outcrossed? */
 export function varianceByGeneration(
   rows: { generation: number; value: number }[],

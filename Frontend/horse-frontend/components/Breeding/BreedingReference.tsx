@@ -27,8 +27,10 @@ export default function BreedingReference() {
             <li>Multiply step 2 by step 3.</li>
             <li>Add the parents&apos; average.</li>
             <li>
-              Reflect back into range: above max → <code>2·MAX − value</code>,
-              below min → <code>2·MIN − value</code>.
+              Reflect back into range per roll: above max → <code>2·MAX − value</code>,
+              below min → <code>2·MIN − value</code>. (The app&apos;s displayed
+              ranges instead clamp at the caps — the cap is the honest bound
+              to show, since a roll can land on it exactly.)
             </li>
           </ol>
           <pre

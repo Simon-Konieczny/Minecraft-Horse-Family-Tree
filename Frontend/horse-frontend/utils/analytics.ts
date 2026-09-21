@@ -49,6 +49,7 @@ export {
   BREEDING_RANGES,
   expectedFoalRange,
   heritabilityPoints,
+  inbreedingCoefficient,
   inbreedingRanking,
   linearRegression,
   longestLineage,

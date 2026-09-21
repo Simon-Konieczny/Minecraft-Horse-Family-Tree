@@ -39,6 +39,13 @@ export interface Regression {
   /** Coefficient of determination (0 when degenerate). */
   r2: number;
   n: number;
+  /**
+   * Standard error of the slope (family-clustered data violates iid, so
+   * treat as descriptive, not inferential). Null when n < 3.
+   */
+  seSlope: number | null;
+  /** Normal-approx 95% CI for the slope. Null when n < 3. */
+  slopeCI: [number, number] | null;
 }
 
 export interface InbreedingRank {
@@ -46,6 +53,12 @@ export interface InbreedingRank {
   /** Shared ancestors between the parents (each parent itself included). */
   shared: number;
   total: number;
+  /**
+   * Wright's inbreeding coefficient F (path-counting approximation,
+   * ancestor inbreeding ignored): probability two alleles are identical
+   * by descent. Parent×offspring mating = 0.25, full-sib mating = 0.25.
+   */
+  f: number;
 }
 
 export interface PlannedPair {
@@ -76,11 +89,11 @@ export interface SequentialPlan {
 }
 
 export interface FoalRange {
-  /** Parent midpoint — the roll's expected value. */
+  /** Parent midpoint — the roll's expected value (clamped to [min, max]). */
   midpoint: number;
-  /** Full spread before reflection. */
+  /** Full spread before clamping. */
   spread: number;
-  /** Possible bounds after the game's mirror-reflection into [min, max]. */
+  /** Possible bounds clamped into [min, max] (cap itself is the bound). */
   lo: number;
   hi: number;
 }
@@ -245,10 +258,17 @@ export function heritabilityPoints<
   return points;
 }
 
-/** Ordinary least-squares fit of y on x (empty/degenerate -> zeros). */
+/**
+ * Ordinary least-squares fit of y on x.
+ *
+ * Descriptive only here: herd data violates the classic assumptions
+ * (selected parents, sibs sharing x, no CIs on the input), so `slope`
+ * is a "breeds-true" summary, NOT a narrow-sense heritability estimate.
+ * seSlope/slopeCI are normal approximations for display, null when n<3.
+ */
 export function linearRegression(points: HeritabilityPoint[]): Regression {
   const n = points.length;
-  if (n === 0) return { slope: 0, intercept: 0, r2: 0, n: 0 };
+  if (n === 0) return { slope: 0, intercept: 0, r2: 0, n: 0, seSlope: null, slopeCI: null };
   const meanX = points.reduce((t, p) => t + p.x, 0) / n;
   const meanY = points.reduce((t, p) => t + p.y, 0) / n;
   let ssxx = 0;
@@ -259,16 +279,66 @@ export function linearRegression(points: HeritabilityPoint[]): Regression {
     ssxy += (p.x - meanX) * (p.y - meanY);
     ssty += (p.y - meanY) ** 2;
   }
-  if (!(ssxx > 0)) return { slope: 0, intercept: meanY, r2: 0, n };
+  if (!(ssxx > 0)) return { slope: 0, intercept: meanY, r2: 0, n, seSlope: null, slopeCI: null };
   const slope = ssxy / ssxx;
   const intercept = meanY - slope * meanX;
   const r2 = ssxx > 0 && ssty > 0 ? (ssxy * ssxy) / (ssxx * ssty) : 0;
-  return { slope, intercept, r2, n };
+  if (n < 3) return { slope, intercept, r2, n, seSlope: null, slopeCI: null };
+  const sse = Math.max(0, ssty - slope * ssxy);
+  const seSlope = Math.sqrt(sse / (n - 2) / ssxx);
+  return { slope, intercept, r2, n, seSlope, slopeCI: [slope - 1.96 * seSlope, slope + 1.96 * seSlope] };
+}
+
+/**
+ * Wright's inbreeding coefficient for one horse via its parents' common
+ * ancestors: F = Σ (1/2)^(d1+d2+1) over common ancestors, where d1/d2
+ * are BFS generational distances from each parent. Self-inclusion is
+ * deliberate: when one parent descends from the other, that parent is a
+ * common ancestor (parent×offspring → F = 0.25, as theory predicts).
+ * Ancestor inbreeding itself is ignored (documented approximation);
+ * maxDepth truncates deep loops. Horses with unknown parents score 0.
+ */
+export function inbreedingCoefficient<
+  T extends { id: string; parentId1?: string | null; parentId2?: string | null },
+>(horses: T[], id: string, maxDepth = 5): number {
+  const byId = new Map(horses.map((h) => [h.id, h]));
+  const self = byId.get(id);
+  if (!self?.parentId1 || !self?.parentId2) return 0;
+  const depths = (start: string): Map<string, number> => {
+    const dist = new Map<string, number>([[start, 0]]);
+    let frontier = [start];
+    for (let depth = 0; depth < maxDepth && frontier.length > 0; depth++) {
+      const next: string[] = [];
+      for (const current of frontier) {
+        const horse = byId.get(current);
+        if (!horse) continue;
+        for (const p of [horse.parentId1, horse.parentId2]) {
+          if (p && !dist.has(p)) {
+            dist.set(p, depth + 1);
+            next.push(p);
+          }
+        }
+      }
+      frontier = next;
+    }
+    return dist;
+  };
+  const d1 = depths(self.parentId1);
+  const d2 = depths(self.parentId2);
+  let f = 0;
+  for (const [ancestor, n1] of d1) {
+    const n2 = d2.get(ancestor);
+    if (n2 !== undefined) f += (1 / 2) ** (n1 + n2 + 1);
+  }
+  return f;
 }
 
 /**
  * Foals ranked by parental shared ancestry, most inbred first.
- * Only horses with both parents recorded are included.
+ * Only horses with both parents recorded are included. `shared` is a
+ * count (self-included, catches direct descent); `f` is the
+ * path-counted coefficient — prefer `f` for severity, `shared` for
+ * triage.
  */
 export function inbreedingRanking<
   T extends { id: string; parentId1?: string | null; parentId2?: string | null },
@@ -284,9 +354,9 @@ export function inbreedingRanking<
     for (const id of setA) {
       if (setB.has(id)) shared++;
     }
-    ranks.push({ id: h.id, shared, total: new Set([...setA, ...setB]).size });
+    ranks.push({ id: h.id, shared, total: new Set([...setA, ...setB]).size, f: inbreedingCoefficient(horses, h.id) });
   }
-  return ranks.sort((a, b) => b.shared - a.shared || a.total - b.total);
+  return ranks.sort((a, b) => b.shared - a.shared || b.f - a.f || a.total - b.total);
 }
 
 function ancestorIdsPlusSelf(
@@ -396,15 +466,16 @@ export const BREEDING_RANGES = {
 /**
  * Possible foal outcomes for one stat from the vanilla breeding formula:
  * midpoint = (x+y)/2, spread = |x-y| + 0.3*(max-min), roll in
- * midpoint ± spread/2, reflected back into [min, max] (2*MAX-base /
- * 2*MIN-base). Feed RAW attributes — the game rolls raw. Bounds are
+ * midpoint ± spread/2. Feed RAW attributes — the game rolls raw. Bounds are
  * indicative: real rolls cluster at the midpoint (3 averaged randoms).
  *
- * Bounds are the TRUE achievable interval: when the raw interval
- * straddles a cap, the cap itself is the bound (a roll landing exactly
- * on it stays). Reflecting the endpoints instead understates fast
- * parents — e.g. identical 14.19 m/s parents would display a max BELOW
- * themselves while slower pairs display higher maxima.
+ * Displayed bounds are CLAMPED (not the game's single mirror-reflection):
+ * when the raw interval straddles a cap, the cap itself is the bound (a
+ * roll landing exactly on it stays). Reflecting the endpoints instead
+ * understates fast parents — e.g. identical 14.19 m/s parents would
+ * display a max BELOW themselves while slower pairs display higher
+ * maxima. The cap is probability-0 as an exact hit, but it is the only
+ * honest upper bound to show.
  */
 export function expectedFoalRange(
   x: number,
@@ -412,13 +483,14 @@ export function expectedFoalRange(
   min: number,
   max: number,
 ): FoalRange {
-  const midpoint = (x + y) / 2;
+  const rawMidpoint = (x + y) / 2;
   const spread = Math.abs(x - y) + (max - min) * 0.3;
-  const rawLo = midpoint - spread / 2;
-  const rawHi = midpoint + spread / 2;
-  // Clamp both ends into [min, max] so hand-edited out-of-range parents
-  // can't leak a bound outside the legal interval; ordering guard covers
-  // degenerate min > max configs.
+  const rawLo = rawMidpoint - spread / 2;
+  const rawHi = rawMidpoint + spread / 2;
+  // Clamp everything into [min, max] so hand-edited out-of-range parents
+  // can't leak a prediction outside the legal interval; ordering guard
+  // covers degenerate min > max configs.
+  const midpoint = Math.min(Math.max(rawMidpoint, min), max);
   const lo = Math.min(Math.max(rawLo, min), max);
   const hi = Math.min(Math.max(rawHi, min), max);
   return { midpoint, spread, lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
@@ -486,6 +558,12 @@ function ancestorSet(
 /**
  * Shared ancestry between two breeding candidates over N generations
  * (flag, never block — see breeding policy). Cycle-safe.
+ *
+ * Deliberately EXCLUDES the candidates themselves (unlike
+ * inbreedingRanking, which includes parents to catch direct descent):
+ * this is a Jaccard index over shared *background*, so a parent-child
+ * pair scores on common ancestors, not on the parent itself. The two
+ * conventions differ on purpose — do not "unify" them.
  */
 export function ancestryOverlap<
   T extends { id: string; parentId1?: string | null; parentId2?: string | null },

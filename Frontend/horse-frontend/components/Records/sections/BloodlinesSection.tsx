@@ -105,7 +105,9 @@ export function BloodlinesSection({
                   ? " — one bloodline dominates; outcross to widen the gene pool."
                   : diversity.topShare > 0.45
                     ? " — one bloodline is pulling ahead; watch the next generations."
-                    : " — no bottleneck; the gene pool looks healthy."}
+                    : " — no bottleneck; the gene pool looks healthy."}{" "}
+                Bias-corrected (Miller-Madow): {diversity.effectiveMM.toFixed(1)} effective
+                across {diversity.richness} bloodlines.
               </p>
             </div>
           ) : (

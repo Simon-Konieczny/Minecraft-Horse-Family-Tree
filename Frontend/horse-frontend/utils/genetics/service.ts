@@ -1,4 +1,5 @@
 import { Horse } from "@/types/horse";
+import { bloodlineSlug } from "@/utils/bloodlineValidation";
 import { BLOODLINE_COLORS, assertDnaSum, calculateColorFromDna, mergeDna } from "./utils";
 
 export function processNewHorseGenetics(
@@ -9,7 +10,9 @@ export function processNewHorseGenetics(
 ) {
   if (!sire || !dam) {
     let blood = originBlood || "Unknown";
-    if (blood === "Void Born") blood = "Celestial Grass";
+    // Legacy remap, slug-compared like the rest of the registry so any
+    // casing ("void born", "VOID BORN") still resolves.
+    if (bloodlineSlug(blood) === "void born") blood = "Celestial Grass";
 
     const dna = { [blood]: 1.0 };
     return {

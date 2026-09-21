@@ -11,6 +11,7 @@ import {
   resolveOriginBlood,
 } from "./utils";
 import { processNewHorseGenetics } from "./service";
+import { UNKNOWN_HEX_COLOR } from "@/utils/bloodlineValidation";
 import type { Horse } from "@/types/horse";
 
 function horseWithDna(dna: Record<string, number>): Horse {
@@ -154,7 +155,7 @@ describe("resolveOriginBlood", () => {
 
 describe("calculateColorFromDna", () => {
   it("returns the Unknown fallback for empty DNA (no crash, not black)", () => {
-    expect(calculateColorFromDna({})).toBe("#444444");
+    expect(calculateColorFromDna({})).toBe(UNKNOWN_HEX_COLOR);
   });
 
   it("returns exactly the bloodline's hex for a 100% map", () => {
@@ -169,7 +170,7 @@ describe("calculateColorFromDna", () => {
   });
 
   it("falls back gracefully for bloodlines missing from the registry", () => {
-    expect(calculateColorFromDna({ NoSuchBloodline: 1.0 })).toBe("#444444");
+    expect(calculateColorFromDna({ NoSuchBloodline: 1.0 })).toBe(UNKNOWN_HEX_COLOR);
   });
 
   it("looks colors up in the injected registry map, not the built-in one", () => {

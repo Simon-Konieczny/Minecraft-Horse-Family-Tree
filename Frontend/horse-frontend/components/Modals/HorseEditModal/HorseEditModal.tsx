@@ -6,7 +6,7 @@ import * as styles from "./HorseEditModal.css";
 import * as createFormStyles from "../HorseCreateModal/CreateHorseForm/CreateHorseForm.css";
 import Button from "@/components/Common/Button/Button";
 import Switch from "@/components/Common/Switch/Switch";
-import { untranslateStat, formatStatsForView } from "@/utils/translateRawStats";
+import { untranslateStat, formatStatsForView, statInputError, type StatField } from "@/utils/translateRawStats";
 import { HorseStats } from "@/utils/parseHorseStats";
 import StatsBox from "@/components/Common/StatsBox/StatsBox";
 import StatRow from "../StatRow/StatRow";
@@ -41,19 +41,37 @@ export default function HorseEditModal({
   // Explicit founder-bloodline correction (parentless horses only).
   const [originBloodline, setOriginBloodline] = useState("");
   const [displayStats, setDisplayStats] = useState(() =>
-    formatStatsForView(horse.speed, horse.health, horse.jump, false),
+    formatStatsForView({ speed: horse.speed, health: horse.health, jump: horse.jump, rawView: false }),
   );
+  // Per-field validation errors; a save is blocked while any is set,
+  // so mistyped text can never silently persist a stale value.
+  const [statErrors, setStatErrors] = useState<{ speed?: string | null; health?: string | null; jump?: string | null }>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleTextChange = (field: string, textValue: string) => {
     setDisplayStats((prev) => ({ ...prev, [field]: textValue }));
 
+    const error = statInputError(field as StatField, textValue, rawStatsView);
+    setStatErrors((prev) => ({ ...prev, [field]: error }));
+    if (error) return;
+
     const numericValue = parseFloat(textValue);
-    if (!isNaN(numericValue)) {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: rawStatsView ? numericValue : untranslateStat(field, numericValue),
-      }));
+    setFormData((prev) => ({
+      ...prev,
+      [field]: rawStatsView ? numericValue : untranslateStat(field, numericValue),
+    }));
+  };
+
+  const handleSave = () => {
+    const bad = (["speed", "health", "jump"] as const)
+      .map((f) => statErrors[f])
+      .filter(Boolean);
+    if (bad.length > 0) {
+      setSaveError(bad.join(" "));
+      return;
     }
+    setSaveError(null);
+    onSave(formData, originBloodline);
   };
 
   // A horse can never be parented to itself or to one of its own
@@ -133,9 +151,14 @@ export default function HorseEditModal({
           : newStats.familyName,
     }));
     // The text fields mirror the import immediately (no sync effect).
-    setDisplayStats(
-      formatStatsForView(newStats.speed, newStats.health, newStats.jump, rawStatsView),
-    );
+    const mirrored = formatStatsForView({ speed: newStats.speed, health: newStats.health, jump: newStats.jump, rawView: rawStatsView });
+    setDisplayStats(mirrored);
+    setStatErrors({
+      speed: statInputError("speed", mirrored.speed, rawStatsView),
+      health: statInputError("health", mirrored.health, rawStatsView),
+      jump: statInputError("jump", mirrored.jump, rawStatsView),
+    });
+    setSaveError(null);
   };
 
   const handleChange = (field: string, value: string | number) => {
@@ -145,9 +168,12 @@ export default function HorseEditModal({
   const handleStatsViewChange = (checked: boolean) => {
     const rawView = !checked;
     setRawStatsView(rawView);
+    // Re-deriving from formData discards any invalid keystrokes.
     setDisplayStats(
-      formatStatsForView(formData.speed, formData.health, formData.jump, rawView),
+      formatStatsForView({ speed: formData.speed, health: formData.health, jump: formData.jump, rawView }),
     );
+    setStatErrors({});
+    setSaveError(null);
   };
 
   return (
@@ -279,28 +305,34 @@ export default function HorseEditModal({
               fieldName="speed"
               displayStats={displayStats}
               handleTextChange={handleTextChange}
+              error={statErrors.speed}
             />
             <StatRow
               text="Health"
               fieldName="health"
               displayStats={displayStats}
               handleTextChange={handleTextChange}
+              error={statErrors.health}
             />
             <StatRow
               text="Jump"
               fieldName="jump"
               displayStats={displayStats}
               handleTextChange={handleTextChange}
+              error={statErrors.jump}
             />
           </div>
         </div>
         <div className={styles.buttonRow}>
           <Button onClick={onCancel} text="Cancel" />
           <Button
-            onClick={() => onSave(formData, originBloodline)}
+            onClick={handleSave}
             text="Save Changes"
           />
         </div>
+        {saveError && (
+          <p style={{ color: "#8f2d22", fontSize: 13, marginTop: 8 }}>{saveError}</p>
+        )}
       </div>
     </div>
   );

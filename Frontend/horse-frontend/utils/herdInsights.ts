@@ -35,10 +35,12 @@ export {
   purityTrend,
   recordByGeneration,
   statCorrelations,
+  statCorrelationsByGeneration,
   varianceByGeneration,
 } from "./herdInsights/trends";
 export type {
   AliveDeadSplit,
+  GenerationCorrelations,
   GenerationRecord,
   InbredSplit,
   PurityPoint,

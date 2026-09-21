@@ -24,12 +24,13 @@ export function translateStatsForDisplay(stats: RawStats): ProcessedStats {
 }
 
 /** Text-field values for the stat inputs in raw or display units. */
-export function formatStatsForView(
-    speed: number,
-    health: number,
-    jump: number,
-    rawView: boolean,
-): { speed: string; health: string; jump: string } {
+export function formatStatsForView(args: {
+    speed: number;
+    health: number;
+    jump: number;
+    rawView: boolean;
+}): { speed: string; health: string; jump: string } {
+    const { speed, health, jump, rawView } = args;
     return {
         speed: (rawView ? speed : translateStat("speed", speed)).toString(),
         health: (rawView ? health : translateStat("health", health)).toString(),
@@ -65,11 +66,53 @@ export function untranslateStat(field: string, value: number): number {
             // strictly increasing over the whole 0.4-1.0 attribute range
             // and the positive root is always the right one.
             const disc = 1.530167 ** 2 - 4 * 4.581667 * (-0.192133 - value);
-            return Number(((-1.530167 + Math.sqrt(Math.max(0, disc))) / (2 * 4.581667)));
+            if (!(disc >= 0)) {
+                throw new Error(`Jump display value ${value} is below the curve minimum.`);
+            }
+            return Number(((-1.530167 + Math.sqrt(disc)) / (2 * 4.581667)));
         }
         case "health":
             return Number((value * 2));
         default:
             return value;
     }
+}
+
+export type StatField = "speed" | "jump" | "health";
+
+/** Legal raw attribute ranges (vanilla). Mirrors BREEDING_RANGES. */
+export const RAW_STAT_RANGES: Record<StatField, { min: number; max: number }> = {
+    speed: { min: 0.1125, max: 0.3375 },
+    jump: { min: 0.4, max: 1.0 },
+    health: { min: 15, max: 30 },
+};
+
+const STAT_LABELS: Record<StatField, string> = {
+    speed: "Speed",
+    jump: "Jump",
+    health: "Health",
+};
+
+/**
+ * Validates one stat text-field value. Returns an error message, or null
+ * when the text is a finite number inside the legal range for the
+ * current view (raw attribute vs translated display units).
+ */
+export function statInputError(
+    field: StatField,
+    text: string,
+    rawView: boolean,
+): string | null {
+    const label = STAT_LABELS[field];
+    const value = parseFloat(text);
+    if (text.trim() === "" || !Number.isFinite(value)) {
+        return `${label} must be a number.`;
+    }
+    const raw = RAW_STAT_RANGES[field];
+    const min = rawView ? raw.min : translateStat(field, raw.min);
+    const max = rawView ? raw.max : translateStat(field, raw.max);
+    if (value < min || value > max) {
+        return `${label} must be between ${min} and ${max}${rawView ? " (raw)" : ""}.`;
+    }
+    return null;
 }

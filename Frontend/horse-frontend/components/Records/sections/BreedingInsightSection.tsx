@@ -171,6 +171,7 @@ export function BreedingInsightSection({
           <p className={chartStyles.mutedNote}>
             Each dot is a foal plotted against its parents&apos; average.
             Slope ≈ 1 means the stat breeds true; slope ≈ 0 means the roll dominates.
+            Descriptive only — a selected herd is not a random-mating trial.
           </p>
           <div className={chartStyles.chartGrid}>
             {heritability.map((h) => (
@@ -179,7 +180,9 @@ export function BreedingInsightSection({
                   {h.label}{" "}
                   <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 12 }}>
                     slope {h.regression.slope.toFixed(2)} · R²{" "}
-                    {h.regression.r2.toFixed(2)} (n={h.regression.n})
+                    {h.regression.r2.toFixed(2)} (n={h.regression.n}
+                    {h.regression.slopeCI !== null &&
+                      `, 95% CI [${h.regression.slopeCI[0].toFixed(2)}, ${h.regression.slopeCI[1].toFixed(2)}]`})
                   </span>
                 </h4>
                 <ScatterPlot
@@ -204,6 +207,7 @@ export function BreedingInsightSection({
                   <th className={chartStyles.ledgerTh}>#</th>
                   <th className={chartStyles.ledgerTh}>Foal</th>
                   <th className={chartStyles.ledgerTh}>Shared ancestors</th>
+                  <th className={chartStyles.ledgerTh}>F</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,6 +224,12 @@ export function BreedingInsightSection({
                       style={{ color: r.shared > 0 ? "#8f2d22" : "inherit", fontWeight: r.shared > 0 ? 700 : 400 }}
                     >
                       {r.shared > 0 ? `${r.shared} ⚠` : "0"}
+                    </td>
+                    <td
+                      className={chartStyles.ledgerTd}
+                      title="Wright's inbreeding coefficient: probability two alleles are identical by descent (parent×offspring = 0.25)"
+                    >
+                      {r.f > 0 ? r.f.toFixed(3) : "0"}
                     </td>
                   </tr>
                 ))}

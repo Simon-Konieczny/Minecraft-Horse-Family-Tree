@@ -1,5 +1,5 @@
 import { BloodlineMap } from "@/types/horse";
-import { bloodlineSlug } from "@/utils/bloodlineValidation";
+import { bloodlineSlug, isValidHex, UNKNOWN_HEX_COLOR } from "@/utils/bloodlineValidation";
 
 export const BLOODLINE_COLORS: Record<string, string> = {
   "Star Strider": "#000066",
@@ -8,8 +8,15 @@ export const BLOODLINE_COLORS: Record<string, string> = {
   "Frostmane": "#00FFFF", 
   "Emberhoof": "#FF0000", 
   "Slothsoul": "#708090",
-  "Unknown": "#444444"
+  "Unknown": UNKNOWN_HEX_COLOR
 };
+
+/**
+ * Traces below this weight are dropped on merge (then renormalized), so
+ * centuries of outcrossing can't accumulate infinite registry keys.
+ * Matches PUREBRED_EPSILON: anything smaller is display dust anyway.
+ */
+export const DNA_DUST_CUTOFF = 1e-6;
 
 export function mergeDna(sireDna: BloodlineMap, damDna: BloodlineMap): BloodlineMap {
   const sire = normalizeDna(sireDna);
@@ -19,7 +26,7 @@ export function mergeDna(sireDna: BloodlineMap, damDna: BloodlineMap): Bloodline
 
   allKeys.forEach((key) => {
     const val = ((sire[key] || 0) + (dam[key] || 0)) / 2;
-    if (val > 0) dna[key] = val;
+    if (val >= DNA_DUST_CUTOFF) dna[key] = val;
   });
 
   return normalizeDna(dna);
@@ -73,13 +80,19 @@ export function calculateColorFromDna(
   dna: BloodlineMap,
   colors: Record<string, string> = BLOODLINE_COLORS,
 ): string {
+  // Normalize first: unnormalized weights could push channels past 255
+  // and produce invalid hex. Malformed registry entries fall back to
+  // the Unknown color instead of emitting NaN channels.
+  const normalized = normalizeDna(dna);
+  const entries = Object.entries(normalized);
+  const unknown = colors["Unknown"] || BLOODLINE_COLORS["Unknown"];
+
+  if (entries.length === 0) return unknown;
+
   let r = 0, g = 0, b = 0;
-  const entries = Object.entries(dna);
-
-  if (entries.length === 0) return colors["Unknown"] || BLOODLINE_COLORS["Unknown"];
-
   entries.forEach(([bloodline, weight]) => {
-    const hex = (colors[bloodline] || colors["Unknown"] || BLOODLINE_COLORS["Unknown"]).replace('#', '');
+    const raw = colors[bloodline] || unknown;
+    const hex = (isValidHex(raw) ? raw : unknown).replace('#', '');
     r += parseInt(hex.substring(0, 2), 16) * weight;
     g += parseInt(hex.substring(2, 4), 16) * weight;
     b += parseInt(hex.substring(4, 6), 16) * weight;
@@ -227,7 +240,11 @@ const PUREBRED_EPSILON = 1e-6;
  * never stored.
  */
 export function getPurityTier(dna: BloodlineMap): PurityTier {
-  const entries = Object.entries(dna || {}).sort(([, a], [, b]) => b - a);
+  // Alphabetical secondary sort matches getSurnameFromDna: exact ties
+  // resolve deterministically, never by sire slot.
+  const entries = Object.entries(dna || {}).sort(
+    ([nameA, a], [nameB, b]) => b - a || nameA.localeCompare(nameB),
+  );
   const [bloodline, share] = entries[0] ?? ["", 0];
 
   if (!bloodline || bloodline === "Unknown" || !(share > 0)) {

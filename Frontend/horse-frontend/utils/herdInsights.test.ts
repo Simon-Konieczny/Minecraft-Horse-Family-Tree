@@ -9,6 +9,7 @@ import {
   purityTrend,
   recordByGeneration,
   statCorrelations,
+  statCorrelationsByGeneration,
   untriedBloodlineCrosses,
   varianceByGeneration,
   variantIdOf,
@@ -153,6 +154,20 @@ describe("pearson / statCorrelations", () => {
     ]);
     expect(out.n).toBe(3);
     expect(out.speedJump).toBeCloseTo(1, 9);
+  });
+
+  it("groups correlations by generation, skipping thin groups", () => {
+    const rows = [
+      { generation: 0, speed: 10, jump: 4, health: 20 },
+      { generation: 0, speed: 12, jump: 5, health: 25 },
+      { generation: 0, speed: 14, jump: 6, health: 30 },
+      { generation: 1, speed: 11, jump: 4, health: 21 },
+      { generation: 1, speed: 13, jump: 5, health: 22 },
+    ];
+    const out = statCorrelationsByGeneration(rows);
+    expect(out.map((g) => g.generation)).toEqual([0]);
+    expect(out[0].correlations.n).toBe(3);
+    expect(out[0].correlations.speedJump).toBeCloseTo(1, 9);
   });
 });
 

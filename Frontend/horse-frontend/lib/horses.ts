@@ -1,7 +1,7 @@
 import { Collection, Document, ObjectId, WithId } from "mongodb";
 import { getMongoClient, mongoUnavailable, ENV_HINT } from "./mongodb";
 import { CreateHorseRequest, EditHorseRequest, Horse, parseHorseStatus } from "@/types/horse";
-import { bloodlineSlug } from "@/utils/bloodlineValidation";
+import { bloodlineSlug, UNKNOWN_HEX_COLOR } from "@/utils/bloodlineValidation";
 import {
   calculateColorFromDna,
   getSurnameFromDna,
@@ -32,7 +32,7 @@ function toHorse(row: WithId<Document>): Horse {
     health: toNumber(row.health),
     variant: toVariant(row),
     generation: toNumber(row.generation),
-    hexColor: row.hexColor || "#000000",
+    hexColor: row.hexColor || UNKNOWN_HEX_COLOR,
     dna: row.dna || {},
     createdAt: toISOString(row.createdAt),
   };

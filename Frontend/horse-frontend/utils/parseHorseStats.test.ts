@@ -38,13 +38,41 @@ describe("parseHorseStats", () => {
     });
   });
 
-  it("does not mistake max_health for Health", () => {
+  it("prefers max_health over current Health (hurt horses keep genetics)", () => {
     const parsed = parseHorseStats(
       `{Health: 20.0f, attributes: [{id: "minecraft:max_health", base: 30.0d}, ` +
         `{id: "minecraft:movement_speed", base: 0.25d}, ` +
         `{id: "minecraft:jump_strength", base: 0.7d}], Variant: 1}`,
     );
-    expect(parsed).toMatchObject({ health: 20, variant: 1 });
+    expect(parsed).toMatchObject({ health: 30, variant: 1 });
+  });
+
+  it("falls back to Health when max_health is absent", () => {
+    const parsed = parseHorseStats(
+      `{Health: 20.0f, Variant: 1, attributes: [` +
+        `{id: "minecraft:movement_speed", base: 0.25d}, ` +
+        `{id: "minecraft:jump_strength", base: 0.7d}]}`,
+    );
+    expect(parsed).toMatchObject({ health: 20 });
+  });
+
+  it("parses base-before-id attribute order", () => {
+    const parsed = parseHorseStats(
+      `{Health: 20.0f, Variant: 1, attributes: [` +
+        `{base: 0.25d, id: "minecraft:movement_speed"}, ` +
+        `{base: 0.7d, id: "minecraft:jump_strength"}]}`,
+    );
+    expect(parsed).toMatchObject({ speed: 0.25, jump: 0.7 });
+  });
+
+  it("rejects malformed numbers as missing", () => {
+    expect(
+      parseHorseStats(
+        `{Health: ...f, Variant: 1, attributes: [` +
+          `{id: "minecraft:movement_speed", base: 0.25d}, ` +
+          `{id: "minecraft:jump_strength", base: 0.7d}]}`,
+      ),
+    ).toBeNull();
   });
 
   it("parses stats without a CustomName", () => {

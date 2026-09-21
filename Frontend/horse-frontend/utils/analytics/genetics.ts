@@ -34,6 +34,16 @@ export interface DiversityIndex {
   effective: number;
   /** Largest single-bloodline share 0-1 (bottleneck signal). */
   topShare: number;
+  /** Distinct bloodlines with nonzero weight. */
+  richness: number;
+  /**
+   * Miller-Madow bias-corrected Shannon: H + (K-1)/(2N). Prefer this
+   * (and its exp) at small herd sizes; the plug-in H is downward
+   * biased when rare bloodlines are undersampled.
+   */
+  shannonMM: number;
+  /** exp(shannonMM). */
+  effectiveMM: number;
 }
 
 export interface VariantBloodlineShare {
@@ -167,20 +177,30 @@ export function variantBloodlineCrosstab(
 /**
  * Bloodline diversity from summed DNA shares (see bloodlineShares):
  * effective = 1 means a single-bloodline herd.
+ *
+ * `sampleSize` (head count, for the Miller-Madow correction) defaults
+ * to the summed weight, which equals head count for normalized DNA.
  */
 export function bloodlineDiversity(
   shares: { total: number }[],
+  sampleSize?: number,
 ): DiversityIndex {
   const sum = shares.reduce((t, s) => t + s.total, 0);
-  if (!(sum > 0)) return { shannon: 0, effective: 0, topShare: 0 };
+  if (!(sum > 0)) return { shannon: 0, effective: 0, topShare: 0, richness: 0, shannonMM: 0, effectiveMM: 0 };
   let shannon = 0;
   let topShare = 0;
+  let richness = 0;
   for (const s of shares) {
     const p = s.total / sum;
-    if (p > 0) shannon -= p * Math.log(p);
+    if (p > 0) {
+      shannon -= p * Math.log(p);
+      richness++;
+    }
     if (p > topShare) topShare = p;
   }
-  return { shannon, effective: Math.exp(shannon), topShare };
+  const n = sampleSize && sampleSize > 0 ? sampleSize : sum;
+  const shannonMM = shannon + (richness - 1) / (2 * n);
+  return { shannon, effective: Math.exp(shannon), topShare, richness, shannonMM, effectiveMM: Math.exp(shannonMM) };
 }
 
 /**
@@ -188,6 +208,9 @@ export function bloodlineDiversity(
  * split its single count across its bloodlines (a 50/50 hybrid adds
  * 0.5 + 0.5), so column totals stay exact and hybrids are never
  * misattributed to one dominant column. Junk DNA weights skipped.
+ *
+ * Display rounds shares to 0.1 (see callers): rounding error per cell
+ * is at most ±0.05, so column totals hold within ±0.05 × cells.
  */
 export function variantBloodlineShares(
   horses: { variant?: unknown; dna?: Record<string, unknown> }[],
