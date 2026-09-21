@@ -15,7 +15,11 @@ import {
 } from "@/utils/bloodlineValidation";
 import { unstable_noStore as noStore } from "next/cache";
 
-const BLOODLINES_COLLECTION = "bloodlines";
+/** Mongo collection for bloodlines. Configurable via env, defaults to "bloodlines". */
+function getBloodlinesCollectionName(): string {
+  const name = process.env.BLOODLINES_COLLECTION_NAME?.trim();
+  return name ? name : "bloodlines";
+}
 
 export interface Bloodline {
   name: string;
@@ -248,6 +252,6 @@ async function getBloodlinesCollection(): Promise<Collection<BloodlineDoc>> {
   const client = await getMongoClient();
   // Note: no explicit index setup — _id is uniquely indexed by Mongo
   // itself (an explicit createIndex({_id: 1}) call throws here).
-  return client.db(dbName).collection<BloodlineDoc>(BLOODLINES_COLLECTION);
+  return client.db(dbName).collection<BloodlineDoc>(getBloodlinesCollectionName());
 }
 
